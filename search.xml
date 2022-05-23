@@ -1,26 +1,215 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Hello World</title>
-    <url>/2022/05/21/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+    <title>JVM-类加载子系统</title>
+    <url>/2022/05/22/JVM-%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%AD%90%E7%B3%BB%E7%BB%9F/</url>
+    <content><![CDATA[<p>从这里开始正式开始JVM，首先我们要对类加载有一个大致的认识。类加载子系统 就是将 类 从磁盘中读取到 内存中的一个东西，包括 加载 链接 初始化 三个阶段。</p>
+<span id="more"></span>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<h1 id="类加载三阶段"><a href="#类加载三阶段" class="headerlink" title="类加载三阶段"></a>类加载三阶段</h1><h2 id="加载"><a href="#加载" class="headerlink" title="加载"></a>加载</h2><ol>
+<li><p>通过一个类的全限定命名，获取这个类的二进制流。</p>
+<blockquote>
+<p>class 文件来源：<br>Class文件；applet 网络；计算生成也就是动态代理；JSP；压缩文件(jar war)。。。</p>
+</blockquote>
+</li>
+<li><p>将字节流代表的静态存储结构转化为方法区的运行时数据结构。</p>
+</li>
+<li><p>在内存中生成代表这个类的反射(java.lang.Class)，作为方法区这个类的各种数据访问入口。</p>
+</li>
+</ol>
+<h2 id="链接"><a href="#链接" class="headerlink" title="链接"></a>链接</h2><h3 id="验证-verify"><a href="#验证-verify" class="headerlink" title="验证 verify"></a>验证 verify</h3><p>保证加载类的字节流包含的数据符合规范，不会危害到JVM。<br>主要验证：文件格式 元数据 字节码 符号引用</p>
+<blockquote>
+<p>这里举个例子，Java 的字节码文件有一个规范，二进制都以 CA FE BA BE 开头</p>
+</blockquote>
+<h3 id="准备阶段"><a href="#准备阶段" class="headerlink" title="准备阶段"></a>准备阶段</h3><p>给 类变量设置初始值为零值，仅限于类变量，也就是 static,不包含 final static，因为 final 的零值在编译的时候就已经分配了。</p>
+<h3 id="解析"><a href="#解析" class="headerlink" title="解析"></a>解析</h3><p>常量池中的符号引用改为直接引用,举个例子，我们就写一个类里面有一个主方法，他就需要加载一大堆类，其实就是 lang 底下的各种类，总不能说都放到out目录下，所以就需要引用他们。</p>
+<p>详细的以后细说，这里大致了解一下。</p>
+<h2 id="初始化阶段"><a href="#初始化阶段" class="headerlink" title="初始化阶段"></a>初始化阶段</h2><ol>
+<li><p>调用类的 clinit 方法，这个方法会把 所有对 static 成员的赋值操作收集起来，<br>写成一个方法 clinit(按顺序，按顺序，按顺序)，对 static 进行重新赋值</p>
+<blockquote>
+<p>这里举一个例子：<br> static{num &#x3D; 20;} private static int num &#x3D; 10;<br>首先因为链接阶段的 prepare，num 在初始化前就是 0，所以在初始化的时候，按照顺序生成 clinit，也就是先 num &#x3D; 20，再 num &#x3D; 10，所以最后，num &#x3D;&#x3D; 10 </p>
+</blockquote>
+</li>
+<li><p>如果说 我们的类 里面没有 static，那么就不存在 clinit</p>
+</li>
+<li><p>clinit 不同于 构造函数，clinit 在 构造之前执行，在JVM 的角度，构造函数 是 &lt;init&gt;() 方法，在 &lt;clinit&gt;() 之后。</p>
+</li>
+<li><p>子类执行 clinint 之前，必须执行 超类 的 clinit</p>
+</li>
+<li><p>JVM 保证多线程下 clinit 方法被枷锁</p>
+</li>
+</ol>
+<h1 id="类加载器"><a href="#类加载器" class="headerlink" title="类加载器"></a>类加载器</h1><h2 id="概括"><a href="#概括" class="headerlink" title="概括"></a>概括</h2><p>JVM 支持两种类加载器：</p>
+<ul>
+<li><p>引导类加载器 Bootstrap ClassLoader</p>
+</li>
+<li><p>自定义类加载器 User-defined Class Loader</p>
+<blockquote>
+<p>这个自定义类加载器不是说我们自己写的，而是只要派生了抽象类ClassLoader的，<br>都叫自定义类加载器。</p>
+</blockquote>
+</li>
+</ul>
+<p>必须注意的是，Bootstrap ClassLoader 并没有继承 ClassLoader，它使用 C 实现的。</p>
+<p>各个类加载器之间是包含关系，不是上下级，更不是继承。</p>
+<pre><code>                  BootstrapClassLoader
+                           |
+                  ExtensionClassLoader
+                           |
+                    SystemClassLoader
+                           |
+              |------------+-----------|                      
+     User-def ClassLoader     User-def ClassLoader
+             ...                      ...
+</code></pre>
+<p>我们可以通过代码来验证这种关系：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 返回 sun.misc.Launcher$AppClassLoader 表明得到了 SystemClassLoader</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">sysLoader</span> <span class="operator">=</span> ClassLoader.getSystemClassLoader();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 返回 sun.misc.Launcher$ExtClassLoader 表明ExtClassLoader包含 SystemClassLoader</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">extLoader</span> <span class="operator">=</span> sysLoader.getParent();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 无法得到 ExtClassLoader 的parent，因为他的上层 BootstrapClassLoader 不是Java写的。返回null</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">bootLoader</span> <span class="operator">=</span> extLoader.getParent();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 自定义类的类加载器，返回 AppClassLoader，也就是系统类加载器加载自定义类。</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">myClassLoader</span> <span class="operator">=</span> MyClass.class.getClassLoader();</span><br><span class="line"></span><br><span class="line"><span class="comment">// String 由引导类加载器加载，返回 null 所以 Java 的核心类都被引导加载器加载</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">stringLoader</span> <span class="operator">=</span> String.class.getClassLoader();</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<h2 id="JVM自带的类加载器"><a href="#JVM自带的类加载器" class="headerlink" title="JVM自带的类加载器"></a>JVM自带的类加载器</h2><h3 id="启动类加载器"><a href="#启动类加载器" class="headerlink" title="启动类加载器"></a>启动类加载器</h3><p>也叫引导类加载器 BootstrapClassLoader</p>
+<ul>
+<li><p>用 C&#x2F;C++ 实现，嵌套在JVM内部</p>
+</li>
+<li><p>用来加载Java核心类库</p>
+<blockquote>
+<p>JAVA_HOME&#x2F;jre&#x2F;lib&#x2F;rt.jar resources.jar 或者<br>sun.boot.class.path 下的内容，用于提供JVM自身需要的类</p>
+</blockquote>
+</li>
+<li><p>并没有继承ClassLoader，没有父加载器</p>
+</li>
+<li><p>加载扩展类和应用程序类加载器(ExtClassLoader &amp; AppClassLoader)，并制定他们的父加载器</p>
+</li>
+<li><p>出于安全考虑，只加载包名开头是 java javax sun 的类。</p>
+</li>
+</ul>
+<h3 id="扩展类加载器"><a href="#扩展类加载器" class="headerlink" title="扩展类加载器"></a>扩展类加载器</h3><ul>
+<li><p>用 Java 编写</p>
+</li>
+<li><p>派生于 ClassLoader，sun.misc.Launcher$ExtClassLoader</p>
+</li>
+<li><p>父加载器是 启动类加载器</p>
+</li>
+<li><p>从 java.ext.dirs系统属性指定的目录中加载，或者 加载 jre&#x2F;lib&#x2F;ext 下的类库。</p>
+<blockquote>
+<p>如果用户写的 jar文件放在这里，也被他加载。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="应用程序加载器"><a href="#应用程序加载器" class="headerlink" title="应用程序加载器"></a>应用程序加载器</h3><ul>
+<li>Java 编写</li>
+<li>派生于 ClassLoader， sun.misc.Launcher$AppClassLoader 实现</li>
+<li>父加载器是 扩展类加载器</li>
+<li>家在环境变量 classpath或系统属性 java.class.path目录下的类库</li>
+<li>程序默认的类加载器，Java 应用程序都被他加载</li>
+<li>调用 ClassLoader.getSystemClassLoader() 可以得到</li>
+</ul>
+<h3 id="自定义类加载"><a href="#自定义类加载" class="headerlink" title="自定义类加载"></a>自定义类加载</h3><ul>
+<li>一般来说，类加载几乎都是上面三个 类加载器加载的，情况特殊我们可以用自己的。</li>
+<li>什么时候需要自定义：<ul>
+<li>隔离加载类 比如框架之间用 Jar包，为了相互不冲突，自定义类加载器</li>
+<li>修改类的加载方式</li>
+<li>扩展加载源，比如我们可以从数据库中加载</li>
+<li>防止源码泄露，先对源码进行加密，然后自定义类加载器进行解密。</li>
+</ul>
+</li>
+<li>如何自定义类加载器，以后再说，大致需要实现 继承 ClassLoader 重写 findClass</li>
+</ul>
+<h2 id="关于-ClassLoader"><a href="#关于-ClassLoader" class="headerlink" title="关于 ClassLoader"></a>关于 ClassLoader</h2><p>是一个抽象类，我们以后自己要实现类加载器的话可以继承这个类来实现一些我们自己的功能。</p>
+<h1 id="双亲委派机制"><a href="#双亲委派机制" class="headerlink" title="双亲委派机制"></a>双亲委派机制</h1><p>一个类加载器接收到类加载请求后，并不会立马进行加载，而是把加载请求传给父加载器（虽然说父加载器，但是一直说 三个类加载器之间没有继承关系），然后一直递归，一直往上，最终给了 引导类加载器。如果父加载器可以完成加载，则返回结果，如果不能，再传回子加载器</p>
+<p>举个例子：</p>
+<p>加载我们的自定义类 User，首先AppClassLoader 收到加载请求，将请求发给ExtClassLoader，然后ExtClassLoader 再发给BootstrapClassLoader，BootstrapClassLoader 一看，我只负责加载 java javax 等，你这个 pri.entity.User 我不负责，将请求发回 ExtClassLoader，ext 也不管，则返回App，最终App进行加载。</p>
+<p>再举个栗子：</p>
+<p>我们自定义一个 java.lang.String，然后在别的地方 <code>String str = new String();</code> 那么加载的是哪个类，是我们自定义的，还是Java 的。根据这个机制，这个请求最终发给了 BootstrapClassLoader，那么很显然就会加载 系统的 String,而不是我们自己的String，因为我们自己的 String 需要 AppClassLoader 加载。</p>
+<p>然后我们在我们自己的 String 里面定义main 方法，可不可以运行？显然不行，因为执行main方法需要先进性类加载，直接加载 系统的 String。系统的String 很显然没有main</p>
+<h2 id="优势："><a href="#优势：" class="headerlink" title="优势："></a>优势：</h2><ul>
+<li>避免类的重复加载。</li>
+<li>保护核心api不被破坏，比如上面的例子</li>
+</ul>
+<h2 id="如何判断两个Class-相同"><a href="#如何判断两个Class-相同" class="headerlink" title="如何判断两个Class 相同"></a>如何判断两个Class 相同</h2><ul>
+<li>全限定命名一样</li>
+<li>所用的类加载器一样</li>
+</ul>
+<h2 id="Java加载类的两种方式"><a href="#Java加载类的两种方式" class="headerlink" title="Java加载类的两种方式"></a>Java加载类的两种方式</h2><p>Java加载类就是两种方式：主动加载和被加载，下面是主动加载</p>
+<ul>
+<li>创建实例</li>
+<li>访问静态变量或者赋值</li>
+<li>调用静态方法</li>
+<li>反射，比如 Class.forName()</li>
+<li>初始化一个类的子类</li>
+<li>Java虚拟机启动时被标明为启动类的类</li>
+<li>JDK7开始的同台语言支持，不知道啥意思</li>
+</ul>
+<p>除此之外，全是被动加载，被动加载不会进行初始化。我们上面说过，类加载经理加载链接初始化，只有主动加载一个类，这个类才会经历初始化过程，否则不会经历。那么不会初始化会导致什么后果？以后再说。</p>
 ]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
   </entry>
   <entry>
-    <title>test_my_site</title>
-    <url>/2022/05/21/test-my-site/</url>
-    <content><![CDATA[]]></content>
+    <title>hexo部署</title>
+    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
+<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
+<span id="more"></span>
+
+<h1 id="Github-Page"><a href="#Github-Page" class="headerlink" title="Github Page"></a>Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
+<p><strong><font color="red">步骤如下：</font></strong></p>
+<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
+<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
+<h1 id="Hexo"><a href="#Hexo" class="headerlink" title="Hexo"></a>Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
+<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
+<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
+<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
+<h2 id="安装流程"><a href="#安装流程" class="headerlink" title="安装流程"></a>安装流程</h2><blockquote>
+<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
+
+<p>然后，正常情况下，会提示这么一句：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
+
+<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
+<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
+<h2 id="配置基本信息"><a href="#配置基本信息" class="headerlink" title="配置基本信息"></a>配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
+<h3 id="配置博客基本信息"><a href="#配置博客基本信息" class="headerlink" title="配置博客基本信息"></a>配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="配置仓库"><a href="#配置仓库" class="headerlink" title="配置仓库"></a>配置仓库</h3><p>往后找，找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="小坑"><a href="#小坑" class="headerlink" title="小坑"></a>小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
+<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
+<h2 id="安装主题"><a href="#安装主题" class="headerlink" title="安装主题"></a>安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
+
+<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
+
+<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
+<h2 id="Tags-amp-Categories-amp-About"><a href="#Tags-amp-Categories-amp-About" class="headerlink" title="Tags &amp; Categories &amp; About"></a>Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
+<p>在博客根目录下执行如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
+
+<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
+<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
+
+<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
+<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
+<p>然后，这三个页面以后都不要管了。</p>
+<h2 id="主题配置"><a href="#主题配置" class="headerlink" title="主题配置"></a>主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
+<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
+<h1 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
+<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
+]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>部署</tag>
+      </tags>
   </entry>
 </search>
