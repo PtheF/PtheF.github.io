@@ -6,7 +6,7 @@
     <content><![CDATA[<p>从这里开始正式开始JVM，首先我们要对类加载有一个大致的认识。类加载子系统 就是将 类 从磁盘中读取到 内存中的一个东西，包括 加载 链接 初始化 三个阶段。</p>
 <span id="more"></span>
 
-<h1 id="类加载三阶段"><a href="#类加载三阶段" class="headerlink" title="类加载三阶段"></a>类加载三阶段</h1><h2 id="加载"><a href="#加载" class="headerlink" title="加载"></a>加载</h2><ol>
+<h1 id="1-类加载三阶段"><a href="#1-类加载三阶段" class="headerlink" title="1. 类加载三阶段"></a>1. 类加载三阶段</h1><h2 id="1-1-加载"><a href="#1-1-加载" class="headerlink" title="1.1 加载"></a>1.1 加载</h2><ol>
 <li><p>通过一个类的全限定命名，获取这个类的二进制流。</p>
 <blockquote>
 <p>class 文件来源：<br>Class文件；applet 网络；计算生成也就是动态代理；JSP；压缩文件(jar war)。。。</p>
@@ -17,14 +17,14 @@
 <li><p>在内存中生成代表这个类的反射(java.lang.Class)，作为方法区这个类的各种数据访问入口。</p>
 </li>
 </ol>
-<h2 id="链接"><a href="#链接" class="headerlink" title="链接"></a>链接</h2><h3 id="验证-verify"><a href="#验证-verify" class="headerlink" title="验证 verify"></a>验证 verify</h3><p>保证加载类的字节流包含的数据符合规范，不会危害到JVM。<br>主要验证：文件格式 元数据 字节码 符号引用</p>
+<h2 id="1-2-链接"><a href="#1-2-链接" class="headerlink" title="1.2 链接"></a>1.2 链接</h2><h3 id="1-2-1-验证-verify"><a href="#1-2-1-验证-verify" class="headerlink" title="1.2.1 验证 verify"></a>1.2.1 验证 verify</h3><p>保证加载类的字节流包含的数据符合规范，不会危害到JVM。<br>主要验证：文件格式 元数据 字节码 符号引用</p>
 <blockquote>
 <p>这里举个例子，Java 的字节码文件有一个规范，二进制都以 CA FE BA BE 开头</p>
 </blockquote>
-<h3 id="准备阶段"><a href="#准备阶段" class="headerlink" title="准备阶段"></a>准备阶段</h3><p>给 类变量设置初始值为零值，仅限于类变量，也就是 static,不包含 final static，因为 final 的零值在编译的时候就已经分配了。</p>
-<h3 id="解析"><a href="#解析" class="headerlink" title="解析"></a>解析</h3><p>常量池中的符号引用改为直接引用,举个例子，我们就写一个类里面有一个主方法，他就需要加载一大堆类，其实就是 lang 底下的各种类，总不能说都放到out目录下，所以就需要引用他们。</p>
+<h3 id="1-2-2-准备阶段"><a href="#1-2-2-准备阶段" class="headerlink" title="1.2.2 准备阶段"></a>1.2.2 准备阶段</h3><p>给 类变量设置初始值为零值，仅限于类变量，也就是 static,不包含 final static，因为 final 的零值在编译的时候就已经分配了。</p>
+<h3 id="1-2-3-解析"><a href="#1-2-3-解析" class="headerlink" title="1.2.3 解析"></a>1.2.3 解析</h3><p>常量池中的符号引用改为直接引用,举个例子，我们就写一个类里面有一个主方法，他就需要加载一大堆类，其实就是 lang 底下的各种类，总不能说都放到out目录下，所以就需要引用他们。</p>
 <p>详细的以后细说，这里大致了解一下。</p>
-<h2 id="初始化阶段"><a href="#初始化阶段" class="headerlink" title="初始化阶段"></a>初始化阶段</h2><ol>
+<h2 id="1-3-初始化阶段"><a href="#1-3-初始化阶段" class="headerlink" title="1.3 初始化阶段"></a>1.3 初始化阶段</h2><ol>
 <li><p>调用类的 clinit 方法，这个方法会把 所有对 static 成员的赋值操作收集起来，<br>写成一个方法 clinit(按顺序，按顺序，按顺序)，对 static 进行重新赋值</p>
 <blockquote>
 <p>这里举一个例子：<br> static{num &#x3D; 20;} private static int num &#x3D; 10;<br>首先因为链接阶段的 prepare，num 在初始化前就是 0，所以在初始化的时候，按照顺序生成 clinit，也就是先 num &#x3D; 20，再 num &#x3D; 10，所以最后，num &#x3D;&#x3D; 10 </p>
@@ -39,7 +39,7 @@
 <li><p>JVM 保证多线程下 clinit 方法被枷锁</p>
 </li>
 </ol>
-<h1 id="类加载器"><a href="#类加载器" class="headerlink" title="类加载器"></a>类加载器</h1><h2 id="概括"><a href="#概括" class="headerlink" title="概括"></a>概括</h2><p>JVM 支持两种类加载器：</p>
+<h1 id="2-类加载器"><a href="#2-类加载器" class="headerlink" title="2. 类加载器"></a>2. 类加载器</h1><h2 id="2-1-概括"><a href="#2-1-概括" class="headerlink" title="2.1 概括"></a>2.1 概括</h2><p>JVM 支持两种类加载器：</p>
 <ul>
 <li><p>引导类加载器 Bootstrap ClassLoader</p>
 </li>
@@ -64,7 +64,7 @@
 <p>我们可以通过代码来验证这种关系：</p>
 <figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 返回 sun.misc.Launcher$AppClassLoader 表明得到了 SystemClassLoader</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">sysLoader</span> <span class="operator">=</span> ClassLoader.getSystemClassLoader();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 返回 sun.misc.Launcher$ExtClassLoader 表明ExtClassLoader包含 SystemClassLoader</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">extLoader</span> <span class="operator">=</span> sysLoader.getParent();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 无法得到 ExtClassLoader 的parent，因为他的上层 BootstrapClassLoader 不是Java写的。返回null</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">bootLoader</span> <span class="operator">=</span> extLoader.getParent();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 自定义类的类加载器，返回 AppClassLoader，也就是系统类加载器加载自定义类。</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">myClassLoader</span> <span class="operator">=</span> MyClass.class.getClassLoader();</span><br><span class="line"></span><br><span class="line"><span class="comment">// String 由引导类加载器加载，返回 null 所以 Java 的核心类都被引导加载器加载</span></span><br><span class="line"><span class="type">ClassLoader</span> <span class="variable">stringLoader</span> <span class="operator">=</span> String.class.getClassLoader();</span><br></pre></td></tr></table></figure>
 
-<h2 id="JVM自带的类加载器"><a href="#JVM自带的类加载器" class="headerlink" title="JVM自带的类加载器"></a>JVM自带的类加载器</h2><h3 id="启动类加载器"><a href="#启动类加载器" class="headerlink" title="启动类加载器"></a>启动类加载器</h3><p>也叫引导类加载器 BootstrapClassLoader</p>
+<h2 id="2-2-JVM自带的类加载器"><a href="#2-2-JVM自带的类加载器" class="headerlink" title="2.2 JVM自带的类加载器"></a>2.2 JVM自带的类加载器</h2><h3 id="2-2-1-启动类加载器"><a href="#2-2-1-启动类加载器" class="headerlink" title="2.2.1 启动类加载器"></a>2.2.1 启动类加载器</h3><p>也叫引导类加载器 BootstrapClassLoader</p>
 <ul>
 <li><p>用 C&#x2F;C++ 实现，嵌套在JVM内部</p>
 </li>
@@ -80,7 +80,7 @@
 <li><p>出于安全考虑，只加载包名开头是 java javax sun 的类。</p>
 </li>
 </ul>
-<h3 id="扩展类加载器"><a href="#扩展类加载器" class="headerlink" title="扩展类加载器"></a>扩展类加载器</h3><ul>
+<h3 id="2-2-2-扩展类加载器"><a href="#2-2-2-扩展类加载器" class="headerlink" title="2.2.2 扩展类加载器"></a>2.2.2 扩展类加载器</h3><ul>
 <li><p>用 Java 编写</p>
 </li>
 <li><p>派生于 ClassLoader，sun.misc.Launcher$ExtClassLoader</p>
@@ -93,7 +93,7 @@
 </blockquote>
 </li>
 </ul>
-<h3 id="应用程序加载器"><a href="#应用程序加载器" class="headerlink" title="应用程序加载器"></a>应用程序加载器</h3><ul>
+<h3 id="2-2-3-应用程序加载器"><a href="#2-2-3-应用程序加载器" class="headerlink" title="2.2.3 应用程序加载器"></a>2.2.3 应用程序加载器</h3><ul>
 <li>Java 编写</li>
 <li>派生于 ClassLoader， sun.misc.Launcher$AppClassLoader 实现</li>
 <li>父加载器是 扩展类加载器</li>
@@ -101,7 +101,7 @@
 <li>程序默认的类加载器，Java 应用程序都被他加载</li>
 <li>调用 ClassLoader.getSystemClassLoader() 可以得到</li>
 </ul>
-<h3 id="自定义类加载"><a href="#自定义类加载" class="headerlink" title="自定义类加载"></a>自定义类加载</h3><ul>
+<h3 id="2-2-4-自定义类加载"><a href="#2-2-4-自定义类加载" class="headerlink" title="2.2.4 自定义类加载"></a>2.2.4 自定义类加载</h3><ul>
 <li>一般来说，类加载几乎都是上面三个 类加载器加载的，情况特殊我们可以用自己的。</li>
 <li>什么时候需要自定义：<ul>
 <li>隔离加载类 比如框架之间用 Jar包，为了相互不冲突，自定义类加载器</li>
@@ -112,22 +112,22 @@
 </li>
 <li>如何自定义类加载器，以后再说，大致需要实现 继承 ClassLoader 重写 findClass</li>
 </ul>
-<h2 id="关于-ClassLoader"><a href="#关于-ClassLoader" class="headerlink" title="关于 ClassLoader"></a>关于 ClassLoader</h2><p>是一个抽象类，我们以后自己要实现类加载器的话可以继承这个类来实现一些我们自己的功能。</p>
-<h1 id="双亲委派机制"><a href="#双亲委派机制" class="headerlink" title="双亲委派机制"></a>双亲委派机制</h1><p>一个类加载器接收到类加载请求后，并不会立马进行加载，而是把加载请求传给父加载器（虽然说父加载器，但是一直说 三个类加载器之间没有继承关系），然后一直递归，一直往上，最终给了 引导类加载器。如果父加载器可以完成加载，则返回结果，如果不能，再传回子加载器</p>
+<h2 id="2-3-关于-ClassLoader"><a href="#2-3-关于-ClassLoader" class="headerlink" title="2.3 关于 ClassLoader"></a>2.3 关于 ClassLoader</h2><p>是一个抽象类，我们以后自己要实现类加载器的话可以继承这个类来实现一些我们自己的功能。</p>
+<h1 id="3-双亲委派机制"><a href="#3-双亲委派机制" class="headerlink" title="3. 双亲委派机制"></a>3. 双亲委派机制</h1><p>一个类加载器接收到类加载请求后，并不会立马进行加载，而是把加载请求传给父加载器（虽然说父加载器，但是一直说 三个类加载器之间没有继承关系），然后一直递归，一直往上，最终给了 引导类加载器。如果父加载器可以完成加载，则返回结果，如果不能，再传回子加载器</p>
 <p>举个例子：</p>
 <p>加载我们的自定义类 User，首先AppClassLoader 收到加载请求，将请求发给ExtClassLoader，然后ExtClassLoader 再发给BootstrapClassLoader，BootstrapClassLoader 一看，我只负责加载 java javax 等，你这个 pri.entity.User 我不负责，将请求发回 ExtClassLoader，ext 也不管，则返回App，最终App进行加载。</p>
 <p>再举个栗子：</p>
 <p>我们自定义一个 java.lang.String，然后在别的地方 <code>String str = new String();</code> 那么加载的是哪个类，是我们自定义的，还是Java 的。根据这个机制，这个请求最终发给了 BootstrapClassLoader，那么很显然就会加载 系统的 String,而不是我们自己的String，因为我们自己的 String 需要 AppClassLoader 加载。</p>
-<p>然后我们在我们自己的 String 里面定义main 方法，可不可以运行？显然不行，因为执行main方法需要先进性类加载，直接加载 系统的 String。系统的String 很显然没有main</p>
-<h2 id="优势："><a href="#优势：" class="headerlink" title="优势："></a>优势：</h2><ul>
+<p>然后我们在我们自己的 String 里面定义main 方法，可不可3以运行？显然不行，因为执行main方法需要先进性类加载，直接加载 系统的 String。系统的String 很显然没有main</p>
+<h2 id="3-1-优势："><a href="#3-1-优势：" class="headerlink" title="3.1 优势："></a>3.1 优势：</h2><ul>
 <li>避免类的重复加载。</li>
 <li>保护核心api不被破坏，比如上面的例子</li>
 </ul>
-<h2 id="如何判断两个Class-相同"><a href="#如何判断两个Class-相同" class="headerlink" title="如何判断两个Class 相同"></a>如何判断两个Class 相同</h2><ul>
+<h2 id="3-2-如何判断两个Class-相同"><a href="#3-2-如何判断两个Class-相同" class="headerlink" title="3.2 如何判断两个Class 相同"></a>3.2 如何判断两个Class 相同</h2><ul>
 <li>全限定命名一样</li>
 <li>所用的类加载器一样</li>
 </ul>
-<h2 id="Java加载类的两种方式"><a href="#Java加载类的两种方式" class="headerlink" title="Java加载类的两种方式"></a>Java加载类的两种方式</h2><p>Java加载类就是两种方式：主动加载和被加载，下面是主动加载</p>
+<h2 id="3-3-Java加载类的两种方式"><a href="#3-3-Java加载类的两种方式" class="headerlink" title="3.3 Java加载类的两种方式"></a>3.3 Java加载类的两种方式</h2><p>Java加载类就是两种方式：主动加载和被加载，下面是主动加载</p>
 <ul>
 <li>创建实例</li>
 <li>访问静态变量或者赋值</li>
@@ -154,16 +154,16 @@
 <p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
 <span id="more"></span>
 
-<h1 id="Github-Page"><a href="#Github-Page" class="headerlink" title="Github Page"></a>Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
-<p><strong><font color="red">步骤如下：</font></strong></p>
+<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
+<p><strong><font color='red'>步骤如下：</font></strong></p>
 <p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
 <p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
-<h1 id="Hexo"><a href="#Hexo" class="headerlink" title="Hexo"></a>Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
+<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
 <p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
-<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
+<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
 <p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
 <p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
-<h2 id="安装流程"><a href="#安装流程" class="headerlink" title="安装流程"></a>安装流程</h2><blockquote>
+<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
 <p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
 </blockquote>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
@@ -173,23 +173,23 @@
 
 <p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
 <p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
-<h2 id="配置基本信息"><a href="#配置基本信息" class="headerlink" title="配置基本信息"></a>配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
-<h3 id="配置博客基本信息"><a href="#配置博客基本信息" class="headerlink" title="配置博客基本信息"></a>配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
+<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
+<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
 <figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
 
-<h3 id="配置仓库"><a href="#配置仓库" class="headerlink" title="配置仓库"></a>配置仓库</h3><p>往后找，找到这么几行：</p>
+<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
 <figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
 
-<h3 id="小坑"><a href="#小坑" class="headerlink" title="小坑"></a>小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
+<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
 <p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
-<h2 id="安装主题"><a href="#安装主题" class="headerlink" title="安装主题"></a>安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
+<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
 
 <p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
 
 <p>访问 localhost:4000 看看效果。希望没有乱码。</p>
-<h2 id="Tags-amp-Categories-amp-About"><a href="#Tags-amp-Categories-amp-About" class="headerlink" title="Tags &amp; Categories &amp; About"></a>Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
+<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
 <p>在博客根目录下执行如下命令：</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
 
@@ -200,9 +200,9 @@
 <p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
 <p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
 <p>然后，这三个页面以后都不要管了。</p>
-<h2 id="主题配置"><a href="#主题配置" class="headerlink" title="主题配置"></a>主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
+<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
 <p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
-<h1 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
+<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
 <p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
 ]]></content>
       <categories>
@@ -210,6 +210,157 @@
       </categories>
       <tags>
         <tag>部署</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JVM-堆</title>
+    <url>/2022/05/28/jvm-heap/</url>
+    <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
+<blockquote>
+<p>首先要说的一点是，整个这一章，都是关于堆的，在网课里面堆讲了30集，着实离谱，而且东西奇多，所以笔记也会多到离谱</p>
+</blockquote>
+<span id="more"></span>
+
+<h1 id="1-堆的概述"><a href="#1-堆的概述" class="headerlink" title="1. 堆的概述"></a>1. 堆的概述</h1><ul>
+<li><p>一个JVM实例只存在一个堆内存，堆也是 Java内存管理的核心区域</p>
+<blockquote>
+<p>一个进程对应一个JVM实例，JVM实例只有一个Runtime，Runtime里面只有堆和方法区是线程公用，所以说的直白了，一个进程只有一个堆</p>
+</blockquote>
+</li>
+<li><p>JVM启动时堆的大小已经确定</p>
+</li>
+<li><p>堆的大小可以调节</p>
+</li>
+<li><p>Java虚拟机规范中规定，堆可以处于物理不连续的内存上，但是逻辑上应视为连续。</p>
+<blockquote>
+<p>如何证明堆是进程唯一的？需要用到一个工具，在 java.bin 目录下，jvisualvm，这个东西可以看到目前的java进程信息，(需要安装一个插件，VisualGC，工具里面就能安装).然后进入 visualGC</p>
+</blockquote>
+</li>
+<li><p>即使整个线程共用一个堆，对内部还是有线程私有的缓冲区，最典型的就是 ThreadLocal，Buffer，TLAB Allocation，很好，目前我都不知道啥意思。</p>
+</li>
+<li><p>几乎所有的对象实例都分配在堆上，注意是几乎，不是所有，随着 JVM 的更新，JVM会进行逃逸检测，栈上也可以村对象了。</p>
+</li>
+<li><p>数组和对象可能永远不会存在栈上，栈帧中保存引用，这个引用指向对象或者数组在堆中的位置。</p>
+<blockquote>
+<p>官网中JVM规范说的是所有，所以引出了下一条</p>
+</blockquote>
+</li>
+<li><p>方法结束后，堆中的对象不会马上被删除，仅仅在垃圾收集的时候才会被删除。</p>
+<blockquote>
+<p>这里解释一下什么意思，一个方法，方法里面有引用，指向堆中的实例，当方法执行完成后，栈帧出栈，这时候引用就没了，就不在指向堆了，这个时候听不会马上GC，因为影响效率，他会在堆满了的时候去进行垃圾收集。</p>
+</blockquote>
+<blockquote>
+<p>这里老师的原话是：出栈后引用为空，很好现在回来看，显然是栈帧出栈，局部变量表停止指向</p>
+</blockquote>
+</li>
+<li><p>堆是GC作用的重点区域。</p>
+</li>
+</ul>
+<h1 id="2-堆空间内存细分"><a href="#2-堆空间内存细分" class="headerlink" title="2. 堆空间内存细分"></a>2. 堆空间内存细分</h1><p>现代垃圾收集器大部分都是基于分带收集论涉及，对空间细分为：</p>
+<ul>
+<li><p>java7 包括之前的JVM 堆内存逻辑上分为 3部分：新生区 + 养老区 + 永久区</p>
+<ul>
+<li><p>Young Generation Space -&gt; 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>又被划分为 Eden 区 和 Survivor 区</p>
+</blockquote>
+</li>
+<li><p>Tenure Generation space -&gt; 养老区 Old&#x2F;Tenure</p>
+</li>
+<li><p>Permanent Space -&gt; 永久区 Perm</p>
+</li>
+</ul>
+</li>
+<li><p>java8 以后堆内存逻辑上分为3部分：新生区 + 养老区 + 元空间</p>
+<ul>
+<li><p>Young Generation Space 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>同理分为 Eden Survivor</p>
+</blockquote>
+</li>
+<li><p>Tenure Generation Space 养老区 Old&#x2F;Tenure</p>
+</li>
+<li><p>Meta Space 元空间 Meta</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>需要注意的是，永久代和元空间其实并不属于 堆，而是属于方法区，所以在这里不细说永久代。 如何证明堆包括元空间和养老代？还是昨天那个工具：Jvisualvm，里面的 visualGC， 里面 三块，enden survivor tenure 加起来 就是你设置的 堆的大小。</p>
+<p>在Java 中分别叫 PSYoungGen&#x3D;新生区 ParOldGen&#x3D;养老区 MetaGen&#x2F;PSPermGen&#x3D;元空间&#x2F;永久区</p>
+<h1 id="3-设置堆空间大小"><a href="#3-设置堆空间大小" class="headerlink" title="3. 设置堆空间大小"></a>3. 设置堆空间大小</h1><ul>
+<li><p>堆的大小在JVM启动的时候就已经设定好了，可以通过 -Xmx 和 -Xms 来设置</p>
+<ul>
+<li><p>-Xms 用来表示堆区的初始内存，等价于： -XX:InitialHeapSize</p>
+</li>
+<li><p>-Xmx 用来表示堆区的最大内存，等价于：-XX:MaxHeapSize</p>
+<blockquote>
+<p>-X 是 JVM 参数，ms &#x3D; memory start</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>一旦堆区的内存大小超过 -Xmx，就会跑出 OutOfMemoryError异常。</p>
+</li>
+<li><p>通常会将-Xms 和 -Xmx配置相同的值，目的就是为了能够在Java垃圾回收机制清理完堆区后 不需要重新分割计算堆区的大小，从而提供性能。</p>
+</li>
+<li><p>默认情况下，初始内存大小：物理电脑内存大小 &#x2F; 64,最大内存：物理电脑内存大小 &#x2F; 4</p>
+</li>
+</ul>
+<h1 id="4-堆的年轻代和老年代"><a href="#4-堆的年轻代和老年代" class="headerlink" title="4. 堆的年轻代和老年代"></a>4. 堆的年轻代和老年代</h1><p>别说话，看图： </p>
+<p><img src="/../images/runtime/HeapOldGenAndYoungGen.png" alt="heap"></p>
+<p>存储在JVM中的Java对象可以分为两类：</p>
+<ul>
+<li><p>生命周期比较短的瞬时对象，创建消亡都非常迅速</p>
+</li>
+<li><p>生命周期比较长，极端情况下和JVM的声明周期一样长</p>
+</li>
+</ul>
+<p>创建出来的对象先放在 年轻代的Eden 区，进行一轮垃圾回收之后，如果是垃圾了，就直接回收了， 如果不是垃圾，说明对象幸存，则放到 survivor0 或者 survivor1 中。</p>
+<blockquote>
+<p>survivor 也叫 from &#x2F; to 区</p>
+</blockquote>
+<h2 id="内存占比"><a href="#内存占比" class="headerlink" title="内存占比"></a>内存占比</h2><p>默认情况下，年轻代和老年代占比 1:2，也就是年轻代占堆的1&#x2F;3，老年代占堆的 2&#x2F;3.能不能手动调整？可以，启动时添加JVM参数：<code>-XX:NewRatio=n</code> 设置年轻代和老年代占比 1:n。当然默认情况下是 <code>-XX:NewRatio=2</code>。但是这个数一般不建议改，除非你确定项目中有很多老对象。</p>
+<p>HotSpot虚拟机中，伊甸园区和幸存者区占比为 8:1:1。同理可以通过启动参数 <code>-XX:survivorRatio=n</code> 来调整。但是需要说一下，其实启动后占比是6:1:1，而不是8:1:1，你要是真想让他8:1:1符合规范，那你设置一下好了。</p>
+<p>几乎所有对象首先都是在Eden区创建，除非这个对象太大了直接放到OldGen，而且大部分对象的销毁都是放在Eden中，有研究表明 80%的对象都是朝生暮死，生命周期很短。如果我们嫌不够的话，可以使用参数 <code>-Xmn</code> 来调整新生代大小.</p>
+<h1 id="5-创建对象的大体流程"><a href="#5-创建对象的大体流程" class="headerlink" title="5. 创建对象的大体流程"></a>5. 创建对象的大体流程</h1><p>前文说道，创建对象一般发生在新生代，那么新生代具体发生了什么，让我们来详细说一说，注意，这里并没有提到类加载器，仅仅是在对重给对象分配内存流程。后面还会详细说一个对象创建具体的流程。</p>
+<h2 id="5-1-流程"><a href="#5-1-流程" class="headerlink" title="5.1 流程"></a>5.1 流程</h2><ol>
+<li><p>在Eden区分配空间，大部分情况都是吧对象分配在eden区，上文也说过，除非这个对象特别大</p>
+</li>
+<li><p>当Eden区满了的时候，出发年轻代的垃圾回收机制，叫 YGC(YoungGC) 或者叫 MinorGC，Eden中已经没有了引用的对象将会被回收，剩下的对象，将会进入 survivor0 或者 survivor1，这里我们先假设 survivor0 和 survivor1 都是空的，再假设 Eden中没有被回收的对象进入了 survivor0.这个时候 survivor0 就叫to区，同时进入 survivor0 的对象有一个年龄计数器，用来记录幸存次数，从 0 变成 1。</p>
+</li>
+<li><p>继续创建对象，放在 Eden中，当Eden再一次满了，再次触发 YGC，这回Eden中的幸存对象将会进入空的那个 survivor，这里空的是 survivor1，年龄计数器变为1，同时 survivor0 中的对象也进行YGC，s0中的幸存者也会进入s1，那么这个时候，s1就叫to区，s0就叫from 区，s区的垃圾回收是 Eden 回收，他也顺带回收一下，如果 s区满了，再说。</p>
+</li>
+<li><p>一直进行这个 Eden + from &#x3D;&gt; to 的过程，同时对象的年龄计数器累加。</p>
+</li>
+<li><p>当一个对象的年龄计数器值达到临界的时候，默认是15，那么就会认为这个对象的生命周期很长，就会把它放入 老年代。这个过程叫提升 ：Promotion</p>
+</li>
+</ol>
+<h2 id="5-2-总结"><a href="#5-2-总结" class="headerlink" title="5.2 总结"></a>5.2 总结</h2><ul>
+<li><p>针对 s区，复制之后有交换，谁空谁是to</p>
+</li>
+<li><p>关于垃圾回收，频繁在 新生代回收，很少在老年代回收，几乎不再永生代(Meta) 回收。</p>
+</li>
+<li><p>再出发 YGC 的时候，Eden区肯定是被清空了</p>
+</li>
+</ul>
+<h2 id="5-3-特殊情况"><a href="#5-3-特殊情况" class="headerlink" title="5.3 特殊情况"></a>5.3 特殊情况</h2><p>看图：</p>
+<p><img src="/../images/runtime/MemoryHandleSpecialCase.png" alt="heap_memory"></p>
+<p>解释一下： 正常流程肯定能看懂，说一点特殊情况：</p>
+<ul>
+<li><p>Eden 放不下了，可能是 Eden 满了，触发 YGC，然后Eden 还是放不下，这个时候Eden肯定是 空了，说明 对象大小超过了 Eden大小，则直接放入 老年代。</p>
+</li>
+<li><p>上面这种情况，如果 老年代也放不下，触发 FGC，还放不下，那完了，抛出 OOM错误。</p>
+</li>
+<li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
       </tags>
   </entry>
   <entry>
@@ -226,10 +377,10 @@
 <h2 id="1-页面"><a href="#1-页面" class="headerlink" title="1. 页面"></a>1. 页面</h2><p>想要页面跳转肯定先得有页面，所以如何创建页面呢？我这里用一个新的微信小程序模板：<br><img src="http://49.232.218.190/p1.png" alt="weixin_app"></p>
 <p>首先，我们右键pages，那个红色的图标，右键他，然后选择新建文件夹，起一个合适的名字，我这里就叫 tempPage 。创建完以后如下所示：</p>
 <p><img src="http://49.232.218.190/p2.png" alt="new_dir"></p>
-<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color="red">Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
+<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color='red'>Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
 <p><img src="http://49.232.218.190/p3.png" alt="new_page"></p>
 <p>呐，看好了，Page名和文件夹名一致。</p>
-<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color="red">全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
+<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color='red'>全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
 <p>然后我们在这个新页面上写点东西，打开 xxx.wxml 这个文件（xxx就是你Page的名），随你写点啥，我这里就写：</p>
 <p><img src="http://49.232.218.190/p4.png" alt="temp_page_content"></p>
 <p>很好，到这里，新页面准备完成，下一步我们需要实现从index.wxml 页面跳转到你的这个新页面。</p>
@@ -281,5 +432,412 @@
 <li>完成</li>
 </ul>
 ]]></content>
+  </entry>
+  <entry>
+    <title>运行时数据区概述</title>
+    <url>/2022/05/27/%E8%BF%90%E8%A1%8C%E6%97%B6%E6%95%B0%E6%8D%AE%E5%8C%BA%E6%A6%82%E8%BF%B0/</url>
+    <content><![CDATA[<p>从这里开始正式进入运行时数据区，运行时数据区是JVM非常核心的一部分，各种内存模型各种垃圾回收都将从这里展开。</p>
+<span id="more"></span>
+
+<h1 id="1-运行时数据区"><a href="#1-运行时数据区" class="headerlink" title="1. 运行时数据区"></a>1. 运行时数据区</h1><p>运行时数据区，非常之核心，JVM运行时大部分数据都存在运行时数据区，所以后面大部分的展开，比如各种的字符串，常量池，GC，等等等等一系列的故事都将发生在这里。</p>
+<p>首先看一下运行时数据区的图：</p>
+<p><img src="/images/runtime/Runtime_data_area.png" alt="runtime"></p>
+<p>主要就是包含了：程序计数器、本地方法栈、虚拟机栈、堆、元空间。其中这里先介绍几个简单的，比如程序计数器和本地方法这种的，剩下的虚拟机栈和堆和元空间，都是重点中的重点。</p>
+<p>同时扩展一点东西：</p>
+<ul>
+<li><p>PC寄存器：不涉及 Error 不涉及 GC</p>
+</li>
+<li><p>虚拟机栈：涉及 Error，比如 StackOverFlowError，不涉及GC，直接弹栈即可。</p>
+</li>
+<li><p>本地方法栈：涉及 Error，不涉及 GCasd</p>
+</li>
+<li><p>堆 和 方法区：都涉及 Error 和 GC</p>
+</li>
+</ul>
+<p>这5种东西，一部分是和Java程序共存亡，随着JVM启动而启动，随着JVM销毁而销毁另外的，和线程共存亡。</p>
+<p>方法区 和 堆，线程之间公用，剩下的，每一个线程都会有自己独一份的这些东西。</p>
+<p>对应的对象就是 Runtime，每一个Java 应用，或者说，一个jvm就对应着一个Runtime对象。</p>
+<p>其中，JVM内部还有一些线程：</p>
+<ul>
+<li><p>虚拟机线程，特别复杂，不说了</p>
+</li>
+<li><p>周期任务线程，一般用于周期性操作的调度执行</p>
+</li>
+<li><p>GC线程，支持不同种类的垃圾收集行为</p>
+</li>
+<li><p>编译线程，将字节码编译成本地代码</p>
+</li>
+<li><p>信号调度线程，接收信号发给JVM处理</p>
+</li>
+</ul>
+<p>这些东西似乎就没有啥用了，应该不会用到吧。</p>
+<h1 id="2-PC寄存器"><a href="#2-PC寄存器" class="headerlink" title="2. PC寄存器"></a>2. PC寄存器</h1><p>所谓PC寄存器，全称 Program Counter Register，也叫程序计数器，主要用于存储下一条要执行的指令的地址。</p>
+<p>我们随便写一个程序，然后我们反编译他的 class文件，会看到如下文字：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:bipush   10  </span><br><span class="line">2:istore_1  </span><br><span class="line">3:bipush   20  </span><br><span class="line">4:istore_2</span><br></pre></td></tr></table></figure>
+
+<p>这种的，第一列的数字就是指令地址，第二列以及后面的东西就叫指令，pc寄存器会存储下一条指令的地址，也就是 比如 0 2 这种东西，然后执行引擎会读取pc寄存器里面存储的指令地址所对应的指令，去运行这个指令。</p>
+<p>具体流程下图所示：</p>
+<p><img src="/images/runtime/pc_register.png" alt="pc_process"></p>
+<h2 id="为什幺用PC寄存器"><a href="#为什幺用PC寄存器" class="headerlink" title="为什幺用PC寄存器"></a>为什幺用PC寄存器</h2><p>记录执行位置，并发(CPU轮转)状态下，每个线程都会抢时间片，那么抢到了就会接着执行，这个时候就需要记录当前状态下，该执行那条指令了，PC寄存器就是记录执行状态的。</p>
+<p>JVM字节码解释器通过改变PC寄存器的值来记录执行状态。</p>
+<h1 id="3-本地方法接口"><a href="#3-本地方法接口" class="headerlink" title="3. 本地方法接口"></a>3. 本地方法接口</h1><p>我们前面一直在说Runtime的事，我们先跳出Runtime，先来看一个东西：本地方法。</p>
+<p>首先我们来看一眼JVM的整体结构：</p>
+<p><img src="/images/runtime/jvm_structure.jpg" alt="jvm_stu"></p>
+<p>看到右下角的两个东西了么：NativeMethodInterface和 NativeMethodLibrary，这两个东西要和 运行时数据区里面的 本地方法栈进行联系，所以我们现看这两块内容。</p>
+<h2 id="本地方法"><a href="#本地方法" class="headerlink" title="本地方法"></a>本地方法</h2><h3 id="什么是本地方法"><a href="#什么是本地方法" class="headerlink" title="什么是本地方法"></a>什么是本地方法</h3><p>何为本地方法，Java 调用一个非Java 实现的方法的接口，这个接口就是本地方法，也就是 NativeMethod，(Native 是个关键字);</p>
+<p>再简单说，本地方法就是一个Java方法，但是这个方法的具体实现并不是 Java，多数情况下是 C&#x2F;C++。本地接口的作用就是融合不同语言来为Java所用，最主要还是融合 C&#x2F;C++.</p>
+<p>需要注意的是，native 方法因为它本身就是 Java 方法，所以Java 方法上有的东西他都有，比如可以进行权限控制，可以使用同步代码，可以抛出异常，可以有static 修饰等。</p>
+<h3 id="为什么要用本地方法"><a href="#为什么要用本地方法" class="headerlink" title="为什么要用本地方法"></a>为什么要用本地方法</h3><p>有时Java需要和外部环境交互，比如操作系统，创建 Thread这种的，或者说有些时候需要特别在以效率，就需要用到NativeMethod</p>
+<h3 id="和操作系统的交互"><a href="#和操作系统的交互" class="headerlink" title="和操作系统的交互"></a>和操作系统的交互</h3><p>JVM毕竟不是真是的操作系统，他是要依赖于本地环境，这就不可避免的有C代码，同时如果我们关注效率，也需要C，比如 创建线程，这个就是一个本地方法，调用了操作系统的api，去创建线程。</p>
+<p>Sun’s Java 的解释器有一部分就是C写的，JVM内部就已经植入了一部分C代码，所以不可避免的需要和C交互。</p>
+<h3 id="现状"><a href="#现状" class="headerlink" title="现状"></a>现状</h3><p>目前Java已经很少用到Native了，除非是一些底层操作，比如调用打印机这种的，还是需要用到C。</p>
+<h1 id="4-本地方法栈"><a href="#4-本地方法栈" class="headerlink" title="4. 本地方法栈"></a>4. 本地方法栈</h1><p>至于本地方法栈，这个东西 简单说，似乎不怎么用。这里涉及到了一些虚拟机栈的知识，后面会说。</p>
+<ul>
+<li><p>Java虚拟机栈使用管理Java方法的，那么很显然本地方法栈就是用来管理本地方法的。</p>
+</li>
+<li><p>和虚拟机栈同理，本地方法栈也是线程独有的。</p>
+</li>
+<li><p>同样可以扩展本地方法栈，同样会抛出 StackOverflowError 和 OutOfMemoryError。</p>
+</li>
+<li><p>当某个线程调用了一个本地方法后，这个本地方法就会进入一个权限的不受虚拟机限制的世界。他和虚拟机有同样的权限。</p>
+<ul>
+<li><p>本地方法可以调用本地方法接口来访问虚拟机内部的运行时数据区。</p>
+</li>
+<li><p>可以直接使用本机处理器中的寄存器。</p>
+</li>
+<li><p>可以直接分配本地内存</p>
+</li>
+</ul>
+</li>
+<li><p>并不是所有的 JVM 都支持本地方法，因为虚拟机规范并没有规定本地方法的实现语言等， 所以如果虚拟机不打算使用本地方法，也就无需本地方法栈</p>
+</li>
+<li><p>Hotspot JVM中，直接把本地方法栈和虚拟机栈合二为一。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>虚拟机栈</title>
+    <url>/2022/05/27/jvm-stack/</url>
+    <content><![CDATA[<p>虚拟机栈，JVM用于处理方法执行的地方，东西还挺多，而且还听重要.</p>
+<span id="more"></span>
+
+<h1 id="1-虚拟机栈概述"><a href="#1-虚拟机栈概述" class="headerlink" title="1. 虚拟机栈概述"></a>1. 虚拟机栈概述</h1><blockquote>
+<p>Java Virtual Machine Stack</p>
+</blockquote>
+<p>首先明确个概念，JVM是基于栈的存储模型(当然还有基于寄存器的)，一般来说java 中 栈里面存放运行时数据，堆 进行存储，比如创建对象，就会放到堆里面，当然这不代表栈不会存数据，一些局部变量也是存在栈里面的。</p>
+<h2 id="1-1-虚拟机栈是什么"><a href="#1-1-虚拟机栈是什么" class="headerlink" title="1.1 虚拟机栈是什么"></a>1.1 虚拟机栈是什么</h2><p>每个线程创建时都会创建一个虚拟机栈，里面存储着栈帧(Stack Frame) 对应方法调用，栈帧就是方法调用，方法开始调用栈帧入栈，方法调用结束栈帧出栈。</p>
+<p>生命周期和JVM一样。</p>
+<h2 id="1-2-作用"><a href="#1-2-作用" class="headerlink" title="1.2 作用"></a>1.2 作用</h2><p>主管程序的运行，保存方法的局部变量，部分结果，并参与方法的调用和返回</p>
+<blockquote>
+<p>局部变量包括 8 中基本数据类型和 引用数据类型的引用，仅限引用地址，不包括实际的对象，对象在堆中。</p>
+</blockquote>
+<p>大致说一下，先不说那么细，看图： </p>
+<p><img src="/images/runtime/stackFrame.png" alt="stack_frame"></p>
+<p>这里定义两个方法，A 和 B，然后两个方法进行入栈操作，绿色的就是 B 方法，那么栈顶的方法就是当前方法，然后B执行完，A就是当前方法。</p>
+<p>那么目前，我们可以粗略的将方法，理解为栈帧，当然栈帧里面还细分一堆东西，我们现在先不说了。</p>
+<h2 id="1-4-栈的优点"><a href="#1-4-栈的优点" class="headerlink" title="1.4 栈的优点"></a>1.4 栈的优点</h2><ul>
+<li><p>有效的存储方式，访问速度仅次于程序计数器</p>
+</li>
+<li><p>JVM 对栈的操作只有两个</p>
+<ul>
+<li><p>方法执行，入栈</p>
+</li>
+<li><p>执行完，出栈</p>
+</li>
+</ul>
+</li>
+<li><p>不存在垃圾回收</p>
+<blockquote>
+<p>栈不存在 GC 但是存在 OOM (out of memory 内存溢出),PC寄存器俩都没有</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="1-5-栈可能出现的问题"><a href="#1-5-栈可能出现的问题" class="headerlink" title="1.5 栈可能出现的问题"></a>1.5 栈可能出现的问题</h2><p>Java 中，栈的大小可以是动态的或者固定不变的。如果栈的大小固定不变，那么入栈操作可能会因为栈满了而报错， 抛出 StackOverFlowError</p>
+<blockquote>
+<p>最常见的就是无限递归</p>
+</blockquote>
+<p>如果栈的大小动态，那么可能进行入栈操作是跟内存要空间，结果内存没了，导致异常 抛出 OutOfMemoryError</p>
+<h1 id="2-栈帧概述"><a href="#2-栈帧概述" class="headerlink" title="2. 栈帧概述"></a>2. 栈帧概述</h1><p>何为栈帧，我们上面说，把一个方法的调用理解成栈帧，一个方法在JVM中执行，就是虚拟机栈中压入了这个方法对应的栈帧，方法执行完成后，这个栈帧就会弹栈。同时为了保证方法执行的正确性以及其他的一些什么乱七八糟的东西，栈帧内部还有很多的其他组成部分，我们下面会详细说。</p>
+<h2 id="2-1-栈帧的注意事项"><a href="#2-1-栈帧的注意事项" class="headerlink" title="2.1 栈帧的注意事项"></a>2.1 栈帧的注意事项</h2><ul>
+<li><p>不同线程之间的栈帧不能相互引用</p>
+</li>
+<li><p>如果方法调用了其他返回，在方法返回时，当前栈帧会传给前一栈帧执行结果，当前栈帧出栈，让上一个栈帧变为当前。</p>
+</li>
+<li><p>java中有两个方式返回方法，return 和 throw(没有处理)，两种办法都会弹出栈帧。</p>
+</li>
+</ul>
+<h2 id="2-2-栈帧的具体结构"><a href="#2-2-栈帧的具体结构" class="headerlink" title="2.2 栈帧的具体结构"></a>2.2 栈帧的具体结构</h2><p>分为5部分：</p>
+<ul>
+<li><p>局部变量表</p>
+</li>
+<li><p>操作数栈&#x2F;表达式栈</p>
+</li>
+<li><p>动态链接&#x2F;指向运行时常量池的方法引用</p>
+</li>
+<li><p>方法返回地址</p>
+</li>
+<li><p>附加信息</p>
+</li>
+</ul>
+<p>下面我们就会进入这5个部分，详细说说栈帧里面都是些什么鬼。</p>
+<h1 id="3-局部变量表"><a href="#3-局部变量表" class="headerlink" title="3. 局部变量表"></a>3. 局部变量表</h1><h2 id="3-1-概述"><a href="#3-1-概述" class="headerlink" title="3.1 概述"></a>3.1 概述</h2><ul>
+<li><p>也叫本地变量表：</p>
+</li>
+<li><p>定义一个数字数组，用于存储方法参数，和定义在方法内的局部变量，这些数据类型包括 8种基本数据类型，引用，和返回值类型。</p>
+</li>
+<li><p>一个线程配套一个虚拟机栈，所以不存在线程安全问题。</p>
+</li>
+<li><p>这个表的长度一开始就已经固定，且不会发生改变，因为在编译的时候编译器就已经解析出来你这个方法需要多少个临时变量了，表长存在一个 maximum local variables 属性里面。 可以反编译一个class文件找找，code 里面的 locals 也记录了。</p>
+</li>
+<li><p>只在当前方法中有效，别人想用就得传参了，方法调用结束变量表随之销毁。</p>
+</li>
+<li><p>方法嵌套次数由虚拟机栈决定，一般来说，栈越大，嵌套越多，如果一个方法的本地数据过多， 会导致栈帧过大，进而占用虚拟机栈的空间变多，导致方法嵌套次数变少。</p>
+</li>
+</ul>
+<p>我们解析一个 class文件，就能在方法里面找到 LocalVariableTable， slot 代表了第几个本地变量，然后 length不解释，signature 就是数据类型， 同时，code 里面的 locals 也记录了 变量表的最大长度。</p>
+<h2 id="3-2-解析Class中的方法"><a href="#3-2-解析Class中的方法" class="headerlink" title="3.2 解析Class中的方法"></a>3.2 解析Class中的方法</h2><p>我们解析一个 class文件以后，不说 javap 解析了，就说 jclasslib 解析以后得到的东西。首先我们解析完成后，随便进入一个方法，这里我就以main方法为例：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">name: cp_info #30 &lt;main&gt;  </span><br><span class="line">descriptor: cp_info #31 &lt;([Ljava/lang/String:V)&gt;  </span><br><span class="line">Access flags: 0x0009 [public static]</span><br></pre></td></tr></table></figure>
+
+<p>name 就是方法名，告诉你是 main 方法，descriptor 描述，包括 参数类型：LJava…String,L 代表引用，V 代表void 无返回值。Access flags 访问表示，告诉你是 public static。</p>
+<p>然后，我们进入 code，byteCode 就是字节码指令, ExceptionTable 就是异常表，没有异常，空。misc 里面就是一些描述，比如 本地变量表的最大长度，还有指令长度，字节码指令0 - 最后那个号。</p>
+<p>然后code 里面还有一个 LineNumberTable,里面记录Java 代码和 字节码指令的行号映射关系，lineNumber 表示 Java 行数，startPC 代表字节码指令行数，两个上述一一对应。</p>
+<p>LineNumberTable如下：</p>
+<p><img src="/images/runtime/line_number_table.png" alt="line_number_table"></p>
+<p>然后重点看看本地变量表，局部变量表如下：</p>
+<p><img src="/images/runtime/local_var_table.png" alt="local_var_table"></p>
+<p>你方法里面有几个局部变量，他就有几行+1，几个字段+1(一般情况是，为啥？实例方法局部变量表中的第一位是 this)：</p>
+<ul>
+<li><p>name名字： 想必是局部变量的名称</p>
+</li>
+<li><p>descriptor 描述符： 就是类型，同理L是引用，</p>
+</li>
+<li><p>startPC起始PC： 是你这个局部变量的作用域的起始位置，是一个 字节码行号， 根据 lineNumber 表找到对应java 的行数，其实就是你java声明了这个局部变量的下一行。</p>
+</li>
+<li><p>index 序号： 就是索引</p>
+</li>
+<li><p>length长度： 不是说你这个变量多长，而是作用域长度，结合上面的 startPC， 比如 misc 里面记录的字节码长度是16，就代表你总共有16条指令， 然后已定义了一个变量，从 字节码的 第8行开始，然后到第15(0开始)失效， 那么你的这个 length 就是 8，从第8行开始，在往后的8行内生效。</p>
+</li>
+</ul>
+<h2 id="3-3-槽-Slot"><a href="#3-3-槽-Slot" class="headerlink" title="3.3 槽 Slot"></a>3.3 槽 Slot</h2><p>本地变量表中，会将数据存放到 槽中。</p>
+<ul>
+<li><p>JVM 会给每一个 slot 分配一个索引，根据这个索引可以访问到局部变量表中的局部变量值。</p>
+</li>
+<li><p>当一个实例方法被调用时，他的方法参数和局部变量会按顺序复制到每一个 slot 上。</p>
+</li>
+<li><p>32 bit 的数据占用一个 slot，64bit 的占用两个，64的只有 long 和 double，包括引用都是 32bit的。</p>
+</li>
+<li><p>如果要访问一个 64bit的数据，只需要访问这个数据的第一个slot的索引即可。</p>
+</li>
+<li><p>如果当前栈帧被构造方法或者实例方法创建，则 对象 this 会被存到 index 位 0 的栈帧上，其余的按顺序。</p>
+</li>
+</ul>
+<h2 id="3-4-静态变量和局部变量的对比"><a href="#3-4-静态变量和局部变量的对比" class="headerlink" title="3.4 静态变量和局部变量的对比"></a>3.4 静态变量和局部变量的对比</h2><ul>
+<li><p>局部变量表初始化完以后，才会按顺序定义局部变量的空间</p>
+</li>
+<li><p>静态变量有两次机会赋值，第一次是链接阶段的准备阶段，讲静态变量初始化位零值，第二次是 初始化阶段，赋值为我们定义的值。</p>
+</li>
+<li><p>局部变量没有初始化，他必须我们自己定义初始值，否则不能用。</p>
+</li>
+</ul>
+<h2 id="3-5-补充说明"><a href="#3-5-补充说明" class="headerlink" title="3.5 补充说明"></a>3.5 补充说明</h2><ul>
+<li><p>这部分和GC有很大联系的就是局部变量表，方法执行时，通过这东西完成参数传递。</p>
+</li>
+<li><p>局部变量表中的变量也是GC中重要的根节点，只要是被局部变量表中直接或间接引用的对象都不会被回收。</p>
+</li>
+</ul>
+<h1 id="4-操作数栈"><a href="#4-操作数栈" class="headerlink" title="4. 操作数栈"></a>4. 操作数栈</h1><h2 id="4-1-概述"><a href="#4-1-概述" class="headerlink" title="4.1 概述"></a>4.1 概述</h2><p>操作数栈，字面意思，就是用于方法内代码执行做运算的。细节如下：</p>
+<ul>
+<li><p>每一个栈帧除了局部变量表外，还有操作数栈，后进先出。</p>
+</li>
+<li><p>根据指令的不同，进行 push 和 pop 的操作，也只能进行这两个操作</p>
+<ul>
+<li><p>某些字节码指令让操作数入栈，然后其他的指令让操作数出栈求和，再重新入栈。</p>
+</li>
+<li><p>比如 赋值 求和 交换等操作。</p>
+</li>
+</ul>
+</li>
+<li><p>主要用于保存计算的中间结果，同时作为计算过程中变量临时的存储空间</p>
+</li>
+<li><p>操作数栈就是JVM执行引擎的一个工作区，随着方法执行被创建，刚创建时是空的(空 !&#x3D; 没创建)</p>
+</li>
+<li><p>每个操作数栈都有一个明确的深度来进行存储，也是在编译的时候就已经定义好的， 在code 里面的 max_stack 里面定义，或者 javap 里面 方法的stack 参数</p>
+</li>
+<li><p>栈里面的每一个元素都可以是任意java类型，32bit的数据占1个栈深度，64bit占2个站深度。</p>
+</li>
+<li><p>如果被调用的方法有返回值，那么返回值也会入栈，同时PC寄存器更新下一条指令。</p>
+</li>
+<li><p>栈里面的元素和字节码指令的数据类型必须严格匹配，编译器在编译期间会进行验证。</p>
+</li>
+<li><p>我们所说的 Java解释引擎是基于栈的，这里的栈 就是 操作数栈。</p>
+</li>
+</ul>
+<h2 id="4-2-具体流程分析"><a href="#4-2-具体流程分析" class="headerlink" title="4.2 具体流程分析"></a>4.2 具体流程分析</h2><p>我们找一段代码来具体分析分析操作数栈到底是干啥的，直接看图：</p>
+<p><img src="/images/runtime/operateStack.png" alt="ops_stack"></p>
+<p>我们逐条看指令，</p>
+<ol>
+<li><p>首先进行了 bipush 操作，push 15，将 15 存入操作数栈</p>
+</li>
+<li><p>执行 istore_1 也就是弹栈得到15后存入局部变量表的1位置(复习一下，0位置存this)</p>
+</li>
+<li><p>bipush 8，将8存入操作数栈</p>
+</li>
+<li><p>执行 istore_2 弹栈得8 存入 局部变量表的 2位置</p>
+</li>
+<li><p>iload_1 这里读取 表中1位置的数据，放入 操作数栈 进行入栈操作</p>
+</li>
+<li><p>iload_2 读取 表中2位置的数据，入栈</p>
+</li>
+<li><p>iadd 将两个操作数弹栈，相加，得到结果重新入栈</p>
+</li>
+<li><p>istore_3 将得到的数据 存储到 局部变量表 3 位置</p>
+</li>
+<li><p>返回</p>
+</li>
+</ol>
+<p>在这个过程中，这个栈只需要 2 深度，所以可以看到，code 里面的 stack &#x3D;&#x3D; 2.</p>
+<p>顺带说一句，这里我们可以看到什么 bipush，sipush，意思就是：b(yte) -&gt; i(nt) 和 s(hort) -&gt; i(nt)</p>
+<p>有一种特殊的情况，方法 A return int，然后 方法B 里面调用 A 并用i接收返回值。</p>
+<p>首先在方法A里面最后会进行 ireturn，也就是把返回值结果返回，然后在B方法里面，在 调用A方法接受参数的位置，会进行 aload_0他会得到返回值并入栈。</p>
+<h1 id="5-动态链接"><a href="#5-动态链接" class="headerlink" title="5. 动态链接"></a>5. 动态链接</h1><blockquote>
+<p>或者叫 指向运行时常量池的方法引用</p>
+</blockquote>
+<p>先说一下符号链接</p>
+<ul>
+<li>java源文件被编译到class文件里面的时候，所有的变量和方法引用都作为符号引用保存在class常量池中</li>
+</ul>
+<p>这话简直不是人话，我来给翻译一下：</p>
+<p>我们先解析一个class文件，这个原本的Java文件里面有个a方法和b方法，b方法里面调用了a，所以字节码里面方法B有这么一句：</p>
+<p><code>1: invokevirtual #6 // Method methodA:()V</code></p>
+<p>这就意思是调用了 方法#6，当然注释告诉我其实就是 methodA，然后我们去常量池 里面找 #6 是个啥，然后找半天，不停地指向别的符号，最后指向了 methodA 和 ()V，methodA 就是方法名，()V 就是无参，返回 void 磨磨唧唧不停地指向别的东西。</p>
+<p>同时，体现出，所有的东西，都存在常量池中，比如我们输出的 String，也存在 常量池中。</p>
+<p>所以：</p>
+<p>运行时，将常量池加载到方法区内形成运行时常量池，然后每个栈帧都包含一个 指向运行时常量池中 该栈帧所属方法的引用，那么这个引用，就是动态链接，可以支持该方法实现动态链接。</p>
+<p>下面解释一下啥是常量池：</p>
+<blockquote>
+<p>说的还是不是人话，我这里再解释一下：我们解析一个Class文件会发现里面有个constant pool常量池，这里面包含什么？字符串字面值，各种需要用到的类等等等等。然后下面的代码比如 String st &#x3D; “123”，这个123就会存到常量池中，并不会直接在代码中体现。</p>
+<p>JVM读取class的时候，就会去读这个常量池，也就是可以提前知道这个类里面要用到哪些其他的类，以及有用到哪些常量值，然后JVM就会把这个常量池读到运行时数据区，比如常量池中有 System.out 这个类，JVM就会提前把这个类加载到方法区中。总而言之，JVM会读取常量池从而形成运行时常量池。</p>
+<p>然后，class文件中，代码会指向常量池中的某些元素，比如 invokevirtual #6，就是指向了#6常量，但是JVM读了以后你不能还指向#6了，因为已经有了运行时常量池，常量池中的元素已经有了具体的内存体现了，那你还指向#6干啥，这时就会让代码直接指向运行时常量池。这一步，也就对应了类加载中的 链接-解析 阶段。</p>
+</blockquote>
+<p>既然知道了啥是常量池，那么我们再看看这个动态链接，其实就很好理解了，字节码文件中，方法名，方法返回值，方法入参类型，这些都是存在常量池中的东西。那么栈帧应该知道自己这个方法对应到运行时常量池中的是哪个，动态链接就是干这个的。</p>
+<h2 id="为何需要常量池"><a href="#为何需要常量池" class="headerlink" title="为何需要常量池"></a>为何需要常量池</h2><p>我们加载一个类，比如我们就写一个类里面有一个主方法，就一个输出，他加载到内存里面就需要加载 比如 父类Object，各种数据类型，System对象，PrintWriter对象，等等。</p>
+<p>如果这些东西全都存在 class里面，就很浪费，所以弄一个常量池，把常用的东西放进去，需要的时候直接引用过来就行了。</p>
+<h1 id="6-方法调用"><a href="#6-方法调用" class="headerlink" title="6. 方法调用"></a>6. 方法调用</h1><blockquote>
+<p>从 JVM 角度看java 方法如何被调用</p>
+</blockquote>
+<p>上面刚说过，在类加载的时候，会把符号引用转化为直接引用，而这个转化过程是在编译期间完成的还是在运行期间完成的，这个还是有区别的。</p>
+<h2 id="6-1-静态链接"><a href="#6-1-静态链接" class="headerlink" title="6.1 静态链接"></a>6.1 静态链接</h2><p>一个字节码文件被加载到 JVM 内部时，如果被调用的目标方法在编译期间可知，且运行期间保持不变，那么这个时候 符号 -&gt; 直接 的转化，就叫静态链接。</p>
+<blockquote>
+<p>简单说，编译期间转化，就叫静态链接</p>
+</blockquote>
+<h2 id="6-2-动态链接"><a href="#6-2-动态链接" class="headerlink" title="6.2 动态链接"></a>6.2 动态链接</h2><p>对应的，如果在编译期间无法确定，比如接口回调，需要在运行时转换，则成为动态链接。</p>
+<blockquote>
+<p>同理，运行期间绑定，动态链接</p>
+</blockquote>
+<h2 id="6-3-绑定"><a href="#6-3-绑定" class="headerlink" title="6.3 绑定"></a>6.3 绑定</h2><p>什么叫绑定？一个字段，方法，类的符号引用替换成直接引用的过程，只发生一次。同时这里还区分早期绑定和晚期绑定：</p>
+<ul>
+<li><p>早期绑定：对应静态链接，目标方法在编译期间可知且运行时不变，可以明确被调用的方法是哪一个，使用静态链接的方式进行符号到直接的转化，叫早期绑定</p>
+</li>
+<li><p>晚期绑定：不确定目标方法，使用动态链接进行转换，就叫晚期绑定</p>
+</li>
+</ul>
+<h2 id="6-4-虚方法和非虚方法"><a href="#6-4-虚方法和非虚方法" class="headerlink" title="6.4 虚方法和非虚方法"></a>6.4 虚方法和非虚方法</h2><p>非虚方法对应 静态链接和早期绑定，在编译期间就确定方法的具体版本。如下都属于非虚方法：</p>
+<ul>
+<li><p>静态方法</p>
+</li>
+<li><p>私有方法</p>
+</li>
+<li><p>final 修饰的方法</p>
+</li>
+<li><p>实例构造器</p>
+</li>
+<li><p>父类方法</p>
+</li>
+</ul>
+<p>其他的都属于虚方法。</p>
+<h2 id="6-5-虚拟机中调用方法的指令"><a href="#6-5-虚拟机中调用方法的指令" class="headerlink" title="6.5 虚拟机中调用方法的指令"></a>6.5 虚拟机中调用方法的指令</h2><h3 id="6-5-1-调用指令"><a href="#6-5-1-调用指令" class="headerlink" title="6.5.1 调用指令"></a>6.5.1 调用指令</h3><ul>
+<li><p>invokeStatic 调用非虚方法</p>
+</li>
+<li><p>invokeSpecial 调用 <init> 构造方法，私有方法，父类方法</p>
+</li>
+</ul>
+<p>前面两个都属于调用非虚方法</p>
+<ul>
+<li><p>invokeVirtual 调用虚方法</p>
+<blockquote>
+<p>但是不代表 invokeVirtual 调用的都是虚方法，特别的，调用final方法，也是 invokeVirtual</p>
+</blockquote>
+</li>
+<li><p>invokeInterface 调用接口方法</p>
+</li>
+</ul>
+<p>还有一个特殊的，调用Lambda 的指令</p>
+<ul>
+<li>invokeDynamic</li>
+</ul>
+<p>java7 开始才引入了 invokeDynamic 这个东西，为了体现 java 的 动态类型语言特性。但是 java7 没法直接生成 invokeDynamic 指令，知道 java8 出现了 lambda 表达式，java8 才能直接生成 invokeDynamic 指令。</p>
+<h3 id="6-5-2-动态类型语言-和-静态类型语言"><a href="#6-5-2-动态类型语言-和-静态类型语言" class="headerlink" title="6.5.2 动态类型语言 和 静态类型语言"></a>6.5.2 动态类型语言 和 静态类型语言</h3><p>简单说，静态类型语言在编译期间会对数据类型进行检查，动态类型语言会在运行时进行类型检查，变量本身没有类型，变量值才有类型。</p>
+<h1 id="7-方法返回值地址"><a href="#7-方法返回值地址" class="headerlink" title="7. 方法返回值地址"></a>7. 方法返回值地址</h1><p>所谓 方法返回值地址，这里我给举个例子：</p>
+<p>我们调用 方法 A，方法 A 里面我们有调用了 方法 B，在虚拟机栈的角度，A 入栈，然后B入栈，现在，方法 B 执行完成，那么就需要回到 方法 A 中 调用 B 的那个地方，继续往下执行，方法 B 的返回值，需要给到 方法 A 调用 B 的那一行代码，这就需要方法返回值地址</p>
+<p>方法返回值地址里面存储了 PC寄存器中的值，也就是记录了调用方法的位置的下一行代码，然后方法执行完成，将返回值放入操作数栈，然后根据方法返回值地址，回到方法调用的位置，继续执行。</p>
+<h2 id="7-1-方法退出的两种情况"><a href="#7-1-方法退出的两种情况" class="headerlink" title="7.1 方法退出的两种情况"></a>7.1 方法退出的两种情况</h2><ul>
+<li><p>正常退出，调用者 PC寄存器的值作为返回地址，调用该方法指令的下一条指令地址。</p>
+</li>
+<li><p>出现未处理异常，非正常退出，返回地址需要异常表来确定，栈帧不保存这部分信息</p>
+</li>
+</ul>
+<p>所以，方法返回值地址仅针对方法正常推退出的情况。</p>
+<h2 id="7-2-返回指令："><a href="#7-2-返回指令：" class="headerlink" title="7.2 返回指令："></a>7.2 返回指令：</h2><p>函数返回指令如下：</p>
+<ul>
+<li><p>ireturn -&gt; intReturn 返回 byte short int boolean char</p>
+</li>
+<li><p>lreturn -&gt; longReturn 返回 long</p>
+</li>
+<li><p>freturn -&gt; floatReturn 返回 float</p>
+</li>
+<li><p>dreturn -&gt; doubleReturn 返回 double</p>
+</li>
+<li><p>areturn -&gt; 不知道 返回 引用</p>
+</li>
+<li><p>return -&gt; void 方法无返回值</p>
+</li>
+</ul>
+<h2 id="7-3-异常表"><a href="#7-3-异常表" class="headerlink" title="7.3 异常表"></a>7.3 异常表</h2><p>如果方法存在异常，则会有一个异常表进行处理，在方法里面，需要 javap</p>
+<p>结构如下：</p>
+<table>
+<thead>
+<tr>
+<th>from</th>
+<th>to</th>
+<th>target</th>
+<th>type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>6</td>
+<td>8</td>
+<td>11</td>
+<td>java&#x2F;io&#x2F;IOException</td>
+</tr>
+</tbody></table>
+<p>意思如下：</p>
+<p>从 6 到 8 行 如果出现异常IOException，交给 11 处理，其实也就是 try catch 代码块里面的东西。</p>
+<h1 id="8-总结"><a href="#8-总结" class="headerlink" title="8. 总结"></a>8. 总结</h1><p>很好，栈总算是说完了。下面就是牛逼的堆了。</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
   </entry>
 </search>
