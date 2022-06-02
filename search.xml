@@ -1,6 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>hexo部署</title>
+    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
+<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
+<span id="more"></span>
+
+<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
+<p><strong><font color='red'>步骤如下：</font></strong></p>
+<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
+<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
+<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
+<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
+<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
+<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
+<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
+<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
+<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
+
+<p>然后，正常情况下，会提示这么一句：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
+
+<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
+<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
+<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
+<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
+<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
+<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
+
+<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
+
+<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
+<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
+<p>在博客根目录下执行如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
+
+<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
+<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
+
+<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
+<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
+<p>然后，这三个页面以后都不要管了。</p>
+<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
+<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
+<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
+<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
+]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>部署</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JVM-类加载子系统</title>
     <url>/2022/05/22/JVM-%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%AD%90%E7%B3%BB%E7%BB%9F/</url>
     <content><![CDATA[<p>从这里开始正式开始JVM，首先我们要对类加载有一个大致的认识。类加载子系统 就是将 类 从磁盘中读取到 内存中的一个东西，包括 加载 链接 初始化 三个阶段。</p>
@@ -119,7 +184,7 @@
 <p>再举个栗子：</p>
 <p>我们自定义一个 java.lang.String，然后在别的地方 <code>String str = new String();</code> 那么加载的是哪个类，是我们自定义的，还是Java 的。根据这个机制，这个请求最终发给了 BootstrapClassLoader，那么很显然就会加载 系统的 String,而不是我们自己的String，因为我们自己的 String 需要 AppClassLoader 加载。</p>
 <p>然后我们在我们自己的 String 里面定义main 方法，可不可3以运行？显然不行，因为执行main方法需要先进性类加载，直接加载 系统的 String。系统的String 很显然没有main</p>
-<h2 id="3-1-优势："><a href="#3-1-优势：" class="headerlink" title="3.1 优势："></a>3.1 优势：</h2><ul>
+<h2 id="3-1-优势"><a href="#3-1-优势" class="headerlink" title="3.1 优势"></a>3.1 优势</h2><ul>
 <li>避免类的重复加载。</li>
 <li>保护核心api不被破坏，比如上面的例子</li>
 </ul>
@@ -138,222 +203,6 @@
 <li>JDK7开始的同台语言支持，不知道啥意思</li>
 </ul>
 <p>除此之外，全是被动加载，被动加载不会进行初始化。我们上面说过，类加载经理加载链接初始化，只有主动加载一个类，这个类才会经历初始化过程，否则不会经历。那么不会初始化会导致什么后果？以后再说。</p>
-]]></content>
-      <categories>
-        <category>JVM</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>底层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>hexo部署</title>
-    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
-    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
-<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
-<span id="more"></span>
-
-<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
-<p><strong><font color='red'>步骤如下：</font></strong></p>
-<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
-<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
-<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
-<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
-<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
-<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
-<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
-<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
-<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
-
-<p>然后，正常情况下，会提示这么一句：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
-
-<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
-<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
-<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
-<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
-<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
-<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
-
-<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
-
-<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
-<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
-<p>在博客根目录下执行如下命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
-
-<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
-<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
-
-<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
-<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
-<p>然后，这三个页面以后都不要管了。</p>
-<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
-<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
-<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
-<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
-]]></content>
-      <categories>
-        <category>部署</category>
-      </categories>
-      <tags>
-        <tag>部署</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>JVM-堆</title>
-    <url>/2022/05/28/jvm-heap/</url>
-    <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
-<blockquote>
-<p>首先要说的一点是，整个这一章，都是关于堆的，在网课里面堆讲了30集，着实离谱，而且东西奇多，所以笔记也会多到离谱</p>
-</blockquote>
-<span id="more"></span>
-
-<h1 id="1-堆的概述"><a href="#1-堆的概述" class="headerlink" title="1. 堆的概述"></a>1. 堆的概述</h1><ul>
-<li><p>一个JVM实例只存在一个堆内存，堆也是 Java内存管理的核心区域</p>
-<blockquote>
-<p>一个进程对应一个JVM实例，JVM实例只有一个Runtime，Runtime里面只有堆和方法区是线程公用，所以说的直白了，一个进程只有一个堆</p>
-</blockquote>
-</li>
-<li><p>JVM启动时堆的大小已经确定</p>
-</li>
-<li><p>堆的大小可以调节</p>
-</li>
-<li><p>Java虚拟机规范中规定，堆可以处于物理不连续的内存上，但是逻辑上应视为连续。</p>
-<blockquote>
-<p>如何证明堆是进程唯一的？需要用到一个工具，在 java.bin 目录下，jvisualvm，这个东西可以看到目前的java进程信息，(需要安装一个插件，VisualGC，工具里面就能安装).然后进入 visualGC</p>
-</blockquote>
-</li>
-<li><p>即使整个线程共用一个堆，对内部还是有线程私有的缓冲区，最典型的就是 ThreadLocal，Buffer，TLAB Allocation，很好，目前我都不知道啥意思。</p>
-</li>
-<li><p>几乎所有的对象实例都分配在堆上，注意是几乎，不是所有，随着 JVM 的更新，JVM会进行逃逸检测，栈上也可以村对象了。</p>
-</li>
-<li><p>数组和对象可能永远不会存在栈上，栈帧中保存引用，这个引用指向对象或者数组在堆中的位置。</p>
-<blockquote>
-<p>官网中JVM规范说的是所有，所以引出了下一条</p>
-</blockquote>
-</li>
-<li><p>方法结束后，堆中的对象不会马上被删除，仅仅在垃圾收集的时候才会被删除。</p>
-<blockquote>
-<p>这里解释一下什么意思，一个方法，方法里面有引用，指向堆中的实例，当方法执行完成后，栈帧出栈，这时候引用就没了，就不在指向堆了，这个时候听不会马上GC，因为影响效率，他会在堆满了的时候去进行垃圾收集。</p>
-</blockquote>
-<blockquote>
-<p>这里老师的原话是：出栈后引用为空，很好现在回来看，显然是栈帧出栈，局部变量表停止指向</p>
-</blockquote>
-</li>
-<li><p>堆是GC作用的重点区域。</p>
-</li>
-</ul>
-<h1 id="2-堆空间内存细分"><a href="#2-堆空间内存细分" class="headerlink" title="2. 堆空间内存细分"></a>2. 堆空间内存细分</h1><p>现代垃圾收集器大部分都是基于分带收集论涉及，对空间细分为：</p>
-<ul>
-<li><p>java7 包括之前的JVM 堆内存逻辑上分为 3部分：新生区 + 养老区 + 永久区</p>
-<ul>
-<li><p>Young Generation Space -&gt; 新生区 Young&#x2F;New</p>
-<blockquote>
-<p>又被划分为 Eden 区 和 Survivor 区</p>
-</blockquote>
-</li>
-<li><p>Tenure Generation space -&gt; 养老区 Old&#x2F;Tenure</p>
-</li>
-<li><p>Permanent Space -&gt; 永久区 Perm</p>
-</li>
-</ul>
-</li>
-<li><p>java8 以后堆内存逻辑上分为3部分：新生区 + 养老区 + 元空间</p>
-<ul>
-<li><p>Young Generation Space 新生区 Young&#x2F;New</p>
-<blockquote>
-<p>同理分为 Eden Survivor</p>
-</blockquote>
-</li>
-<li><p>Tenure Generation Space 养老区 Old&#x2F;Tenure</p>
-</li>
-<li><p>Meta Space 元空间 Meta</p>
-</li>
-</ul>
-</li>
-</ul>
-<p>需要注意的是，永久代和元空间其实并不属于 堆，而是属于方法区，所以在这里不细说永久代。 如何证明堆包括元空间和养老代？还是昨天那个工具：Jvisualvm，里面的 visualGC， 里面 三块，enden survivor tenure 加起来 就是你设置的 堆的大小。</p>
-<p>在Java 中分别叫 PSYoungGen&#x3D;新生区 ParOldGen&#x3D;养老区 MetaGen&#x2F;PSPermGen&#x3D;元空间&#x2F;永久区</p>
-<h1 id="3-设置堆空间大小"><a href="#3-设置堆空间大小" class="headerlink" title="3. 设置堆空间大小"></a>3. 设置堆空间大小</h1><ul>
-<li><p>堆的大小在JVM启动的时候就已经设定好了，可以通过 -Xmx 和 -Xms 来设置</p>
-<ul>
-<li><p>-Xms 用来表示堆区的初始内存，等价于： -XX:InitialHeapSize</p>
-</li>
-<li><p>-Xmx 用来表示堆区的最大内存，等价于：-XX:MaxHeapSize</p>
-<blockquote>
-<p>-X 是 JVM 参数，ms &#x3D; memory start</p>
-</blockquote>
-</li>
-</ul>
-</li>
-<li><p>一旦堆区的内存大小超过 -Xmx，就会跑出 OutOfMemoryError异常。</p>
-</li>
-<li><p>通常会将-Xms 和 -Xmx配置相同的值，目的就是为了能够在Java垃圾回收机制清理完堆区后 不需要重新分割计算堆区的大小，从而提供性能。</p>
-</li>
-<li><p>默认情况下，初始内存大小：物理电脑内存大小 &#x2F; 64,最大内存：物理电脑内存大小 &#x2F; 4</p>
-</li>
-</ul>
-<h1 id="4-堆的年轻代和老年代"><a href="#4-堆的年轻代和老年代" class="headerlink" title="4. 堆的年轻代和老年代"></a>4. 堆的年轻代和老年代</h1><p>别说话，看图： </p>
-<p><img src="/../images/runtime/HeapOldGenAndYoungGen.png" alt="heap"></p>
-<p>存储在JVM中的Java对象可以分为两类：</p>
-<ul>
-<li><p>生命周期比较短的瞬时对象，创建消亡都非常迅速</p>
-</li>
-<li><p>生命周期比较长，极端情况下和JVM的声明周期一样长</p>
-</li>
-</ul>
-<p>创建出来的对象先放在 年轻代的Eden 区，进行一轮垃圾回收之后，如果是垃圾了，就直接回收了， 如果不是垃圾，说明对象幸存，则放到 survivor0 或者 survivor1 中。</p>
-<blockquote>
-<p>survivor 也叫 from &#x2F; to 区</p>
-</blockquote>
-<h2 id="内存占比"><a href="#内存占比" class="headerlink" title="内存占比"></a>内存占比</h2><p>默认情况下，年轻代和老年代占比 1:2，也就是年轻代占堆的1&#x2F;3，老年代占堆的 2&#x2F;3.能不能手动调整？可以，启动时添加JVM参数：<code>-XX:NewRatio=n</code> 设置年轻代和老年代占比 1:n。当然默认情况下是 <code>-XX:NewRatio=2</code>。但是这个数一般不建议改，除非你确定项目中有很多老对象。</p>
-<p>HotSpot虚拟机中，伊甸园区和幸存者区占比为 8:1:1。同理可以通过启动参数 <code>-XX:survivorRatio=n</code> 来调整。但是需要说一下，其实启动后占比是6:1:1，而不是8:1:1，你要是真想让他8:1:1符合规范，那你设置一下好了。</p>
-<p>几乎所有对象首先都是在Eden区创建，除非这个对象太大了直接放到OldGen，而且大部分对象的销毁都是放在Eden中，有研究表明 80%的对象都是朝生暮死，生命周期很短。如果我们嫌不够的话，可以使用参数 <code>-Xmn</code> 来调整新生代大小.</p>
-<h1 id="5-创建对象的大体流程"><a href="#5-创建对象的大体流程" class="headerlink" title="5. 创建对象的大体流程"></a>5. 创建对象的大体流程</h1><p>前文说道，创建对象一般发生在新生代，那么新生代具体发生了什么，让我们来详细说一说，注意，这里并没有提到类加载器，仅仅是在对重给对象分配内存流程。后面还会详细说一个对象创建具体的流程。</p>
-<h2 id="5-1-流程"><a href="#5-1-流程" class="headerlink" title="5.1 流程"></a>5.1 流程</h2><ol>
-<li><p>在Eden区分配空间，大部分情况都是吧对象分配在eden区，上文也说过，除非这个对象特别大</p>
-</li>
-<li><p>当Eden区满了的时候，出发年轻代的垃圾回收机制，叫 YGC(YoungGC) 或者叫 MinorGC，Eden中已经没有了引用的对象将会被回收，剩下的对象，将会进入 survivor0 或者 survivor1，这里我们先假设 survivor0 和 survivor1 都是空的，再假设 Eden中没有被回收的对象进入了 survivor0.这个时候 survivor0 就叫to区，同时进入 survivor0 的对象有一个年龄计数器，用来记录幸存次数，从 0 变成 1。</p>
-</li>
-<li><p>继续创建对象，放在 Eden中，当Eden再一次满了，再次触发 YGC，这回Eden中的幸存对象将会进入空的那个 survivor，这里空的是 survivor1，年龄计数器变为1，同时 survivor0 中的对象也进行YGC，s0中的幸存者也会进入s1，那么这个时候，s1就叫to区，s0就叫from 区，s区的垃圾回收是 Eden 回收，他也顺带回收一下，如果 s区满了，再说。</p>
-</li>
-<li><p>一直进行这个 Eden + from &#x3D;&gt; to 的过程，同时对象的年龄计数器累加。</p>
-</li>
-<li><p>当一个对象的年龄计数器值达到临界的时候，默认是15，那么就会认为这个对象的生命周期很长，就会把它放入 老年代。这个过程叫提升 ：Promotion</p>
-</li>
-</ol>
-<h2 id="5-2-总结"><a href="#5-2-总结" class="headerlink" title="5.2 总结"></a>5.2 总结</h2><ul>
-<li><p>针对 s区，复制之后有交换，谁空谁是to</p>
-</li>
-<li><p>关于垃圾回收，频繁在 新生代回收，很少在老年代回收，几乎不再永生代(Meta) 回收。</p>
-</li>
-<li><p>再出发 YGC 的时候，Eden区肯定是被清空了</p>
-</li>
-</ul>
-<h2 id="5-3-特殊情况"><a href="#5-3-特殊情况" class="headerlink" title="5.3 特殊情况"></a>5.3 特殊情况</h2><p>看图：</p>
-<p><img src="/../images/runtime/MemoryHandleSpecialCase.png" alt="heap_memory"></p>
-<p>解释一下： 正常流程肯定能看懂，说一点特殊情况：</p>
-<ul>
-<li><p>Eden 放不下了，可能是 Eden 满了，触发 YGC，然后Eden 还是放不下，这个时候Eden肯定是 空了，说明 对象大小超过了 Eden大小，则直接放入 老年代。</p>
-</li>
-<li><p>上面这种情况，如果 老年代也放不下，触发 FGC，还放不下，那完了，抛出 OOM错误。</p>
-</li>
-<li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
-</li>
-</ul>
 ]]></content>
       <categories>
         <category>JVM</category>
@@ -514,6 +363,707 @@
 <li><p>Hotspot JVM中，直接把本地方法栈和虚拟机栈合二为一。</p>
 </li>
 </ul>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JVM-堆</title>
+    <url>/2022/05/28/jvm-heap/</url>
+    <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
+<blockquote>
+<p>首先要说的一点是，整个这一章，都是关于堆的，在网课里面堆讲了30集，着实离谱，而且东西奇多，所以笔记也会多到离谱</p>
+</blockquote>
+<span id="more"></span>
+
+<h1 id="1-堆的概述"><a href="#1-堆的概述" class="headerlink" title="1. 堆的概述"></a>1. 堆的概述</h1><ul>
+<li><p>一个JVM实例只存在一个堆内存，堆也是 Java内存管理的核心区域</p>
+<blockquote>
+<p>一个进程对应一个JVM实例，JVM实例只有一个Runtime，Runtime里面只有堆和方法区是线程公用，所以说的直白了，一个进程只有一个堆</p>
+</blockquote>
+</li>
+<li><p>JVM启动时堆的大小已经确定</p>
+</li>
+<li><p>堆的大小可以调节</p>
+</li>
+<li><p>Java虚拟机规范中规定，堆可以处于物理不连续的内存上，但是逻辑上应视为连续。</p>
+<blockquote>
+<p>如何证明堆是进程唯一的？需要用到一个工具，在 java.bin 目录下，jvisualvm，这个东西可以看到目前的java进程信息，(需要安装一个插件，VisualGC，工具里面就能安装).然后进入 visualGC</p>
+</blockquote>
+</li>
+<li><p>即使整个线程共用一个堆，对内部还是有线程私有的缓冲区，最典型的就是 ThreadLocal，Buffer，TLAB Allocation，很好，目前我都不知道啥意思。</p>
+</li>
+<li><p>几乎所有的对象实例都分配在堆上，注意是几乎，不是所有，随着 JVM 的更新，JVM会进行逃逸检测，栈上也可以村对象了。</p>
+</li>
+<li><p>数组和对象可能永远不会存在栈上，栈帧中保存引用，这个引用指向对象或者数组在堆中的位置。</p>
+<blockquote>
+<p>官网中JVM规范说的是所有，所以引出了下一条</p>
+</blockquote>
+</li>
+<li><p>方法结束后，堆中的对象不会马上被删除，仅仅在垃圾收集的时候才会被删除。</p>
+<blockquote>
+<p>这里解释一下什么意思，一个方法，方法里面有引用，指向堆中的实例，当方法执行完成后，栈帧出栈，这时候引用就没了，就不在指向堆了，这个时候听不会马上GC，因为影响效率，他会在堆满了的时候去进行垃圾收集。</p>
+</blockquote>
+<blockquote>
+<p>这里老师的原话是：出栈后引用为空，很好现在回来看，显然是栈帧出栈，局部变量表停止指向</p>
+</blockquote>
+</li>
+<li><p>堆是GC作用的重点区域。</p>
+</li>
+</ul>
+<h1 id="2-堆空间内存细分"><a href="#2-堆空间内存细分" class="headerlink" title="2. 堆空间内存细分"></a>2. 堆空间内存细分</h1><p>现代垃圾收集器大部分都是基于分带收集论涉及，对空间细分为：</p>
+<ul>
+<li><p>java7 包括之前的JVM 堆内存逻辑上分为 3部分：新生区 + 养老区 + 永久区</p>
+<ul>
+<li><p>Young Generation Space -&gt; 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>又被划分为 Eden 区 和 Survivor 区</p>
+</blockquote>
+</li>
+<li><p>Tenure Generation space -&gt; 养老区 Old&#x2F;Tenure</p>
+</li>
+<li><p>Permanent Space -&gt; 永久区 Perm</p>
+</li>
+</ul>
+</li>
+<li><p>java8 以后堆内存逻辑上分为3部分：新生区 + 养老区 + 元空间</p>
+<ul>
+<li><p>Young Generation Space 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>同理分为 Eden Survivor</p>
+</blockquote>
+</li>
+<li><p>Tenure Generation Space 养老区 Old&#x2F;Tenure</p>
+</li>
+<li><p>Meta Space 元空间 Meta</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>需要注意的是，永久代和元空间其实并不属于 堆，而是属于方法区，所以在这里不细说永久代。 如何证明堆包括元空间和养老代？还是昨天那个工具：Jvisualvm，里面的 visualGC， 里面 三块，enden survivor tenure 加起来 就是你设置的 堆的大小。</p>
+<p>在Java 中分别叫 PSYoungGen&#x3D;新生区 ParOldGen&#x3D;养老区 MetaGen&#x2F;PSPermGen&#x3D;元空间&#x2F;永久区</p>
+<h1 id="3-设置堆空间大小"><a href="#3-设置堆空间大小" class="headerlink" title="3. 设置堆空间大小"></a>3. 设置堆空间大小</h1><ul>
+<li><p>堆的大小在JVM启动的时候就已经设定好了，可以通过 -Xmx 和 -Xms 来设置</p>
+<ul>
+<li><p>-Xms 用来表示堆区的初始内存，等价于： -XX:InitialHeapSize</p>
+</li>
+<li><p>-Xmx 用来表示堆区的最大内存，等价于：-XX:MaxHeapSize</p>
+<blockquote>
+<p>-X 是 JVM 参数，ms &#x3D; memory start</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>一旦堆区的内存大小超过 -Xmx，就会跑出 OutOfMemoryError异常。</p>
+</li>
+<li><p>通常会将-Xms 和 -Xmx配置相同的值，目的就是为了能够在Java垃圾回收机制清理完堆区后 不需要重新分割计算堆区的大小，从而提供性能。</p>
+</li>
+<li><p>默认情况下，初始内存大小：物理电脑内存大小 &#x2F; 64,最大内存：物理电脑内存大小 &#x2F; 4</p>
+</li>
+</ul>
+<h1 id="4-堆的年轻代和老年代"><a href="#4-堆的年轻代和老年代" class="headerlink" title="4. 堆的年轻代和老年代"></a>4. 堆的年轻代和老年代</h1><p>别说话，看图： </p>
+<p><img src="/../images/runtime/HeapOldGenAndYoungGen.png" alt="heap"></p>
+<p>存储在JVM中的Java对象可以分为两类：</p>
+<ul>
+<li><p>生命周期比较短的瞬时对象，创建消亡都非常迅速</p>
+</li>
+<li><p>生命周期比较长，极端情况下和JVM的声明周期一样长</p>
+</li>
+</ul>
+<p>创建出来的对象先放在 年轻代的Eden 区，进行一轮垃圾回收之后，如果是垃圾了，就直接回收了， 如果不是垃圾，说明对象幸存，则放到 survivor0 或者 survivor1 中。</p>
+<blockquote>
+<p>survivor 也叫 from &#x2F; to 区</p>
+</blockquote>
+<h2 id="内存占比"><a href="#内存占比" class="headerlink" title="内存占比"></a>内存占比</h2><p>默认情况下，年轻代和老年代占比 1:2，也就是年轻代占堆的1&#x2F;3，老年代占堆的 2&#x2F;3.能不能手动调整？可以，启动时添加JVM参数：<code>-XX:NewRatio=n</code> 设置年轻代和老年代占比 1:n。当然默认情况下是 <code>-XX:NewRatio=2</code>。但是这个数一般不建议改，除非你确定项目中有很多老对象。</p>
+<p>HotSpot虚拟机中，伊甸园区和幸存者区占比为 8:1:1。同理可以通过启动参数 <code>-XX:survivorRatio=n</code> 来调整。但是需要说一下，其实启动后占比是6:1:1，而不是8:1:1，你要是真想让他8:1:1符合规范，那你设置一下好了。</p>
+<p>几乎所有对象首先都是在Eden区创建，除非这个对象太大了直接放到OldGen，而且大部分对象的销毁都是放在Eden中，有研究表明 80%的对象都是朝生暮死，生命周期很短。如果我们嫌不够的话，可以使用参数 <code>-Xmn</code> 来调整新生代大小.</p>
+<h1 id="5-创建对象的大体流程"><a href="#5-创建对象的大体流程" class="headerlink" title="5. 创建对象的大体流程"></a>5. 创建对象的大体流程</h1><p>前文说道，创建对象一般发生在新生代，那么新生代具体发生了什么，让我们来详细说一说，注意，这里并没有提到类加载器，仅仅是在对重给对象分配内存流程。后面还会详细说一个对象创建具体的流程。</p>
+<h2 id="5-1-流程"><a href="#5-1-流程" class="headerlink" title="5.1 流程"></a>5.1 流程</h2><ol>
+<li><p>在Eden区分配空间，大部分情况都是吧对象分配在eden区，上文也说过，除非这个对象特别大</p>
+</li>
+<li><p>当Eden区满了的时候，出发年轻代的垃圾回收机制，叫 YGC(YoungGC) 或者叫 MinorGC，Eden中已经没有了引用的对象将会被回收，剩下的对象，将会进入 survivor0 或者 survivor1，这里我们先假设 survivor0 和 survivor1 都是空的，再假设 Eden中没有被回收的对象进入了 survivor0.这个时候 survivor0 就叫to区，同时进入 survivor0 的对象有一个年龄计数器，用来记录幸存次数，从 0 变成 1。</p>
+</li>
+<li><p>继续创建对象，放在 Eden中，当Eden再一次满了，再次触发 YGC，这回Eden中的幸存对象将会进入空的那个 survivor，这里空的是 survivor1，年龄计数器变为1，同时 survivor0 中的对象也进行YGC，s0中的幸存者也会进入s1，那么这个时候，s1就叫to区，s0就叫from 区，s区的垃圾回收是 Eden 回收，他也顺带回收一下，如果 s区满了，再说。</p>
+</li>
+<li><p>一直进行这个 Eden + from &#x3D;&gt; to 的过程，同时对象的年龄计数器累加。</p>
+</li>
+<li><p>当一个对象的年龄计数器值达到临界的时候，默认是15，那么就会认为这个对象的生命周期很长，就会把它放入 老年代。这个过程叫提升 ：Promotion</p>
+</li>
+</ol>
+<h2 id="5-2-总结"><a href="#5-2-总结" class="headerlink" title="5.2 总结"></a>5.2 总结</h2><ul>
+<li><p>针对 s区，复制之后有交换，谁空谁是to</p>
+</li>
+<li><p>关于垃圾回收，频繁在 新生代回收，很少在老年代回收，几乎不再永生代(Meta) 回收。</p>
+</li>
+<li><p>再出发 YGC 的时候，Eden区肯定是被清空了</p>
+</li>
+</ul>
+<h2 id="5-3-特殊情况"><a href="#5-3-特殊情况" class="headerlink" title="5.3 特殊情况"></a>5.3 特殊情况</h2><p>看图：</p>
+<p><img src="/../images/runtime/MemoryHandleSpecialCase.png" alt="heap_memory"></p>
+<p>解释一下： 正常流程肯定能看懂，说一点特殊情况：</p>
+<ul>
+<li><p>Eden 放不下了，可能是 Eden 满了，触发 YGC，然后Eden 还是放不下，这个时候Eden肯定是 空了，说明 对象大小超过了 Eden大小，则直接放入 老年代。</p>
+</li>
+<li><p>上面这种情况，如果 老年代也放不下，触发 FGC，还放不下，那完了，抛出 OOM错误。</p>
+</li>
+<li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
+</li>
+</ul>
+<h1 id="6-堆垃圾回收"><a href="#6-堆垃圾回收" class="headerlink" title="6. 堆垃圾回收"></a>6. 堆垃圾回收</h1><p>大体来看，Heap 中的 GC 分为 3种：</p>
+<ul>
+<li><p>Young GC &#x2F; MinorGC</p>
+</li>
+<li><p>Full GC</p>
+</li>
+<li><p>Old GC &#x2F; Major GC</p>
+</li>
+</ul>
+<p>根据 HotSpot 虚拟机，按照收集区域又分为两种：部分收集和整堆收集</p>
+<ul>
+<li><p>部分收集：不是完整收集整个Java 堆的收集，其中又分为：</p>
+<ul>
+<li><p>新生代收集 MinorGC&#x2F;YoungGC: 只收集年轻代的垃圾收集</p>
+</li>
+<li><p>老年代收集 MajorGC&#x2F;OldGC： 只收集老年代</p>
+<ul>
+<li><p>目前只有CMS GC会有单独收集老年代的行为</p>
+</li>
+<li><p>很多时候 MajorGC 会和 FullGC 混合使用，需要具体分辨是老年代回收还是整堆回收</p>
+</li>
+</ul>
+</li>
+<li><p>混合回收器 Mixed GC：收集整个新生代和部分老年代的垃圾</p>
+<ul>
+<li>只有G1 GC 有这种行为</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>整堆收集：收集整个 Java 堆 和 方法区 的垃圾，注意，还包括方法区。</p>
+</li>
+</ul>
+<p>下面说一下各个内存部分的垃圾回收触发机制：</p>
+<h2 id="6-1-年轻代触发机制"><a href="#6-1-年轻代触发机制" class="headerlink" title="6.1 年轻代触发机制"></a>6.1 年轻代触发机制</h2><ul>
+<li><p>年轻代空间不足，就会触发minor gc,这里说的空间不足指的是eden空间不足，survivor 满了不会触发 minor gc，只会发生提升。每次回收都会清空年轻代内存。</p>
+</li>
+<li><p>Java 对象大多数申明周期很短，所以minor gc 发生的特别频繁。</p>
+</li>
+<li><p>minor gc 会触发STW，也就是暂停用户线程，等垃圾回收结束，才会恢复用户线程</p>
+</li>
+</ul>
+<h2 id="6-2-老年代回收："><a href="#6-2-老年代回收：" class="headerlink" title="6.2 老年代回收："></a>6.2 老年代回收：</h2><ul>
+<li><p>发生在老年代的垃圾回收，当对象从老年代消失了，我们就认为 major gc 或者 full gc 发生了，</p>
+</li>
+<li><p>发生一次 major gc，一般来说，伴随着至少一次的minor gc，不是绝对的，以后再说。</p>
+<ul>
+<li>也就是当老年代空间不足时，西安出发一次 minor gc，如果空间还不足，触发 major gc</li>
+</ul>
+</li>
+<li><p>major gc 一般比 minor gc 慢10倍以上，stw 时间更长。</p>
+</li>
+<li><p>如果major gc后空间还是不够，抛出 OOM 异常。</p>
+</li>
+</ul>
+<h2 id="6-3-FullGC-触发机制："><a href="#6-3-FullGC-触发机制：" class="headerlink" title="6.3 FullGC 触发机制："></a>6.3 FullGC 触发机制：</h2><ul>
+<li><p>调用 System.gc() 时</p>
+</li>
+<li><p>老年代空间不足</p>
+</li>
+<li><p>方法区空间不足</p>
+</li>
+<li><p>通过 minor gc 后进入老年代的平均大小大于老年代的可用内存</p>
+</li>
+<li><p>eden from 的对象往 to 区复制，to区空间不够，提升到老年代，老年代空间也不够，触发 full gc</p>
+</li>
+<li><p>开发中尽量避免 full gc</p>
+</li>
+</ul>
+<h1 id="7-TLAB"><a href="#7-TLAB" class="headerlink" title="7. TLAB"></a>7. TLAB</h1><p>前文说过TLAB，说是 堆里面有每个线程的私有缓冲区，有 TLAB，ThreadLocal，Buffer，Allocation，其实后面的三个词全都在说 TLAB。</p>
+<h2 id="7-1-TLAB是啥"><a href="#7-1-TLAB是啥" class="headerlink" title="7.1 TLAB是啥"></a>7.1 TLAB是啥</h2><p>ThreadLocal Buffer Allocation： 线程私有缓冲区，用于结局线程安全问题。</p>
+<h2 id="7-2-为什么要设置TLAB"><a href="#7-2-为什么要设置TLAB" class="headerlink" title="7.2 为什么要设置TLAB"></a>7.2 为什么要设置TLAB</h2><p>堆是整个进程共享的一块区域，如果一大堆线程同事访问堆，会造成县城不安全，如果给数据加锁，那效率就太慢了，所以为了提高效率，加入了线程缓冲区。</p>
+<p>JVM给每个线程在 Eden 划分出来一块 TLAB，这种方式解决了线程安全问题，提高了内存分配吞吐量，我们就管这种方式叫“快速分配策略”.</p>
+<p>虽然说不是所有对象都可以分配在 TLAB上，但是TLAB确实是JVM分配对象的首选。TLAB非常小，仅仅占到了 Eden的 1%。</p>
+<p>如果对象在TLAB分配失败，JVM就会考虑给对象加锁，直接把对象放在Eden中。</p>
+<h2 id="7-3-一些参数"><a href="#7-3-一些参数" class="headerlink" title="7.3 一些参数"></a>7.3 一些参数</h2><ul>
+<li><p>-XX:useTLAB 是否开启TLAB，默认开启</p>
+</li>
+<li><p>-XX:TLABWasteTargetPercent 设置TLAB占Eden的百分比。</p>
+</li>
+</ul>
+<h2 id="7-4-对象创建过程"><a href="#7-4-对象创建过程" class="headerlink" title="7.4 对象创建过程"></a>7.4 对象创建过程</h2><p>有了TLAB以后，对象创建流程如下：</p>
+<p><img src="/../images/runtime/TLAB.png" alt="tlab"></p>
+<h2 id="7-5-剩下的"><a href="#7-5-剩下的" class="headerlink" title="7.5 剩下的"></a>7.5 剩下的</h2><p>p81 没好好看，以后可以补一补。</p>
+<h1 id="8-逃逸分析"><a href="#8-逃逸分析" class="headerlink" title="8. 逃逸分析"></a>8. 逃逸分析</h1><p>随着 JIT(编译器) 的发展，逃逸分析技术逐渐成熟，栈上分配，标量替换优化技术 导致技术上有了一点区别，那就是 堆上分配对象不再那么绝对了。</p>
+<p>大部分情况下，一个对象在堆上分配空间，但是在某些特殊情况下，这个对象经过了逃逸分析，发现这个方法并没有逃离方法，那么这个对象就有可能在栈上分配空间。</p>
+<p>但是提一句，HotSpot虚拟机可是没有逃逸分析里面的部分功能的，比如栈上分配这个，HotSpot就没有。</p>
+<h2 id="8-1-逃逸分析概述"><a href="#8-1-逃逸分析概述" class="headerlink" title="8.1 逃逸分析概述"></a>8.1 逃逸分析概述</h2><p>逃逸分析干嘛的？就是用来优化内存分配的，我们前面说对象都要分配到堆上，但是堆上涉及到GC，而栈却不涉及GC，所以可不可以把对象存到栈上，然后方法执行完成直接弹栈，省的GC了。所以这个就是逃逸分析要干的事，分配一个对象，就要看这个对象有没有发生逃逸，如果发生逃逸，也就是这个对象跑出了当前方法作用域，那么发生逃逸，该咋办咋办，如果没有，则可以进行优化。就可以把这个对象放到栈上。</p>
+<ul>
+<li><p>通过逃逸分析，Java Hotspot 编译器能够分析一个对象的引用从而决定这个对象是否分配到栈上。</p>
+</li>
+<li><p>逃逸分析的基本行为就是分析对象的作用域：</p>
+<ul>
+<li><p>一个对象被定义后，如果只在方法中调用，那么没有发生逃逸。</p>
+</li>
+<li><p>对象被定义后，方法外也引用了它，则发生了逃逸。比如方法中创建的对象最后被return了。</p>
+</li>
+</ul>
+</li>
+<li><p>没有发生逃逸，则对象可以分配到栈上，毕竟别的地方不用，方法执行完，栈帧出栈，对象也跟着出栈。</p>
+</li>
+<li><p>发生逃逸，那就老老实实往堆上分配。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这种情况下，user 对象仅仅在方法内部被调用，则没有逃逸，往栈上分配就行了  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    user = <span class="literal">null</span>;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 这种情况，StringBuffer 最终被return，发生了逃逸。  </span></span><br><span class="line"><span class="keyword">public</span> StringBuffer <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">buffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    buffer.append(a);  </span><br><span class="line">    buffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> buffer;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面的 StringBuffer 改成这种，就不会发生逃逸  </span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">stringBuffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    stringBuffer.append(a);  </span><br><span class="line">    stringBuffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> stringBuffer.toString();  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数如下：</strong></p>
+<ul>
+<li><p>-XX:-DoEscapeAnalysis 关闭逃逸分析</p>
+</li>
+<li><p>-XX:+DoEscapeAnalysis 开启逃逸分析</p>
+</li>
+</ul>
+<h2 id="8-2-逃逸分析：代码优化"><a href="#8-2-逃逸分析：代码优化" class="headerlink" title="8.2 逃逸分析：代码优化"></a>8.2 逃逸分析：代码优化</h2><p>总的来说，可以通过逃逸分析干好多事，上面那个，仅仅是一个 栈上分配。</p>
+<p>逃逸检测的优化：</p>
+<ul>
+<li><p>栈上分配</p>
+</li>
+<li><p>同步省略</p>
+</li>
+<li><p>分离对象&#x2F;标量替换</p>
+</li>
+</ul>
+<h3 id="8-2-1-栈上分配"><a href="#8-2-1-栈上分配" class="headerlink" title="8.2.1 栈上分配"></a>8.2.1 栈上分配</h3><p>就是前面说的，站上分配对象，如果实体仅仅在方法内部使用没有进入外部，则对象会被分配到栈上。</p>
+<h3 id="8-2-2-同步省略"><a href="#8-2-2-同步省略" class="headerlink" title="8.2.2 同步省略"></a>8.2.2 同步省略</h3><p>如果一个对象仅在一个线程中使用，或者说，一个对象只能从一个线程中被访问，那么对于这个对象的操作就不考虑同步。</p>
+<ul>
+<li><p>线程同步的代价是很高的。</p>
+</li>
+<li><p>在动态编译同步代码块的时候，如果JIT 检测到一个对象仅仅在一个线程中被访问，而没有发布到其他线程，则运行时 JVM 就会取消对这个对象进行上锁，大大的提高效率，这就叫 锁消除。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    <span class="keyword">synchronized</span>(user)&#123;  </span><br><span class="line">        System.out.println(user);  </span><br><span class="line">   &#125;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面这种情况，user 对象仅仅在一个线程中被访问，并没有多个线程共享，所以几遍你给他加了锁，  </span></span><br><span class="line"><span class="comment">// JVM也不会执行，但是废话，这种情况，本来我们就不应该加锁。</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-2-3分离对象或标量替换"><a href="#8-2-3分离对象或标量替换" class="headerlink" title="8.2.3分离对象或标量替换"></a>8.2.3分离对象或标量替换</h3><p>有的对象可能不需要作为一个连续的内存结构存入到内存中，而且也可以被访问到。那么这部分对象的部分(甚至全部) 就可以存到 CPU的寄存器中。</p>
+<p>用Java 说，就是这个对象不用存在 堆中，那就可以放到 栈 中。这里还需要解释几个概念：</p>
+<p><strong>标量</strong></p>
+<p>无法被分解成更小的数据，比如基本数据类型。</p>
+<p><strong>对应聚合量</strong></p>
+<p>还可以被分解的对象就是聚合量，比如我们自己写的类的实例。</p>
+<p><strong>标量替换</strong></p>
+<p>如果经过逃逸分析，发现你目前的对象没有在方法外面使用，他就会把你的聚合量，分解为几个标量，这个过程就叫标量替换。</p>
+<p>说白了，就是吧对象打散了，分配到栈上。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">Point</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>();  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + p.x + <span class="string">&quot; Point.y=&quot;</span> + p.y);  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 最终这个东西会被优化成  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">1</span>;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">y</span> <span class="operator">=</span> <span class="number">2</span>;  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + x + <span class="string">&quot; Point.y=&quot;</span> + y);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>-XX:+EliminateAllocation 开启标量替换，默认就是开启的。</p>
+<h2 id="8-3-总结"><a href="#8-3-总结" class="headerlink" title="8.3 总结"></a>8.3 总结</h2><p>大体说几点：</p>
+<ul>
+<li><p>逃逸分析并不成熟</p>
+</li>
+<li><p>逃逸分析本身也消耗性能，如果分析了半天，结果发现都逃逸了，那完犊子了</p>
+</li>
+<li><p>Oracle HotSpot 并没有栈上分配，所以肯定对象都在堆上</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JVM-方法区</title>
+    <url>/2022/05/30/jvm-methodarea/</url>
+    <content><![CDATA[<p>JVM方法区，主要用于储存各种类的元信息，也就是我们常说的Class类摸版，这里详细说一下方法区的内存分布和垃圾回收问题。同时这里也不会只讲方法区，因为讲完方法区以后我们就可以深入的去研究一个对象是如何被创建的，所以后面还会和堆空间结合起来说。</p>
+<span id="more"></span>
+
+<h1 id="1-方法区"><a href="#1-方法区" class="headerlink" title="1. 方法区"></a>1. 方法区</h1><h2 id="1-1-明确几个概念"><a href="#1-1-明确几个概念" class="headerlink" title="1.1 明确几个概念"></a>1.1 明确几个概念</h2><ul>
+<li><p>方法区虽然之前说过算是 堆的一部分，但是一般情况下是要分开的。</p>
+</li>
+<li><p>方法去看作是JVM独立的一部分。</p>
+</li>
+<li><p>HotSpot 虚拟机的方法区还有一个别名：Non-Heap 非堆。</p>
+</li>
+<li><p>方法区会自己收缩扩大</p>
+</li>
+</ul>
+<h2 id="1-2-方法区的基本理解"><a href="#1-2-方法区的基本理解" class="headerlink" title="1.2 方法区的基本理解"></a>1.2 方法区的基本理解</h2><ul>
+<li><p>方法区和堆类似，都是线程共享的。</p>
+</li>
+<li><p>方法区在JVM启动时被创建，和heap一样他的物理内存可以不连续。</p>
+</li>
+<li><p>方法区的大小和heap一样，可固定 可 伸缩</p>
+</li>
+<li><p>方法区的大小决定了系统能加载多少个类，如果类过于多，也会抛出 OutOfMemoryError</p>
+<ul>
+<li>比如加载过多 jar 包，或者 tomcat部署过多服务，比如 30 - 50 个。</li>
+</ul>
+</li>
+<li><p>关闭JVM会释放这部分内存。</p>
+</li>
+</ul>
+<h2 id="1-3-HotSpot-虚拟机-方法区演进"><a href="#1-3-HotSpot-虚拟机-方法区演进" class="headerlink" title="1.3 HotSpot 虚拟机 方法区演进"></a>1.3 HotSpot 虚拟机 方法区演进</h2><ul>
+<li><p>JDK7 中，将方法区称为永久代，JDK8以后用元空间取代了永久代</p>
+<blockquote>
+<p>JVM虚拟机规范中说：将类的原信息存储到本地堆中，这块区域称为元空间</p>
+</blockquote>
+</li>
+<li><p>确切来说永久代和方法区并不等价，仅针对 HotSpot 虚拟机而言，他并没有规定如何实现方法区。</p>
+</li>
+<li><p>可以这么理解，方法区就是一个接口，永久代和元空间用于存储类的原信息，是方法区的实现。</p>
+</li>
+</ul>
+<h2 id="1-4-hotSpot-设置-方法区大小"><a href="#1-4-hotSpot-设置-方法区大小" class="headerlink" title="1.4 hotSpot 设置 方法区大小"></a>1.4 hotSpot 设置 方法区大小</h2><ul>
+<li><p>JDK7 之前：</p>
+<ul>
+<li><p>-XX:PermSize&#x3D;100m 设置初始大小 默认 20.75m</p>
+</li>
+<li><p>-XX:MaxPermSize&#x3D;200m 设置最大值 默认 32位机器 64m，64位机器 86m</p>
+</li>
+</ul>
+</li>
+<li><p>JDK8 以后：</p>
+<ul>
+<li><p>-XX:MetaspaceSize&#x3D;100m 设置初始大小 默认 21m</p>
+</li>
+<li><p>-XX:MaxMetaspaceSize&#x3D;200m 设置最大值 默认没有最大，最大就是你的真实内存</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>二者的区别：</p>
+<ul>
+<li><p>元空间和永久代不同，元空间会耗尽你所有的内存，直到你的内存崩了，他会给你抛出 OOM异常。</p>
+</li>
+<li><p>-XX:MetaspaceSize 设置初始大小。对于一个64位的机器来说，默认是21m空间，那么这个21m就是一个高水位线，一旦元空间的东西超过了21m，就会触发FullGC来清理不用的类(类加载器死亡了)，然后这个高水位线会重置。如果清理的不多，同时在最大空间以内，他就会稍微提高这个高水位线，如果清理的过多，就会降低这个高水位线。</p>
+</li>
+<li><p>根据上面所说的，如果初始值比较低，那么就会频繁触发 FullGC，为了提高性能，建议吧这个初始值调高。</p>
+</li>
+</ul>
+<h1 id="2-方法区内部结构"><a href="#2-方法区内部结构" class="headerlink" title="2. 方法区内部结构"></a>2. 方法区内部结构</h1><h2 id="2-1-方法区主要存储对象"><a href="#2-1-方法区主要存储对象" class="headerlink" title="2.1 方法区主要存储对象"></a>2.1 方法区主要存储对象</h2><ul>
+<li><p>类型信息</p>
+<ul>
+<li><p>全限定命名</p>
+</li>
+<li><p>直接父类的全限定命名</p>
+</li>
+<li><p>类的访问修饰符</p>
+</li>
+<li><p>实现的直接接口的有序列表</p>
+</li>
+</ul>
+</li>
+<li><p>域信息(Field 其实就是字段，或者属性):</p>
+<ul>
+<li><p>JVM必须在方法去中保存所有字段的相关信息和声明顺序</p>
+</li>
+<li><p>域的相关信息包括：名称 类型 访问修饰符</p>
+</li>
+</ul>
+</li>
+<li><p>方法</p>
+<ul>
+<li><p>JVM必须在方法去中保存下面的信息，同时也会保存声明顺序：</p>
+</li>
+<li><p>方法名称</p>
+</li>
+<li><p>方法返回值类型</p>
+</li>
+<li><p>参数的数量与类型(按顺序)</p>
+</li>
+<li><p>访问修饰符</p>
+</li>
+<li><p>方法的字节码 操作数栈 局部变量表及大小(abstract native 方法除外)</p>
+</li>
+<li><p>异常表(abstract native 除外)</p>
+<ul>
+<li>包括 每个异常处理的开始位置，结束位置，代码处理在PC寄存器中的偏移地址，被捕获的异常类的常量池索引</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="2-2-全局常量"><a href="#2-2-全局常量" class="headerlink" title="2.2 全局常量"></a>2.2 全局常量</h2><p>就是 static final，用 final 修饰的 static 成员。</p>
+<p>这个东西在编译的时候就已经为他分配了值。直接反编译，就可以看到.</p>
+<h1 id="3-常量池-和-运行时常量池"><a href="#3-常量池-和-运行时常量池" class="headerlink" title="3. 常量池 和 运行时常量池"></a>3. 常量池 和 运行时常量池</h1><p>一个有效的字节码文件里面包含了类的信息 字段 方法 接口等，以外，还包括一个东西，就是常量池：Constant Pool。常量池里面包括：字面量 类型，字段，方法的引用。</p>
+<p>看图： </p>
+<p><img src="/images/runtime/ConstantPool.png" alt="method_area"></p>
+<p>这图领会精神，因为我也看不懂.</p>
+<h2 id="3-1-为什么引入-常量池"><a href="#3-1-为什么引入-常量池" class="headerlink" title="3.1 为什么引入 常量池"></a>3.1 为什么引入 常量池</h2><p>Java 一个类编译后生成字节码文件。而Java字节码通常需要数据支持，而这些数据大到无法存到 字节码文件中，所以引入常量池，在动态链接阶段 会用到运行时常量池。</p>
+<p>比如我们写一个最简单的HelloWorld 程序，这个程序就用到了 Object,System,PrintStream等一系列的类。这些类很显然不能全都装在字节码里面，所以就以常量池的形式存储。</p>
+<p>比如我们随便反编译一个类，得到 Constant Pool，都是一大堆 #… 这种东西，然后我们跟着他的 # 一路往下追，才能找到他到底是个啥。</p>
+<h2 id="3-2-常量池里面都存啥？"><a href="#3-2-常量池里面都存啥？" class="headerlink" title="3.2 常量池里面都存啥？"></a>3.2 常量池里面都存啥？</h2><ul>
+<li><p>数量值</p>
+</li>
+<li><p>字符串值</p>
+</li>
+<li><p>类引用</p>
+</li>
+<li><p>字段引用</p>
+</li>
+<li><p>方法引用</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<p><code>Object object = new Object();</code></p>
+<p>他在 字节码中会被表示成：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:new #2</span><br><span class="line">1:dup </span><br><span class="line">2:invokespecial #3</span><br></pre></td></tr></table></figure>
+
+<p>这里的#2 和#3就是常量池中的东西，new 后面这个#2，指向的就是常量池中用于表示Object这个类的字符串常量，注意是字符串常量，#3 就指向了常量池的Object的<init>O 方法，然后在类加载的链接阶段就会将这些字符串常量转化为运行时常量池，然后#2也会指向真实的内存地址。</p>
+<p>总的来说：常量池就可以理解成一张表，JVM根据这张表，去找到要执行的类名 方法 参数 字面量等。</p>
+<h2 id="3-3-运行时常量池"><a href="#3-3-运行时常量池" class="headerlink" title="3.3 运行时常量池"></a>3.3 运行时常量池</h2><p>这里明确一下，运行时常量池和字节码中的常量池表不一样。</p>
+<ul>
+<li><p>运行时常量池 是 方法区的一部分</p>
+</li>
+<li><p>常量池表是字节码文件的一部分，用于存储编译期生成的各种字面量和引用，这部分内容将在类加载后放到方法区的运行时常量池中。</p>
+</li>
+<li><p>加载类和接口到虚拟机后就会生成对应的运行时常量池</p>
+</li>
+<li><p>JVM为每一个已经加载的类型(类或者接口)都维护一个运行时常量池，池中的数据向数组像一样，可以通过索引访问。</p>
+</li>
+<li><p>运行时常量池中包含多种不同的常量，包括编译期间就已经明确的字面量，也包括运行时解析后才能得到的方法或字段引用，此时已经不再是常量池那种符号地址了，而是真实地址</p>
+</li>
+<li><p>运行时常量池对比常量池的一个特点：具备动态性</p>
+</li>
+<li><p>运行时常量池类似其他语言的符号表，但是内容更丰富。</p>
+</li>
+<li><p>在构造类型的运行时常量池的时候，如果方法区的空间不够了，就会抛出 OutOfMemoryError</p>
+</li>
+</ul>
+<h1 id="4-JVM方法区的演进"><a href="#4-JVM方法区的演进" class="headerlink" title="4. JVM方法区的演进"></a>4. JVM方法区的演进</h1><ul>
+<li><p>首先 HotSpot 虚拟机才有永久代</p>
+</li>
+<li><p>HotSpot虚拟机的演进：</p>
+<ul>
+<li><p>JDK6以前，有永久代，静态变量存放在永久代上</p>
+</li>
+<li><p>JDK7还有永久代，但是 字符串常量池，静态变量从永久代移除，放到了堆上</p>
+</li>
+<li><p>JDK8以后，取消永久代，而是元空间，类型信息 字段 方法 常量保存在元空间，但是 静态变量和字符串常量池还在堆上。</p>
+</li>
+</ul>
+</li>
+<li><p>以前有永久代的时候，所有内存都放在JVM的内存上，到了元空间，变成了本地内存。</p>
+</li>
+</ul>
+<h2 id="4-1元空间为何要取代永久代"><a href="#4-1元空间为何要取代永久代" class="headerlink" title="4.1元空间为何要取代永久代"></a>4.1元空间为何要取代永久代</h2><ul>
+<li><p>JDK8以后，永久代没了，原先存在永久代中的数据被存到了一个和堆不连续的本地内存上， 这块地方就是元空间。</p>
+</li>
+<li><p>因为类的元数据放在本地内存，所以元空间的上线就是真实内存max</p>
+</li>
+</ul>
+<h2 id="4-2-好处"><a href="#4-2-好处" class="headerlink" title="4.2 好处"></a>4.2 好处</h2><ul>
+<li><p>方法区的大小很难确定，如果功能过多，加载的雷多，很可能出现OOM错误。</p>
+</li>
+<li><p>对永久代调优很困难，就是 FullGC，去判断哪些是垃圾特别麻烦，所以 尽量少去GC，就需要更大的方法区空间。</p>
+</li>
+</ul>
+<h2 id="4-3-StringTable-调整"><a href="#4-3-StringTable-调整" class="headerlink" title="4.3 StringTable 调整"></a>4.3 StringTable 调整</h2><p>首先说一下啥是StringTable，StringTable 就是字符串常量池，JVM中有一个专门储存字符串的地方，因为字符串大量使用，所以干脆给你做成一个单独的常量池。这个东西在后面我们说到字符串的时候还会详细说，这里先了解一下。</p>
+<p>JDK7以前，StringTable在永久代，而JDK7以后，把StringTable扔到了堆中，为哈？</p>
+<p>如果放在方法区，那就会涉及FullGC，而FullGC只有在永久代满了的时候才会触发， GC不频繁，而StringTable 经常用，看法中大量的String被创建，所以放在永久代里面 效率底下，所以放在堆中。</p>
+<h2 id="4-4-静态成员放在哪里"><a href="#4-4-静态成员放在哪里" class="headerlink" title="4.4 静态成员放在哪里"></a>4.4 静态成员放在哪里</h2><p>就是说我们有一个静态成员，比如 <code>private static UserUtils uu = new UserUtils();</code> ，那么这个UserUtils 到底在哪？</p>
+<p>明确一下，只要是new出来的东西，就肯定是放在堆中的，没有例外。不同的是这个 static uu 放到哪了。</p>
+<p>JDK7 以后，这个引用也会放在堆中，而JDK6以前，这个引用同样放在方法区。</p>
+<h1 id="5-元空间GC"><a href="#5-元空间GC" class="headerlink" title="5. 元空间GC"></a>5. 元空间GC</h1><blockquote>
+<p>方法区的具体实现部分可以不涉及GC ——Java虚拟机规范</p>
+</blockquote>
+<p>首先明确，方法去中有GC，但是方法区的GC很难让人满意。</p>
+<p>方法区的垃圾回收主要回收常量池和类型信息。</p>
+<h2 id="如何垃圾回收"><a href="#如何垃圾回收" class="headerlink" title="如何垃圾回收"></a>如何垃圾回收</h2><ul>
+<li><p>常量相对简单，然而他没讲</p>
+</li>
+<li><p>如何判断类型不再使用：</p>
+<ul>
+<li><p>该类的所有对象都被回收，且不存在子类对象</p>
+</li>
+<li><p>加载该类的类加载器被回收，这个除非是精心设计的可以可替换类加载的场景，比如 JSP OSGI 等，否则很难达成。</p>
+</li>
+<li><p>类的Class 在任何地方都没有被引用，任何地方都不能通过反射区访问这个类。</p>
+</li>
+</ul>
+</li>
+<li><p>Java 虚拟机只有满足了上述三个条件才会允许回收这个类，但也仅仅是允许， 并不是说就想对象一样，一定可以被回收。</p>
+</li>
+<li><p>在大量使用反射 动态代理 CGlib等字节码框架，动态生成</p>
+</li>
+</ul>
+<p>这里只是大致说一句GC，GC后面会专门说的。</p>
+<h1 id="6-创建对象流程"><a href="#6-创建对象流程" class="headerlink" title="6. 创建对象流程"></a>6. 创建对象流程</h1><p>学了方法区，我们就得详细说说一个对象是如何被创建的了，这里就会把方法区和堆空间结合起来说了。所以这部分内容比较综合。</p>
+<h2 id="6-1-创建方式"><a href="#6-1-创建方式" class="headerlink" title="6.1 创建方式"></a>6.1 创建方式</h2><p>首先，创建对象的方式：</p>
+<ul>
+<li><p>new 对象</p>
+<blockquote>
+<p>包括单例设计模式里面的 getInstance 那种在内部调用 new 的</p>
+</blockquote>
+</li>
+<li><p>Class.newInstance() 反射创建对象</p>
+<blockquote>
+<p>条件比较苛刻，首先必须有无参构造，其次构造函数必须是 public</p>
+</blockquote>
+</li>
+<li><p>Constructor的 newInstance(args) 调用构造函数</p>
+<blockquote>
+<p>可以调用任意构造函数，不用担心权限</p>
+</blockquote>
+</li>
+<li><p>Clone，需要类 实现 Cloneable 接口，实现 clone 方法</p>
+</li>
+<li><p>反序列化，通过 ObjectSteam</p>
+</li>
+<li><p>第三方库 Objenesis</p>
+</li>
+</ul>
+<h2 id="6-2-字节码角度看对象创建"><a href="#6-2-字节码角度看对象创建" class="headerlink" title="6.2 字节码角度看对象创建"></a>6.2 字节码角度看对象创建</h2><p>我们写一个代码，main 方法里面仅仅创建一个 Object 对象，然后反编译，看看 得到：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0: new           #2   // class java/lang/Object  </span><br><span class="line">3: dup  </span><br><span class="line">4: invokespecial #1   // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V  </span><br><span class="line">7: astore_1  </span><br><span class="line">8: return</span><br></pre></td></tr></table></figure>
+
+<p>首先我们看第一条指令 new，它里面涉及到的东西：</p>
+<ul>
+<li><p>加载 Object，将 Object 放到方法区，当然这个过程可能早就做了</p>
+</li>
+<li><p>在堆中给Object 分配空间，此时内存占用大小已经可以通过数据类型确定下来了，然后 给成员变量进行初始化，给他一个初值。</p>
+</li>
+</ul>
+<p>第二步 dump 复制操作：</p>
+<ul>
+<li>因为这个对象在 main 方法中执行，所以引用在操作数栈里面， 然后他吧引用复制了一份，一份用来赋值，一个用来调用方法。</li>
+</ul>
+<blockquote>
+<p>为啥是在操作数栈？因为此时对象还没有创建完，创建完之后 指令 7 才会存储到 局部变量表中。</p>
+</blockquote>
+<p>第三步 invokespecial 调用 <init> 方法，也就是构造函数。</p>
+<p>第四步 astore 将对象存储到 局表。</p>
+<h2 id="6-3-具体的创建流程"><a href="#6-3-具体的创建流程" class="headerlink" title="6.3 具体的创建流程"></a>6.3 具体的创建流程</h2><p>一个对象创建出来，new 出来，大致需要经历六个步骤：</p>
+<h3 id="6-3-1-判断对象对应的类是否加载-链接-初始化"><a href="#6-3-1-判断对象对应的类是否加载-链接-初始化" class="headerlink" title="6.3.1 判断对象对应的类是否加载 链接 初始化"></a>6.3.1 判断对象对应的类是否加载 链接 初始化</h3><p>很显然这三步是反射的时候学过的，然后一开始类加载也学过一些， 可以看chapter02回忆一下。下面具体说：</p>
+<p>虚拟机遇到一条new指令，首先根据这个指令的参数去metaspace 也就是方法区里面定位这个类的符号引用，并且检查这个符号引用对应的类是否完成了 加载 链接 初始化。 也就是查找类型元信息。如果找不到，则会在双亲委派模式下调用 ClassLoader 来加载Class文件， 如果找不到，则抛出 ClassNotFoundException。</p>
+<p>如果找到了，则加载类，方法区中生成 Class对象。</p>
+<h3 id="6-3-2-为对象分配内存"><a href="#6-3-2-为对象分配内存" class="headerlink" title="6.3.2 为对象分配内存"></a>6.3.2 为对象分配内存</h3><p>计算对象占用空间大小，这个根据类的成员类型很容易可以计算出来，如果是引用数据类型，那就分配 引用空间即可，也就是 4 字节，然后为对象分配空间。</p>
+<p>如何分配空间又是个问题，这里区分内存规整和不规整：</p>
+<ul>
+<li><p>内存规整，则采用指针碰撞来为对象分配内存。</p>
+<p>这tm是啥？简单说，就是如果内存规整，一条内存，用过的连续在一端，没用过的在另一端， 区分的特别明显，那么这条内存在用过的和没用过的中间有个指针用来划分区域。 在这种情况下分配内存，指针只需要向空的那一端移动和对象一样的大小即可。</p>
+<p>如果垃圾收集器采用的是 Serial ParNew 这种基于标记压缩算法的，虚拟机使用这种内存分配方式。</p>
+<p>一般使用带有 Compact(整理)过程的收集器时，使用指针碰撞。</p>
+</li>
+<li><p>内存不规整，虚拟机就需要维护一个列表，也就是空闲列表。</p>
+<p>那么啥叫空闲列表？内存不规整，使用过的和没用过的相互交错，就需要一个列表用来 标记那些内存是没用过的，那些使用过的。</p>
+<p>分配内存的时候，查询列表，找到一块能放得下的地方，吧对象放进去， 然后更新空闲列表。</p>
+</li>
+<li><p>总的来说，采用那种方法是由Java堆是否规整决定的，堆规整与否又是由所采用的垃圾收集器 是否有压缩算法决定。</p>
+</li>
+</ul>
+<h3 id="6-3-3-处理并发安全问题"><a href="#6-3-3-处理并发安全问题" class="headerlink" title="6.3.3 处理并发安全问题"></a>6.3.3 处理并发安全问题</h3><ul>
+<li><p>采用CAS 失败重试，区域枷锁 保证更新的原子性</p>
+</li>
+<li><p>给每个线程预留一块 TLBA ，通过 -XX:+&#x2F;-useTLBA 来控制， jdk8默认开启。</p>
+</li>
+</ul>
+<h3 id="6-3-4-初始化分配到的空间"><a href="#6-3-4-初始化分配到的空间" class="headerlink" title="6.3.4 初始化分配到的空间"></a>6.3.4 初始化分配到的空间</h3><p>简单地说就是给每个成员一个默认值，保证一个对象不赋值就可以直接使用。</p>
+<h3 id="6-3-5-设置对象的对象头"><a href="#6-3-5-设置对象的对象头" class="headerlink" title="6.3.5 设置对象的对象头"></a>6.3.5 设置对象的对象头</h3><p>将对象的所属类(也就是累的元信息) 和 对象的 HashCode 和 对象的 GC信息，锁信息存储到对象头中，这个过程的具体设置方式取决于JVM。</p>
+<h3 id="6-3-6-调用-init-方法"><a href="#6-3-6-调用-init-方法" class="headerlink" title="6.3.6 调用 init 方法"></a>6.3.6 调用 init 方法</h3><p>init 方法并不是构造方法，而是给对象进行完整的赋值，比如 成员的赋值，实例代码块里面对于成员的赋值，构造函数里面给成员的赋值，都在init 方法里面，不是单纯的构造函数。</p>
+<h2 id="6-4-总结"><a href="#6-4-总结" class="headerlink" title="6.4 总结"></a>6.4 总结</h2><p>看这条代码</p>
+<p>Object o &#x3D; new Object();</p>
+<p>其实 new 就是一个指令，告诉JVM 要去加载 Object，然后Object() 就是调用构造器，完整的创建一个对象出来，应该是吧上面的6部全都执行完才算是创建完了，就一个new，可以说仅仅是有了个对象的大体模型，但是细节还不完善。</p>
+<h1 id="7-对象的内存分布"><a href="#7-对象的内存分布" class="headerlink" title="7. 对象的内存分布"></a>7. 对象的内存分布</h1><p>对象的内存分布主要分为：</p>
+<ul>
+<li><p>对象头 header</p>
+</li>
+<li><p>实例数据 instance data</p>
+</li>
+<li><p>对齐填充</p>
+</li>
+</ul>
+<p>下面会挨个说。</p>
+<h2 id="7-1-对象头"><a href="#7-1-对象头" class="headerlink" title="7.1 对象头"></a>7.1 对象头</h2><p>对象头里面包含两部分：</p>
+<ul>
+<li><p>运行时元数据 Mark Word（32bit），里面记录了以下内容：</p>
+<ul>
+<li><p>哈希值</p>
+</li>
+<li><p>GC分代年龄，就是堆里面的年龄计数器记录的那个东西</p>
+</li>
+<li><p>锁状态标志</p>
+</li>
+<li><p>线程持有的锁</p>
+</li>
+<li><p>偏向线程id</p>
+</li>
+<li><p>偏向时间戳</p>
+</li>
+</ul>
+</li>
+<li><p>类型指针 Klass Word（32bit）</p>
+<p>指向了方法区里面的Class，也就是类型元信息。确定对象所属类型</p>
+<p>方法 Object.getClass() 就是体现了这个，就是我们以前说的，对象可以找到 它对应的Class。</p>
+</li>
+<li><p>特殊情况： 如果存的是数组，那么还会保存数组长度信息（32bit）。</p>
+</li>
+</ul>
+<p>这块内容在Java并发编程的时候也会说的，到时候可以再加深一下印象。</p>
+<h2 id="7-2-实例数据"><a href="#7-2-实例数据" class="headerlink" title="7.2 实例数据"></a>7.2 实例数据</h2><p>他是对象真正存储的有效信息，包括程序代码中定义的各种类型的字段 (包括继承的和本身的)</p>
+<p>存放规则：</p>
+<ul>
+<li><p>相同宽度的字段总是被分配在一起。</p>
+</li>
+<li><p>父类中定义的变量会出现在子类之前</p>
+</li>
+<li><p>如果 CompactFields 参数为 true，子类的窄变量可以插入到父类的变量之间。</p>
+</li>
+</ul>
+<h2 id="7-3-图解过程"><a href="#7-3-图解过程" class="headerlink" title="7.3 图解过程"></a>7.3 图解过程</h2><p>我们现在有一个Customer对象，这个对象里面还包含了一个Account对象，那么这个Customer对象的内存分布如何？</p>
+<p>具体情况如下：</p>
+<p><img src="/images/runtime/NewObjectProcess.png"></p>
+<p>看图就行了，我觉得这个图还是挺清楚的。</p>
+<h1 id="8-对象的访问定位"><a href="#8-对象的访问定位" class="headerlink" title="8. 对象的访问定位"></a>8. 对象的访问定位</h1><p>简单地说，JVM是如何通过栈帧中的引用访问到对象实例的？</p>
+<p>懂得来说，都是一个流程：</p>
+<p>栈帧中的引用指向堆区，堆区再通过元数据指针指向方法区。</p>
+<p>具体的流程有两个：</p>
+<h2 id="8-1-句柄访问"><a href="#8-1-句柄访问" class="headerlink" title="8.1 句柄访问"></a>8.1 句柄访问</h2><p>就是说堆中我们再专门弄出一个空间，专门用来放类型指针，栈的引用先指向了句柄，然后句柄再指向实例数据和类型数据。</p>
+<p><img src="/images/runtime/%E5%8F%A5%E6%9F%84%E8%AE%BF%E9%97%AE.png"></p>
+<h2 id="8-2-直接指针"><a href="#8-2-直接指针" class="headerlink" title="8.2 直接指针"></a>8.2 直接指针</h2><p>这个就很好理解了，就是堆中的对象里面还有个对象头指向了类型数据，HotSpot虚拟机就是使用这种办法。</p>
+<p><img src="/images/runtime/%E7%9B%B4%E6%8E%A5%E6%8C%87%E9%92%88.png"></p>
+<p>这个就是栈帧里面的引用直接指向堆中的对象实体，实体里面有一个指针指向方法区的类型元信息。</p>
+<p>Hotspot 虚拟机就用的是直接访问，看24那张图，可以看出来是直接访问。</p>
+<h1 id="9-直接内存"><a href="#9-直接内存" class="headerlink" title="9. 直接内存"></a>9. 直接内存</h1><p>jdk8中的元空间不再是 jvm的虚拟内存，而是直接内存，所以这里我们看看什么是直接内存。</p>
+<h2 id="9-1-直接内存概念"><a href="#9-1-直接内存概念" class="headerlink" title="9.1 直接内存概念"></a>9.1 直接内存概念</h2><ul>
+<li><p>直接内存不是虚拟机运行时内存的一部分，也不是java虚拟机规范中定义的内存区域</p>
+</li>
+<li><p>直接内存是堆外，直接向系统申请的内存</p>
+</li>
+<li><p>来源于 NIO，通过存在堆中的 DirectByteBuffer操作native内存。</p>
+</li>
+<li><p>通常，访问直接内存的效率要高于java堆，读写速度快。</p>
+<ul>
+<li><p>由于处于性能考虑，读写频繁的场合可能用到直接内存。</p>
+</li>
+<li><p>java 的NIO 库允许Java程序直接使用内存，用于数据缓冲区。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="9-2-NIO-和-IO-的比较"><a href="#9-2-NIO-和-IO-的比较" class="headerlink" title="9.2 NIO 和 IO 的比较"></a>9.2 NIO 和 IO 的比较</h2><ul>
+<li><p>IO：文件输入输出</p>
+<p>基础工具：byte[] &#x2F; char[] 用于传输</p>
+<p>基础的类：Stream</p>
+</li>
+<li><p>NIO(New IO &#x2F; Non-Blocking IO)</p>
+<p>基础工具：Buffer</p>
+<p>基础的类：Channel</p>
+</li>
+</ul>
+<p>不使用 NIO ，JVM进行IO的流程如下：</p>
+<p><img src="/images/runtime/non-direct-memory.png"></p>
+<p>使用NIO，JVM进行IO流程</p>
+<p><img src="/images/runtime/NIOProcess.png"></p>
+<p>额，咱也不懂这玩意有啥用，反正先写在这里。</p>
+<h1 id="10-总结"><a href="#10-总结" class="headerlink" title="10. 总结"></a>10. 总结</h1><p>啊，总算是整理完了，这一章东西可谓是奇多，不光是讲方法区，同时还讲了堆和方法区之间是如何配合的，这两部分如何协同才能创建出一个对象来。需要慢慢消化。</p>
 ]]></content>
       <categories>
         <category>JVM</category>

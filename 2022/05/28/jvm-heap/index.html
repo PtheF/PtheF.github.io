@@ -29,8 +29,9 @@
 <meta property="og:locale">
 <meta property="og:image" content="http://example.com/images/runtime/HeapOldGenAndYoungGen.png">
 <meta property="og:image" content="http://example.com/images/runtime/MemoryHandleSpecialCase.png">
+<meta property="og:image" content="http://example.com/images/runtime/TLAB.png">
 <meta property="article:published_time" content="2022-05-28T02:24:24.000Z">
-<meta property="article:modified_time" content="2022-05-28T03:02:15.685Z">
+<meta property="article:modified_time" content="2022-06-02T03:39:45.505Z">
 <meta property="article:author" content="PtheF">
 <meta property="article:tag" content="java">
 <meta property="article:tag" content="底层">
@@ -221,10 +222,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2022-05-28 10:24:24 / Modified: 11:02:15" itemprop="dateCreated datePublished" datetime="2022-05-28T10:24:24+08:00">2022-05-28</time>
+              <time title="Created: 2022-05-28 10:24:24" itemprop="dateCreated datePublished" datetime="2022-05-28T10:24:24+08:00">2022-05-28</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2022-06-02 11:39:45" itemprop="dateModified" datetime="2022-06-02T11:39:45+08:00">2022-06-02</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -385,6 +392,162 @@
 <li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
 </li>
 </ul>
+<h1 id="6-堆垃圾回收"><a href="#6-堆垃圾回收" class="headerlink" title="6. 堆垃圾回收"></a>6. 堆垃圾回收</h1><p>大体来看，Heap 中的 GC 分为 3种：</p>
+<ul>
+<li><p>Young GC &#x2F; MinorGC</p>
+</li>
+<li><p>Full GC</p>
+</li>
+<li><p>Old GC &#x2F; Major GC</p>
+</li>
+</ul>
+<p>根据 HotSpot 虚拟机，按照收集区域又分为两种：部分收集和整堆收集</p>
+<ul>
+<li><p>部分收集：不是完整收集整个Java 堆的收集，其中又分为：</p>
+<ul>
+<li><p>新生代收集 MinorGC&#x2F;YoungGC: 只收集年轻代的垃圾收集</p>
+</li>
+<li><p>老年代收集 MajorGC&#x2F;OldGC： 只收集老年代</p>
+<ul>
+<li><p>目前只有CMS GC会有单独收集老年代的行为</p>
+</li>
+<li><p>很多时候 MajorGC 会和 FullGC 混合使用，需要具体分辨是老年代回收还是整堆回收</p>
+</li>
+</ul>
+</li>
+<li><p>混合回收器 Mixed GC：收集整个新生代和部分老年代的垃圾</p>
+<ul>
+<li>只有G1 GC 有这种行为</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>整堆收集：收集整个 Java 堆 和 方法区 的垃圾，注意，还包括方法区。</p>
+</li>
+</ul>
+<p>下面说一下各个内存部分的垃圾回收触发机制：</p>
+<h2 id="6-1-年轻代触发机制"><a href="#6-1-年轻代触发机制" class="headerlink" title="6.1 年轻代触发机制"></a>6.1 年轻代触发机制</h2><ul>
+<li><p>年轻代空间不足，就会触发minor gc,这里说的空间不足指的是eden空间不足，survivor 满了不会触发 minor gc，只会发生提升。每次回收都会清空年轻代内存。</p>
+</li>
+<li><p>Java 对象大多数申明周期很短，所以minor gc 发生的特别频繁。</p>
+</li>
+<li><p>minor gc 会触发STW，也就是暂停用户线程，等垃圾回收结束，才会恢复用户线程</p>
+</li>
+</ul>
+<h2 id="6-2-老年代回收："><a href="#6-2-老年代回收：" class="headerlink" title="6.2 老年代回收："></a>6.2 老年代回收：</h2><ul>
+<li><p>发生在老年代的垃圾回收，当对象从老年代消失了，我们就认为 major gc 或者 full gc 发生了，</p>
+</li>
+<li><p>发生一次 major gc，一般来说，伴随着至少一次的minor gc，不是绝对的，以后再说。</p>
+<ul>
+<li>也就是当老年代空间不足时，西安出发一次 minor gc，如果空间还不足，触发 major gc</li>
+</ul>
+</li>
+<li><p>major gc 一般比 minor gc 慢10倍以上，stw 时间更长。</p>
+</li>
+<li><p>如果major gc后空间还是不够，抛出 OOM 异常。</p>
+</li>
+</ul>
+<h2 id="6-3-FullGC-触发机制："><a href="#6-3-FullGC-触发机制：" class="headerlink" title="6.3 FullGC 触发机制："></a>6.3 FullGC 触发机制：</h2><ul>
+<li><p>调用 System.gc() 时</p>
+</li>
+<li><p>老年代空间不足</p>
+</li>
+<li><p>方法区空间不足</p>
+</li>
+<li><p>通过 minor gc 后进入老年代的平均大小大于老年代的可用内存</p>
+</li>
+<li><p>eden from 的对象往 to 区复制，to区空间不够，提升到老年代，老年代空间也不够，触发 full gc</p>
+</li>
+<li><p>开发中尽量避免 full gc</p>
+</li>
+</ul>
+<h1 id="7-TLAB"><a href="#7-TLAB" class="headerlink" title="7. TLAB"></a>7. TLAB</h1><p>前文说过TLAB，说是 堆里面有每个线程的私有缓冲区，有 TLAB，ThreadLocal，Buffer，Allocation，其实后面的三个词全都在说 TLAB。</p>
+<h2 id="7-1-TLAB是啥"><a href="#7-1-TLAB是啥" class="headerlink" title="7.1 TLAB是啥"></a>7.1 TLAB是啥</h2><p>ThreadLocal Buffer Allocation： 线程私有缓冲区，用于结局线程安全问题。</p>
+<h2 id="7-2-为什么要设置TLAB"><a href="#7-2-为什么要设置TLAB" class="headerlink" title="7.2 为什么要设置TLAB"></a>7.2 为什么要设置TLAB</h2><p>堆是整个进程共享的一块区域，如果一大堆线程同事访问堆，会造成县城不安全，如果给数据加锁，那效率就太慢了，所以为了提高效率，加入了线程缓冲区。</p>
+<p>JVM给每个线程在 Eden 划分出来一块 TLAB，这种方式解决了线程安全问题，提高了内存分配吞吐量，我们就管这种方式叫“快速分配策略”.</p>
+<p>虽然说不是所有对象都可以分配在 TLAB上，但是TLAB确实是JVM分配对象的首选。TLAB非常小，仅仅占到了 Eden的 1%。</p>
+<p>如果对象在TLAB分配失败，JVM就会考虑给对象加锁，直接把对象放在Eden中。</p>
+<h2 id="7-3-一些参数"><a href="#7-3-一些参数" class="headerlink" title="7.3 一些参数"></a>7.3 一些参数</h2><ul>
+<li><p>-XX:useTLAB 是否开启TLAB，默认开启</p>
+</li>
+<li><p>-XX:TLABWasteTargetPercent 设置TLAB占Eden的百分比。</p>
+</li>
+</ul>
+<h2 id="7-4-对象创建过程"><a href="#7-4-对象创建过程" class="headerlink" title="7.4 对象创建过程"></a>7.4 对象创建过程</h2><p>有了TLAB以后，对象创建流程如下：</p>
+<p><img src="/../images/runtime/TLAB.png" alt="tlab"></p>
+<h2 id="7-5-剩下的"><a href="#7-5-剩下的" class="headerlink" title="7.5 剩下的"></a>7.5 剩下的</h2><p>p81 没好好看，以后可以补一补。</p>
+<h1 id="8-逃逸分析"><a href="#8-逃逸分析" class="headerlink" title="8. 逃逸分析"></a>8. 逃逸分析</h1><p>随着 JIT(编译器) 的发展，逃逸分析技术逐渐成熟，栈上分配，标量替换优化技术 导致技术上有了一点区别，那就是 堆上分配对象不再那么绝对了。</p>
+<p>大部分情况下，一个对象在堆上分配空间，但是在某些特殊情况下，这个对象经过了逃逸分析，发现这个方法并没有逃离方法，那么这个对象就有可能在栈上分配空间。</p>
+<p>但是提一句，HotSpot虚拟机可是没有逃逸分析里面的部分功能的，比如栈上分配这个，HotSpot就没有。</p>
+<h2 id="8-1-逃逸分析概述"><a href="#8-1-逃逸分析概述" class="headerlink" title="8.1 逃逸分析概述"></a>8.1 逃逸分析概述</h2><p>逃逸分析干嘛的？就是用来优化内存分配的，我们前面说对象都要分配到堆上，但是堆上涉及到GC，而栈却不涉及GC，所以可不可以把对象存到栈上，然后方法执行完成直接弹栈，省的GC了。所以这个就是逃逸分析要干的事，分配一个对象，就要看这个对象有没有发生逃逸，如果发生逃逸，也就是这个对象跑出了当前方法作用域，那么发生逃逸，该咋办咋办，如果没有，则可以进行优化。就可以把这个对象放到栈上。</p>
+<ul>
+<li><p>通过逃逸分析，Java Hotspot 编译器能够分析一个对象的引用从而决定这个对象是否分配到栈上。</p>
+</li>
+<li><p>逃逸分析的基本行为就是分析对象的作用域：</p>
+<ul>
+<li><p>一个对象被定义后，如果只在方法中调用，那么没有发生逃逸。</p>
+</li>
+<li><p>对象被定义后，方法外也引用了它，则发生了逃逸。比如方法中创建的对象最后被return了。</p>
+</li>
+</ul>
+</li>
+<li><p>没有发生逃逸，则对象可以分配到栈上，毕竟别的地方不用，方法执行完，栈帧出栈，对象也跟着出栈。</p>
+</li>
+<li><p>发生逃逸，那就老老实实往堆上分配。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这种情况下，user 对象仅仅在方法内部被调用，则没有逃逸，往栈上分配就行了  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    user = <span class="literal">null</span>;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 这种情况，StringBuffer 最终被return，发生了逃逸。  </span></span><br><span class="line"><span class="keyword">public</span> StringBuffer <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">buffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    buffer.append(a);  </span><br><span class="line">    buffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> buffer;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面的 StringBuffer 改成这种，就不会发生逃逸  </span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">stringBuffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    stringBuffer.append(a);  </span><br><span class="line">    stringBuffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> stringBuffer.toString();  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数如下：</strong></p>
+<ul>
+<li><p>-XX:-DoEscapeAnalysis 关闭逃逸分析</p>
+</li>
+<li><p>-XX:+DoEscapeAnalysis 开启逃逸分析</p>
+</li>
+</ul>
+<h2 id="8-2-逃逸分析：代码优化"><a href="#8-2-逃逸分析：代码优化" class="headerlink" title="8.2 逃逸分析：代码优化"></a>8.2 逃逸分析：代码优化</h2><p>总的来说，可以通过逃逸分析干好多事，上面那个，仅仅是一个 栈上分配。</p>
+<p>逃逸检测的优化：</p>
+<ul>
+<li><p>栈上分配</p>
+</li>
+<li><p>同步省略</p>
+</li>
+<li><p>分离对象&#x2F;标量替换</p>
+</li>
+</ul>
+<h3 id="8-2-1-栈上分配"><a href="#8-2-1-栈上分配" class="headerlink" title="8.2.1 栈上分配"></a>8.2.1 栈上分配</h3><p>就是前面说的，站上分配对象，如果实体仅仅在方法内部使用没有进入外部，则对象会被分配到栈上。</p>
+<h3 id="8-2-2-同步省略"><a href="#8-2-2-同步省略" class="headerlink" title="8.2.2 同步省略"></a>8.2.2 同步省略</h3><p>如果一个对象仅在一个线程中使用，或者说，一个对象只能从一个线程中被访问，那么对于这个对象的操作就不考虑同步。</p>
+<ul>
+<li><p>线程同步的代价是很高的。</p>
+</li>
+<li><p>在动态编译同步代码块的时候，如果JIT 检测到一个对象仅仅在一个线程中被访问，而没有发布到其他线程，则运行时 JVM 就会取消对这个对象进行上锁，大大的提高效率，这就叫 锁消除。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    <span class="keyword">synchronized</span>(user)&#123;  </span><br><span class="line">        System.out.println(user);  </span><br><span class="line">   &#125;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面这种情况，user 对象仅仅在一个线程中被访问，并没有多个线程共享，所以几遍你给他加了锁，  </span></span><br><span class="line"><span class="comment">// JVM也不会执行，但是废话，这种情况，本来我们就不应该加锁。</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-2-3分离对象或标量替换"><a href="#8-2-3分离对象或标量替换" class="headerlink" title="8.2.3分离对象或标量替换"></a>8.2.3分离对象或标量替换</h3><p>有的对象可能不需要作为一个连续的内存结构存入到内存中，而且也可以被访问到。那么这部分对象的部分(甚至全部) 就可以存到 CPU的寄存器中。</p>
+<p>用Java 说，就是这个对象不用存在 堆中，那就可以放到 栈 中。这里还需要解释几个概念：</p>
+<p><strong>标量</strong></p>
+<p>无法被分解成更小的数据，比如基本数据类型。</p>
+<p><strong>对应聚合量</strong></p>
+<p>还可以被分解的对象就是聚合量，比如我们自己写的类的实例。</p>
+<p><strong>标量替换</strong></p>
+<p>如果经过逃逸分析，发现你目前的对象没有在方法外面使用，他就会把你的聚合量，分解为几个标量，这个过程就叫标量替换。</p>
+<p>说白了，就是吧对象打散了，分配到栈上。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">Point</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>();  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + p.x + <span class="string">&quot; Point.y=&quot;</span> + p.y);  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 最终这个东西会被优化成  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">1</span>;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">y</span> <span class="operator">=</span> <span class="number">2</span>;  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + x + <span class="string">&quot; Point.y=&quot;</span> + y);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>-XX:+EliminateAllocation 开启标量替换，默认就是开启的。</p>
+<h2 id="8-3-总结"><a href="#8-3-总结" class="headerlink" title="8.3 总结"></a>8.3 总结</h2><p>大体说几点：</p>
+<ul>
+<li><p>逃逸分析并不成熟</p>
+</li>
+<li><p>逃逸分析本身也消耗性能，如果分析了半天，结果发现都逃逸了，那完犊子了</p>
+</li>
+<li><p>Oracle HotSpot 并没有栈上分配，所以肯定对象都在堆上</p>
+</li>
+</ul>
 
     </div>
 
@@ -407,7 +570,10 @@
     <a href="/2022/05/27/jvm-stack/" rel="prev" title="虚拟机栈">
       <i class="fa fa-chevron-left"></i> 虚拟机栈
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2022/05/30/jvm-methodarea/" rel="next" title="JVM-方法区">
+      JVM-方法区 <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -466,7 +632,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E5%A0%86%E7%9A%84%E6%A6%82%E8%BF%B0"><span class="nav-text">1. 堆的概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E5%A0%86%E7%A9%BA%E9%97%B4%E5%86%85%E5%AD%98%E7%BB%86%E5%88%86"><span class="nav-text">2. 堆空间内存细分</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E8%AE%BE%E7%BD%AE%E5%A0%86%E7%A9%BA%E9%97%B4%E5%A4%A7%E5%B0%8F"><span class="nav-text">3. 设置堆空间大小</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-%E5%A0%86%E7%9A%84%E5%B9%B4%E8%BD%BB%E4%BB%A3%E5%92%8C%E8%80%81%E5%B9%B4%E4%BB%A3"><span class="nav-text">4. 堆的年轻代和老年代</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E5%8D%A0%E6%AF%94"><span class="nav-text">内存占比</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-%E5%88%9B%E5%BB%BA%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%A4%A7%E4%BD%93%E6%B5%81%E7%A8%8B"><span class="nav-text">5. 创建对象的大体流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#5-1-%E6%B5%81%E7%A8%8B"><span class="nav-text">5.1 流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-2-%E6%80%BB%E7%BB%93"><span class="nav-text">5.2 总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-3-%E7%89%B9%E6%AE%8A%E6%83%85%E5%86%B5"><span class="nav-text">5.3 特殊情况</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E5%A0%86%E7%9A%84%E6%A6%82%E8%BF%B0"><span class="nav-text">1. 堆的概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E5%A0%86%E7%A9%BA%E9%97%B4%E5%86%85%E5%AD%98%E7%BB%86%E5%88%86"><span class="nav-text">2. 堆空间内存细分</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E8%AE%BE%E7%BD%AE%E5%A0%86%E7%A9%BA%E9%97%B4%E5%A4%A7%E5%B0%8F"><span class="nav-text">3. 设置堆空间大小</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-%E5%A0%86%E7%9A%84%E5%B9%B4%E8%BD%BB%E4%BB%A3%E5%92%8C%E8%80%81%E5%B9%B4%E4%BB%A3"><span class="nav-text">4. 堆的年轻代和老年代</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E5%8D%A0%E6%AF%94"><span class="nav-text">内存占比</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-%E5%88%9B%E5%BB%BA%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%A4%A7%E4%BD%93%E6%B5%81%E7%A8%8B"><span class="nav-text">5. 创建对象的大体流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#5-1-%E6%B5%81%E7%A8%8B"><span class="nav-text">5.1 流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-2-%E6%80%BB%E7%BB%93"><span class="nav-text">5.2 总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-3-%E7%89%B9%E6%AE%8A%E6%83%85%E5%86%B5"><span class="nav-text">5.3 特殊情况</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-%E5%A0%86%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6"><span class="nav-text">6. 堆垃圾回收</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#6-1-%E5%B9%B4%E8%BD%BB%E4%BB%A3%E8%A7%A6%E5%8F%91%E6%9C%BA%E5%88%B6"><span class="nav-text">6.1 年轻代触发机制</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-2-%E8%80%81%E5%B9%B4%E4%BB%A3%E5%9B%9E%E6%94%B6%EF%BC%9A"><span class="nav-text">6.2 老年代回收：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-3-FullGC-%E8%A7%A6%E5%8F%91%E6%9C%BA%E5%88%B6%EF%BC%9A"><span class="nav-text">6.3 FullGC 触发机制：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-TLAB"><span class="nav-text">7. TLAB</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-TLAB%E6%98%AF%E5%95%A5"><span class="nav-text">7.1 TLAB是啥</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E8%AE%BE%E7%BD%AETLAB"><span class="nav-text">7.2 为什么要设置TLAB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-3-%E4%B8%80%E4%BA%9B%E5%8F%82%E6%95%B0"><span class="nav-text">7.3 一些参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-4-%E5%AF%B9%E8%B1%A1%E5%88%9B%E5%BB%BA%E8%BF%87%E7%A8%8B"><span class="nav-text">7.4 对象创建过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-5-%E5%89%A9%E4%B8%8B%E7%9A%84"><span class="nav-text">7.5 剩下的</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90"><span class="nav-text">8. 逃逸分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#8-1-%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90%E6%A6%82%E8%BF%B0"><span class="nav-text">8.1 逃逸分析概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-2-%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90%EF%BC%9A%E4%BB%A3%E7%A0%81%E4%BC%98%E5%8C%96"><span class="nav-text">8.2 逃逸分析：代码优化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-1-%E6%A0%88%E4%B8%8A%E5%88%86%E9%85%8D"><span class="nav-text">8.2.1 栈上分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-2-%E5%90%8C%E6%AD%A5%E7%9C%81%E7%95%A5"><span class="nav-text">8.2.2 同步省略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-3%E5%88%86%E7%A6%BB%E5%AF%B9%E8%B1%A1%E6%88%96%E6%A0%87%E9%87%8F%E6%9B%BF%E6%8D%A2"><span class="nav-text">8.2.3分离对象或标量替换</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-3-%E6%80%BB%E7%BB%93"><span class="nav-text">8.3 总结</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -482,7 +648,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-count">7</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
