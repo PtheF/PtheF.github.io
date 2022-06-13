@@ -398,68 +398,173 @@
       </tags>
   </entry>
   <entry>
-    <title>hexo部署</title>
-    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
-    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
-<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
+    <title>JVM-类加载</title>
+    <url>/2022/06/13/classload/</url>
+    <content><![CDATA[<p>类加载，说一说类加载的时候各种成员的初始化如何进行。</p>
 <span id="more"></span>
 
-<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
-<p><strong><font color='red'>步骤如下：</font></strong></p>
-<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
-<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
-<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
-<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
-<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
-<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
-<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
-<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
-<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
+<h1 id="1-类加载"><a href="#1-类加载" class="headerlink" title="1. 类加载"></a>1. 类加载</h1><p>是的，字节码说完了，然后就是下面的一大块东西：类加载。</p>
+<p>之前学Java反射的时候了解过，类加载分为5个阶段，如下：</p>
+<ul>
+<li>加载：通过类加载器加载一个二进制流数据</li>
+<li>链接：又分为 验证 准备 解析 三个阶段</li>
+<li>初始化</li>
+<li>使用：比如调用方法，创建对象等</li>
+<li>卸载</li>
+</ul>
+<p>后面我们就开始着重看这5个阶段。</p>
+<h1 id="2-类加载-Loading-阶段"><a href="#2-类加载-Loading-阶段" class="headerlink" title="2. 类加载 Loading 阶段"></a>2. 类加载 Loading 阶段</h1><h2 id="2-1-加载的理解"><a href="#2-1-加载的理解" class="headerlink" title="2.1 加载的理解"></a>2.1 加载的理解</h2><p>什么是加载，或者说loading阶段到底干了啥？很简单，类加载器读取一大堆二进制流，然后转化成一个类模版对象，然后把这个类模版对象存储到方法区。这样在运行时，我们就可以通过反射来获取类的属性，比如这个类的属性，方法等。</p>
+<p>但是需要注意的是，这个类模版，并不是我们获取的 Class对象，不是的，两回事，有关系，但不是一个。</p>
+<h2 id="2-2-加载完成的操作"><a href="#2-2-加载完成的操作" class="headerlink" title="2.2 加载完成的操作"></a>2.2 加载完成的操作</h2><p>就是一件事，读取class文件，生成类模版。具体说 JVM 需要完成下面三件事：</p>
+<ul>
+<li>获取类的全限定命名，从而得到这个类的class文件，进而获取二进制流（当然这个流可以从数据库中获得，获取其他的方式，总之，要的就是二进制流）；</li>
+<li>解析这个二进制流，生成对应的Java类模版，存储在方法区</li>
+<li>创建 Class对象，这个对象作为方法区类模版的访问入口，也就是说，Class对象其实是指向了方法区中的模版。</li>
+</ul>
+<h2 id="2-3-类模版和Class的位置"><a href="#2-3-类模版和Class的位置" class="headerlink" title="2.3 类模版和Class的位置"></a>2.3 类模版和Class的位置</h2><p>在完成类加载后，会在方法区（jdk8的话就是元空间）生成一个类模版对象，然后又会在堆中，没错，就是堆中，生成这个类的Class对象，然后这个Class指向了方法区中的类模版，然后我们就可以通过Class得到类的属性。</p>
+<p>只是作为了解，不展开说，挺复杂的东西。</p>
+<h2 id="2-4-数组类的创建"><a href="#2-4-数组类的创建" class="headerlink" title="2.4 数组类的创建"></a>2.4 数组类的创建</h2><p>数组比较特殊，数组并不是类加载器创建的，而是JVM根据你数组类型和数组维度动态创建的，过程如下：</p>
+<ul>
+<li>如果数组是引用数据类型，那么JVM则会根据需要 递归的去加载数据类型</li>
+<li>根据数组所需要的数据类型和数组维度，JVM动态的声明数组</li>
+</ul>
+<h1 id="3-链接阶段"><a href="#3-链接阶段" class="headerlink" title="3. 链接阶段"></a>3. 链接阶段</h1><p>众所周知，链接阶段分为三个步骤：验证，准备，解析。ok，我们一个一个说：</p>
+<h2 id="3-1-验证阶段"><a href="#3-1-验证阶段" class="headerlink" title="3.1 验证阶段"></a>3.1 验证阶段</h2><p>所谓验证阶段，那肯定就是验证文件是否合法这种的。所以在这一步，它主要验证一下内容：</p>
+<ul>
+<li>格式检查：检查字节码的魔数，版本以及指令长度等其他信息（没有在方法区中生成类模版）</li>
+<li>语义检查：检查有没有格式错误，比如继承final，是否存在父类，抽象方法有没有实现等（这个时候已经在方法区中生成了模版）</li>
+<li>字节码验证：跳转指令的跳转位置是否合法，函数调用传参类型是否正确，变量赋值的类型是否一致 等。</li>
+<li>符号引用验证：符号引用是否有直接饮用</li>
+</ul>
+<p>这个阶段有个特殊的东西：StackMapTable 栈映射帧，是干嘛的呢？用来检测操作数栈中的数据类型和局部变量表的数据类型是否匹配，然而并不能100%判断字节码没错，只是尽可能的判断。</p>
+<p>第四步的符号引用验证，简单说就是：常量池中有个ClassRefInfo信息，比如指向了一个 java.lang.String，这里就需要判断这个 String 是否存在，既视感这个的。</p>
+<p>顺带一提，验证阶段和加载阶段分的没有那么开，一般都是同时进行的。</p>
+<h2 id="3-2-准备阶段"><a href="#3-2-准备阶段" class="headerlink" title="3.2 准备阶段"></a>3.2 准备阶段</h2><p>准备阶段 Preparation，简单说，就是给这个类的静态变量（注意，是变量，是变量，不是常量，static final 可不在这里处理）分配内存空间，并给他们赋一个默认值，这个默认值应该不用说了吧，数字类型都是0，boolean是false，ref 是 null。</p>
+<p>注意：</p>
+<ul>
+<li>说过了，这里不对final进行操作，static final 的常量在编译的时候就已经被显式的赋值了，在准备阶段静态常量已经有值了。</li>
+<li>这里不对实例变量进行操作，类变量的内存被分配到了方法区，和类模版在一起，实例变量则是在堆中，和对象在一起。</li>
+<li>这个过程没有任何的代码被执行</li>
+</ul>
+<p>有个特殊情况，如果有如下代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> <span class="string">&quot;CONST&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>那么这个属性的赋值也是在编译阶段完成的，但是仅限于通过字面量给String赋值，如果你是 new String，那也就不行了。</p>
+<h2 id="3-3-解析阶段"><a href="#3-3-解析阶段" class="headerlink" title="3.3 解析阶段"></a>3.3 解析阶段</h2><p>解析 Resolution 阶段，简单说，把符号引用替换成直接饮引用。听不懂是吧，来，举个例子：</p>
+<p>我们都已经学过字节码了，字节码文件中有常量池没毛病吧，比如常量池中有个常量 Methodref_info 这个信息，这个信息里面有两部分：Class_name 和 Name_And_Type，然后这俩又是俩常量池索引，比如：Class_name #3， Name_and_type #8。这里非常的敷衍，就告诉你是 #3和#8，和内存完全没关系，这就是符号引用。</p>
+<p>这个阶段下，你不能在敷衍的告诉我 Class_name 是#3啦，太费劲了，咋办，比如这个Methodref_info是 System.out.println() 方法，行，这里你得具体告诉我 System.out 这个 Class_name 的真实内存地址，#3我不认可啦，那么在这个阶段下，Class_name #3 Name_and_type #8 就被替换成了：</p>
+<p>同时，JVM会给每个类提供一个方法表，那么你这个println方法在方法表中是第几个位置，这个就相当于方法的直接引用。</p>
+<h1 id="4-初始化阶段"><a href="#4-初始化阶段" class="headerlink" title="4. 初始化阶段"></a>4. 初始化阶段</h1><blockquote>
+<p>create  by  陈HL_pthef on  2021&#x2F;11&#x2F;4 下午6:58</p>
 </blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
+<h2 id="4-1-概述"><a href="#4-1-概述" class="headerlink" title="4.1 概述"></a>4.1 概述</h2><p>初始化阶段，简单说就是给static进行赋值。很重要的一点，在初始化阶段，真正的涉及一些Java代码的执行。</p>
+<p>这个过程最重要的就是生成 &lt;clinit&gt; 方法，这个方法主要就是用来给static赋值的，他会按顺序收集你类中所有的static赋值语句（包括static代码块），整合到一起，然后生成 clinit方法，这个方法只能由JVM生成，并由JVM调用。</p>
+<h2 id="4-2-说明"><a href="#4-2-说明" class="headerlink" title="4.2 说明"></a>4.2 说明</h2><ul>
+<li><p>一个类调用 clinit 方法时，总会先去调用 父类的clinit方法，所以说，父类的static代码块优先级高于子类</p>
+</li>
+<li><p>什么情况下不会生成 clinit方法：</p>
+<ul>
+<li>一个类压根没有静态</li>
+<li>有静态，但是没有赋值，就是光秃秃一个 <code>public static int num;</code></li>
+<li>有静态，也有赋值，但是这个静态是常量，而且赋值的方式还是字面量赋值，也不会clinit。</li>
+</ul>
+</li>
+</ul>
+<h2 id="4-3-static-final-显式赋值到底发生在哪个阶段？"><a href="#4-3-static-final-显式赋值到底发生在哪个阶段？" class="headerlink" title="4.3 static final 显式赋值到底发生在哪个阶段？"></a>4.3 static final 显式赋值到底发生在哪个阶段？</h2><p>这玩意，越来越不会了，太恶心了。</p>
+<p>首先，看最简单的；</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">I</span> <span class="operator">=</span> <span class="number">20</span>;</span><br></pre></td></tr></table></figure>
 
-<p>然后，正常情况下，会提示这么一句：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
+<p>这个倒是好说，i 肯定是在clinit中赋值，然后 I 是在链接阶段的准备环节赋的值，所以说，是不是final修饰的就一定不在clinit中赋值？再看下面这个：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">Integer</span> <span class="variable">int1</span> <span class="operator">=</span> Integer.valueOf(<span class="number">100</span>);</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Integer</span> <span class="variable">INT2</span> <span class="operator">=</span> Integer.valueOf(<span class="number">1000</span>);</span><br></pre></td></tr></table></figure>
 
-<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
-<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
-<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
-<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
+<p>这俩是在哪赋的值？直接说，这俩都是在 clinit 中赋值。那我们又猜，是不是说 引用数据类型不管是不是final都在clinit中赋值？再看下面：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> <span class="string">&quot;hello1&quot;</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">S</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;hello2&quot;</span>);</span><br></pre></td></tr></table></figure>
 
-<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
-<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
-<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
-
-<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
-
-<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
-<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
-<p>在博客根目录下执行如下命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
-
-<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
-<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
-
-<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
-<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
-<p>然后，这三个页面以后都不要管了。</p>
-<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
-<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
-<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
-<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
+<p>这俩都是引用，在哪里赋值啊？s 在准备阶段，S 在clinit赋值。</p>
+<p>所以说，总结一下，什么情况下会在链接阶段的准备过程赋值：</p>
+<ul>
+<li>大前提，static final 修饰的</li>
+<li>基本数据类型，给他赋一个确定的值，且不需要代码支持（比如 new Random().random() 这种的），在准备过程赋值</li>
+<li>字符串，且通过字面量的形式给他赋值，也发生在准备阶段。</li>
+</ul>
+<p>首先明确的是，绝对不是说 static final 就一定在准备阶段完成赋值。</p>
+<h2 id="4-4-clinit-方法的线程安全问题"><a href="#4-4-clinit-方法的线程安全问题" class="headerlink" title="4.4 clinit 方法的线程安全问题"></a>4.4 clinit 方法的线程安全问题</h2><p>首先，clinit是线程安全的，但是这个方法的访问修饰只有static，并没有synchronized，所以他这个锁是一个隐式的锁，JVM给自动加的。</p>
+<p>正是因为这玩意线程安全，所以说如果一个类的clinit过于繁琐，耗时较长，则会导致很多线程阻塞，有可能导致死锁。</p>
+<h2 id="4-5-类的主动使用和被动使用问题"><a href="#4-5-类的主动使用和被动使用问题" class="headerlink" title="4.5 类的主动使用和被动使用问题"></a>4.5 类的主动使用和被动使用问题</h2><p>首先，主被动使用会影响啥？不是说一个类被动使用就不会加载了，不是的，一个类要用，那就肯定需要加载，但是如果一个类是被动使用的，那么这个 初始化阶段是很有可能不执行的。注意，仅限于初始化阶段不执行。那么初始化阶段不执行就可能导致结果不一致。</p>
+<p>顺带一提，这里说的使用不是说的类的第四个阶段：使用。更多说的是首次使用。</p>
+<h3 id="4-5-1-类的主动使用"><a href="#4-5-1-类的主动使用" class="headerlink" title="4.5.1 类的主动使用"></a>4.5.1 类的主动使用</h3><p>类的主动使用会调用 &lt;clinit&gt;() 方法，也就是会经过初始化过程。</p>
+<ul>
+<li><p>创建一个类的实例，比如 new，通过反射，反序列化（是的，反序列化也是主动使用）</p>
+</li>
+<li><p>调用类的静态方法，对应指令就是执行 invokestatic 指令，很简单，不说了</p>
+</li>
+<li><p>操作类的静态字段（static修饰的，没有final），对应指令就是 getstatic 和 putstatic。同时还有接口的静态字段。</p>
+<p>这里得特别说明：并不是绝对的，不是说我们操作static final 就一定不触发初始化。我认为是啥呢，就是说你这个static final 是不是在&lt;clinit&gt;() 中被赋值，如果是，那么这里你操作static final也照样会触发初始化，如果不是，那这里就不触发初始化。</p>
+<p>同时，对于接口，也是差不多的道理，如果接口中的 static final 不需要代码支持，那就不会clinit，如果需要，那就也会被初始化</p>
+</li>
+<li><p>使用反射类的方法，比如 Class.forName() 这种的，触发初始化。</p>
+</li>
+<li><p>初始化子类之前，会初始化父类。</p>
+<p>特殊：JVM加载一个类，要求是所有父类都必须初始化，但是这条规则并不适用与接口。</p>
+<ul>
+<li>初始化一个类，并不会初始化他所有实现的接口</li>
+<li>初始化一个接口，并不会初始化他继承的所有的类</li>
+</ul>
+<p>只有当程序首次使用特定字段的时候才会触发接口的初始化。</p>
+</li>
+<li><p>如果你的接口存在default 方法，那么直接或间接实现这个接口的类 触发了初始化，那么这个接口也会被初始化</p>
+</li>
+<li><p>当虚拟机启动时，用户会指定一个主类，那么JVM会优先家在这个主类</p>
+</li>
+<li><p>使用 MethodHandle 类，JVM会初始化这个方法指向的方法所在的类</p>
+<p>我猜啊，这个类是用来调用方法的，他可以调用任何一个类的任何一个方法（不绝对啊，private我不知道行不行）</p>
+</li>
+</ul>
+<h3 id="4-5-2-类的被动使用"><a href="#4-5-2-类的被动使用" class="headerlink" title="4.5.2 类的被动使用"></a>4.5.2 类的被动使用</h3><p>被动使用，就是类加载不会经过初始化过程。</p>
+<ul>
+<li>访问static字段，只有真正定义了这个static字段的类才会被初始化。举个例子，父类有个static，然后我们通过子类访问这个字段，最终被初始化的只有父类，自卑不会被初始化。具体看 cn.chl.PassiveUse</li>
+<li>创建引用数据类型数组，数组数据类型对应的类不会初始化。就是说你 XXX[] a &#x3D; new XXX[10]; 这个时候 XXX 不会初始化，只有 a[0] &#x3D; new XXX() 的时候才会初始化（废话）</li>
+<li>访问类的 final static（具体得看你这个final static需不需要被clinit进行赋值，上面有说，具体问题具体分析）</li>
+<li>调用 ClassLoader 的loadClass 方法，加载一个类，不会初始化</li>
+</ul>
+<h1 id="5-类卸载"><a href="#5-类卸载" class="headerlink" title="5. 类卸载"></a>5. 类卸载</h1><p>是的，类的使用没有说，废话，有啥说的，就是用呗。没的说。这里直接开始说类的卸载。</p>
+<p>要想说明白这个类卸载，我们先要明白 类 类加载器 类实例 的关系。大致的关系就是：我们加载一个类，首先在方法区中创建这个类的模版，然后在堆区创建这个类的Class对象作为方法区模版的访问入口，同时这个类的类加载器也保存在堆区，加载器和Class互相指向，创建实例的话，实例也存在堆区，并指向Class对象。接下来我们具体说说每个部分。</p>
+<h2 id="5-1-类-类加载器-类实例的关系"><a href="#5-1-类-类加载器-类实例的关系" class="headerlink" title="5.1 类  类加载器   类实例的关系"></a>5.1 类  类加载器   类实例的关系</h2><p>我们之前说过，JVM中的类加载器主要分为三类：</p>
+<ul>
+<li>BootstrapClassLoader：启动类加载器，或者说 引导类加载器，Java核心类库使用这个</li>
+<li>ExtensionClassLoader：扩展类加载器，第三方jar包多数用这个</li>
+<li>ApplicationClassLoader：应用程序类加载器，或者叫系统类加载器，我们自己写的用这个</li>
+</ul>
+<p>Class对象和ClassLoader之间双向关联，Class里面有个方法：<code>getClassLoader()</code> 方法，可以得到这个类的类加载器。所以大体结构如下：</p>
+<p><img src="/../images/Class.png" alt="image-20211106131529171"></p>
+<p>看的非常清楚，不再多说。</p>
+<h2 id="5-2-类的生命周期"><a href="#5-2-类的生命周期" class="headerlink" title="5.2 类的生命周期"></a>5.2 类的生命周期</h2><p>简单说，什么时候一个类就被回收了？以上面这图来说，当 Sample 类的Class对象不再被引用，也就是不可触及时，Sample的生命周期结束，就会卸载方法区中的 Sample类模版。</p>
+<p>看似简单，其实不然，我们通过上面这图可以看出，什么时候Class就不会被引用？</p>
+<ul>
+<li>没有任何的实例引用。没有实例，那么 Sample实例到Class的引用就相当于断开了</li>
+<li>没有 Class对象的引用。这是废话</li>
+<li>没有 Sample 类加载器的引用，这样 MyClassLoader的引用断开，就相当于Loader到Class的引用断开</li>
+</ul>
+<p>只有达到这三个条件，才说明类不再使用。</p>
+<p>所以总结一下，卸载一个类，其实对应的就是方法区中的GC。方法区GC主要针对不再使用的常量和不再使用的类，常量好说，不用了呗，但是类，必须满足下面三个条件：</p>
+<ul>
+<li>这个类的所有实例，也包括派生子类的实例，全部被回收</li>
+<li>类的ClassLoader被回收（这个条件极其难以达成，除非是被精心设计的一些类的类加载器）</li>
+<li>没有引用指向 Class对象</li>
+</ul>
+<h2 id="5-3-类的卸载"><a href="#5-3-类的卸载" class="headerlink" title="5.3 类的卸载"></a>5.3 类的卸载</h2><ul>
+<li>引导类加载器不可能被卸载，也就是说被引导类加载器加载的类，运行期间你是别想卸载了</li>
+<li>系统类加载器和扩展类加载器被收集的可能性极小，因为在运行期间他们的类总是能被直接或者间接的指向</li>
+<li>我们自己写的类加载器有可能被回收，但是仅限与在简单的上下文环境中，复杂环境下依旧是直接间接引用满天飞。而且就算是回收了加载器，我们也得强制调用GC方法</li>
+</ul>
+<p>方法区回收垃圾，时间是不确定的，而且效果也不好，因为没几个类是不用的。所以，千万不要在类卸载的前提下考虑业务。</p>
 ]]></content>
       <categories>
-        <category>部署</category>
+        <category>JVM</category>
       </categories>
       <tags>
-        <tag>部署</tag>
+        <tag>java</tag>
+        <tag>底层</tag>
       </tags>
   </entry>
   <entry>
@@ -581,6 +686,71 @@
 <p>编程题反倒不会太难，因为继承那块的东西让你们写说实在的多少有点难为你们了，所以最后考的，应该就是让你们设计个类，然后写写方法，但是也不会太简单，C++的时候和Python考试编程题充其量就是让你写个水仙花数，打印个质数，Java就绝不会这么简单了。Java的编程题可能会多少和实践有点联系，比如让你用类实现个登录这种的。</p>
 <p>嗯，说难不难说简单不简单的。</p>
 ]]></content>
+  </entry>
+  <entry>
+    <title>hexo部署</title>
+    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
+<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
+<span id="more"></span>
+
+<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
+<p><strong><font color='red'>步骤如下：</font></strong></p>
+<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
+<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
+<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
+<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
+<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
+<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
+<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
+<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
+<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
+
+<p>然后，正常情况下，会提示这么一句：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
+
+<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
+<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
+<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
+<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
+<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
+<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
+
+<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
+
+<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
+<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
+<p>在博客根目录下执行如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
+
+<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
+<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
+
+<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
+<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
+<p>然后，这三个页面以后都不要管了。</p>
+<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
+<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
+<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
+<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
+]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>部署</tag>
+      </tags>
   </entry>
   <entry>
     <title>微信小程序-页面跳转</title>
@@ -743,303 +913,1053 @@
       </tags>
   </entry>
   <entry>
-    <title>JVM-堆</title>
-    <url>/2022/05/28/jvm-heap/</url>
-    <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
-<blockquote>
-<p>首先要说的一点是，整个这一章，都是关于堆的，在网课里面堆讲了30集，着实离谱，而且东西奇多，所以笔记也会多到离谱</p>
-</blockquote>
+    <title>字节码指令</title>
+    <url>/2022/06/13/bytecode-command/</url>
+    <content><![CDATA[<p>这章就是具体的各种字节码指令，深入的说一下每个指令都是干嘛的。</p>
 <span id="more"></span>
 
-<h1 id="1-堆的概述"><a href="#1-堆的概述" class="headerlink" title="1. 堆的概述"></a>1. 堆的概述</h1><ul>
-<li><p>一个JVM实例只存在一个堆内存，堆也是 Java内存管理的核心区域</p>
-<blockquote>
-<p>一个进程对应一个JVM实例，JVM实例只有一个Runtime，Runtime里面只有堆和方法区是线程公用，所以说的直白了，一个进程只有一个堆</p>
-</blockquote>
-</li>
-<li><p>JVM启动时堆的大小已经确定</p>
-</li>
-<li><p>堆的大小可以调节</p>
-</li>
-<li><p>Java虚拟机规范中规定，堆可以处于物理不连续的内存上，但是逻辑上应视为连续。</p>
-<blockquote>
-<p>如何证明堆是进程唯一的？需要用到一个工具，在 java.bin 目录下，jvisualvm，这个东西可以看到目前的java进程信息，(需要安装一个插件，VisualGC，工具里面就能安装).然后进入 visualGC</p>
-</blockquote>
-</li>
-<li><p>即使整个线程共用一个堆，对内部还是有线程私有的缓冲区，最典型的就是 ThreadLocal，Buffer，TLAB Allocation，很好，目前我都不知道啥意思。</p>
-</li>
-<li><p>几乎所有的对象实例都分配在堆上，注意是几乎，不是所有，随着 JVM 的更新，JVM会进行逃逸检测，栈上也可以村对象了。</p>
-</li>
-<li><p>数组和对象可能永远不会存在栈上，栈帧中保存引用，这个引用指向对象或者数组在堆中的位置。</p>
-<blockquote>
-<p>官网中JVM规范说的是所有，所以引出了下一条</p>
-</blockquote>
-</li>
-<li><p>方法结束后，堆中的对象不会马上被删除，仅仅在垃圾收集的时候才会被删除。</p>
-<blockquote>
-<p>这里解释一下什么意思，一个方法，方法里面有引用，指向堆中的实例，当方法执行完成后，栈帧出栈，这时候引用就没了，就不在指向堆了，这个时候听不会马上GC，因为影响效率，他会在堆满了的时候去进行垃圾收集。</p>
-</blockquote>
-<blockquote>
-<p>这里老师的原话是：出栈后引用为空，很好现在回来看，显然是栈帧出栈，局部变量表停止指向</p>
-</blockquote>
-</li>
-<li><p>堆是GC作用的重点区域。</p>
-</li>
-</ul>
-<h1 id="2-堆空间内存细分"><a href="#2-堆空间内存细分" class="headerlink" title="2. 堆空间内存细分"></a>2. 堆空间内存细分</h1><p>现代垃圾收集器大部分都是基于分带收集论涉及，对空间细分为：</p>
+<h1 id="1-加载与存储指令"><a href="#1-加载与存储指令" class="headerlink" title="1. 加载与存储指令"></a>1. 加载与存储指令</h1><p>因为我们之前说过了，数据的来源可以是局部变量表，常量池，方法调用，所以这里还得区分。</p>
+<h2 id="1-1-局部变量压栈指令"><a href="#1-1-局部变量压栈指令" class="headerlink" title="1.1 局部变量压栈指令"></a>1.1 局部变量压栈指令</h2><p>从局部变量表中的取得相应的数据，压入操作数栈，大体可以分为两类：</p>
 <ul>
-<li><p>java7 包括之前的JVM 堆内存逻辑上分为 3部分：新生区 + 养老区 + 永久区</p>
+<li><p>xload (x 可以是 i l f d a)</p>
+</li>
+<li><p>xload&lt;_n&gt; (n 从 0 - 3)</p>
+</li>
+</ul>
+<p>为啥要分出两个，_n 有啥用？很简单，根据概率来说，xload 0 1 2 3 用的最多，所以封装成了 xload_0 1 2 3.在字节码文件中，一个指令只有一个字节，而操作数2个字节，用 xload_n可以省地方。</p>
+<p>然后这里面涉及到了局部变量表，这里复习一下：局部变量表里面有槽位，一个槽slot是4个字节，然后如果我们把long放进去，那long就是占两个slot，比如 0 位是this，1位是long，那3位就是int，没有2了，1 2 都被long占用了。</p>
+<p>然后具体说说后面的操作数，现在有一个指令: xload 5，那他就是把局部变量表中index&#x3D;5的东西，压入栈。注意，是index&#x3D;5，索引为5的局表数据，看好了，可不是局表里面第一列那个数字，那是个数。</p>
+<h2 id="1-2-常量入栈指令"><a href="#1-2-常量入栈指令" class="headerlink" title="1.2 常量入栈指令"></a>1.2 常量入栈指令</h2><p>指令const系列：这个命令用于特定常量压操作数栈，注意是特定常量，这个常量直接写在指令中，且后面没有操作数，注意这个很重要，const指令没有操作数，而且这个常量得注意，不是说非得是 final 修饰的常量，字面量也算是这里的常量，我们定义一个字面量 int i &#x3D; 10 那这里也会用这些指令进行压栈操作。具体指令如下：</p>
 <ul>
-<li><p>Young Generation Space -&gt; 新生区 Young&#x2F;New</p>
-<blockquote>
-<p>又被划分为 Eden 区 和 Survivor 区</p>
-</blockquote>
+<li><p>iconst_i (i -&gt; -1(m1) 到 5)</p>
 </li>
-<li><p>Tenure Generation space -&gt; 养老区 Old&#x2F;Tenure</p>
+<li><p>lconst_l (l -&gt; 0到1)</p>
 </li>
-<li><p>Permanent Space -&gt; 永久区 Perm</p>
+<li><p>fconst_f (f -&gt; 0 到 2)</p>
+</li>
+<li><p>dconst_d (d -&gt; 0 到 1)</p>
+</li>
+<li><p>aconst_null (压null)</p>
 </li>
 </ul>
-</li>
-<li><p>java8 以后堆内存逻辑上分为3部分：新生区 + 养老区 + 元空间</p>
+<p>是的，这些数据范围没有任何规律，别问为啥，反正就是这样。</p>
+<p>比如，将常量 2 压入栈，那就是 iconst_2，那压6呢？iconst 6么，我们之前说了，const系列指令没有操作数，所以显然不行。这里得用另外一个系列指令：push系列指令。</p>
+<p>指令 push 系列：主要就是 bipush 和 sipush，主要就是接收数据类型不同，bipush接收8位整数压栈，sipush接收16位整数压栈。(128就已经是16位了)，具体范围就是 bipush：-128 - 127. sipush：-32768 - 32767</p>
+<p>如果还是不行，那就可以使用 ldc 指令，这个指令是干嘛的呢，他接受一个8位参数，这个参数指向常量池中 int float String 索引，然后将常量池中的指定内容压入栈。如果索引比较大，可以使用 ldc_w指令，接受两个8位参数，仅仅是索引范围变大了而已。如果压入 long double，那就是用 ldc2_w，怎么理解呢，粗略的理解成double 和 long 占两个槽位吧。</p>
+<p>三个的区别就是 const -&gt; push -&gt; ldc 范围依次增大。</p>
+<h2 id="1-3-出栈装入局部变量表指令"><a href="#1-3-出栈装入局部变量表指令" class="headerlink" title="1.3 出栈装入局部变量表指令"></a>1.3 出栈装入局部变量表指令</h2><p>首先我先猜测一下，一般来说数据不会直接装入局表，除非是方法的形参已经实例方法的this。一般来说局部变量都是先进入操作数栈，再从栈出来进入局表，大致应该是啊。</p>
+<p>装入局表指令 store 系列：</p>
 <ul>
-<li><p>Young Generation Space 新生区 Young&#x2F;New</p>
-<blockquote>
-<p>同理分为 Eden Survivor</p>
-</blockquote>
+<li><p>xstore&lt;_n&gt; 同理x可以是 i l f d a. n可以是 0 - 3</p>
 </li>
-<li><p>Tenure Generation Space 养老区 Old&#x2F;Tenure</p>
-</li>
-<li><p>Meta Space 元空间 Meta</p>
+<li><p>xstore</p>
 </li>
 </ul>
+<p>这个命令的意思是，把操作数栈 栈顶的元素，弹出，然后放入局部变量表index 为 n 的地方。注意，始终弹得是栈顶元素。</p>
+<p>当然了，有特殊的东西，比如存入数组这种的，去看尚硅谷的手册，我这里不提供了。</p>
+<h1 id="2-算数指令"><a href="#2-算数指令" class="headerlink" title="2. 算数指令"></a>2. 算数指令</h1><p>加法指令：iadd，ladd，fadd，dadd</p>
+<p>减法指令：isub，lsub，fsub，dsub</p>
+<p>乘法指令：imul，lmul，fmul，dmul</p>
+<p>除法指令：idiv，ldiv，fdiv，ddiv</p>
+<p>取余指令：irem，lrem，frem，drem # remainder</p>
+<p>取反指令：ineg，lneg，fneg，dneg # negation</p>
+<p>自增指令：iinc xx(局表index) by xx(增加的具体数值)</p>
+<p>需要注意的是，前面的很多指令，比如 add，div这种，其实是把操作数栈中的栈顶两个数，弹出，运算，再压栈，所以没有操作数。但是比较特殊的就是 iinc，比如我们 <code>int i = 0; int j = i + 10;</code> 这里就会用到自增，int j &#x3D; i + 10的指令就是 <code>iinc i在局表的位置 by 10</code>.</p>
+<h1 id="3-数据类型转化"><a href="#3-数据类型转化" class="headerlink" title="3. 数据类型转化"></a>3. 数据类型转化</h1><p>基本格式很简单，就是 x2y，x y 分别代表俩类型呗，然后 to 呗，很简单，然后我们细分一下。</p>
+<p>首先，根据转化的类型，分为两种：宽化数据类型转换，窄化数据类型转换，其实很简单，就是 小范围到大范围 和 大范围到小范围，我们先说宽化：</p>
+<h2 id="3-1-宽化数据类型转换"><a href="#3-1-宽化数据类型转换" class="headerlink" title="3.1 宽化数据类型转换"></a>3.1 宽化数据类型转换</h2><ul>
+<li><p>int 到大范围：i2l, i2f, i2d</p>
+</li>
+<li><p>long 到大范围：l2f, l2d</p>
+</li>
+<li><p>float 到大范围：f2d</p>
 </li>
 </ul>
-<p>需要注意的是，永久代和元空间其实并不属于 堆，而是属于方法区，所以在这里不细说永久代。 如何证明堆包括元空间和养老代？还是昨天那个工具：Jvisualvm，里面的 visualGC， 里面 三块，enden survivor tenure 加起来 就是你设置的 堆的大小。</p>
-<p>在Java 中分别叫 PSYoungGen&#x3D;新生区 ParOldGen&#x3D;养老区 MetaGen&#x2F;PSPermGen&#x3D;元空间&#x2F;永久区</p>
-<h1 id="3-设置堆空间大小"><a href="#3-设置堆空间大小" class="headerlink" title="3. 设置堆空间大小"></a>3. 设置堆空间大小</h1><ul>
-<li><p>堆的大小在JVM启动的时候就已经设定好了，可以通过 -Xmx 和 -Xms 来设置</p>
+<p>说白了就是： int –&gt; long –&gt; float –&gt; double，这个也就是自动类型转换，虽然你的代码没有体现任何的类型转换，但是字节码会给你加上这部分的。</p>
+<h2 id="3-2-精度问题"><a href="#3-2-精度问题" class="headerlink" title="3.2 精度问题"></a>3.2 精度问题</h2><p>既然这里宽数据类型转换，那就肯定要涉及到精度问题：</p>
 <ul>
-<li><p>-Xms 用来表示堆区的初始内存，等价于： -XX:InitialHeapSize</p>
+<li><p>首先 int 转换为 long，double 不会发生精度丢失。</p>
 </li>
-<li><p>-Xmx 用来表示堆区的最大内存，等价于：-XX:MaxHeapSize</p>
-<blockquote>
-<p>-X 是 JVM 参数，ms &#x3D; memory start</p>
-</blockquote>
+<li><p>int 或者 long 转换为 float，或者 long 转化成 double，都有可能造成精度丢失，可能会丢失最低有效位上的某些值，转化后的浮点数值是根据 IEEE754最接近舍入模式所得到的正确整数值。</p>
 </li>
 </ul>
-</li>
-<li><p>一旦堆区的内存大小超过 -Xmx，就会跑出 OutOfMemoryError异常。</p>
-</li>
-<li><p>通常会将-Xms 和 -Xmx配置相同的值，目的就是为了能够在Java垃圾回收机制清理完堆区后 不需要重新分割计算堆区的大小，从而提供性能。</p>
-</li>
-<li><p>默认情况下，初始内存大小：物理电脑内存大小 &#x2F; 64,最大内存：物理电脑内存大小 &#x2F; 4</p>
-</li>
-</ul>
-<h1 id="4-堆的年轻代和老年代"><a href="#4-堆的年轻代和老年代" class="headerlink" title="4. 堆的年轻代和老年代"></a>4. 堆的年轻代和老年代</h1><p>别说话，看图： </p>
-<p><img src="/../images/runtime/HeapOldGenAndYoungGen.png" alt="heap"></p>
-<p>存储在JVM中的Java对象可以分为两类：</p>
-<ul>
-<li><p>生命周期比较短的瞬时对象，创建消亡都非常迅速</p>
-</li>
-<li><p>生命周期比较长，极端情况下和JVM的声明周期一样长</p>
-</li>
-</ul>
-<p>创建出来的对象先放在 年轻代的Eden 区，进行一轮垃圾回收之后，如果是垃圾了，就直接回收了， 如果不是垃圾，说明对象幸存，则放到 survivor0 或者 survivor1 中。</p>
-<blockquote>
-<p>survivor 也叫 from &#x2F; to 区</p>
-</blockquote>
-<h2 id="内存占比"><a href="#内存占比" class="headerlink" title="内存占比"></a>内存占比</h2><p>默认情况下，年轻代和老年代占比 1:2，也就是年轻代占堆的1&#x2F;3，老年代占堆的 2&#x2F;3.能不能手动调整？可以，启动时添加JVM参数：<code>-XX:NewRatio=n</code> 设置年轻代和老年代占比 1:n。当然默认情况下是 <code>-XX:NewRatio=2</code>。但是这个数一般不建议改，除非你确定项目中有很多老对象。</p>
-<p>HotSpot虚拟机中，伊甸园区和幸存者区占比为 8:1:1。同理可以通过启动参数 <code>-XX:survivorRatio=n</code> 来调整。但是需要说一下，其实启动后占比是6:1:1，而不是8:1:1，你要是真想让他8:1:1符合规范，那你设置一下好了。</p>
-<p>几乎所有对象首先都是在Eden区创建，除非这个对象太大了直接放到OldGen，而且大部分对象的销毁都是放在Eden中，有研究表明 80%的对象都是朝生暮死，生命周期很短。如果我们嫌不够的话，可以使用参数 <code>-Xmn</code> 来调整新生代大小.</p>
-<h1 id="5-创建对象的大体流程"><a href="#5-创建对象的大体流程" class="headerlink" title="5. 创建对象的大体流程"></a>5. 创建对象的大体流程</h1><p>前文说道，创建对象一般发生在新生代，那么新生代具体发生了什么，让我们来详细说一说，注意，这里并没有提到类加载器，仅仅是在对重给对象分配内存流程。后面还会详细说一个对象创建具体的流程。</p>
-<h2 id="5-1-流程"><a href="#5-1-流程" class="headerlink" title="5.1 流程"></a>5.1 流程</h2><ol>
-<li><p>在Eden区分配空间，大部分情况都是吧对象分配在eden区，上文也说过，除非这个对象特别大</p>
-</li>
-<li><p>当Eden区满了的时候，出发年轻代的垃圾回收机制，叫 YGC(YoungGC) 或者叫 MinorGC，Eden中已经没有了引用的对象将会被回收，剩下的对象，将会进入 survivor0 或者 survivor1，这里我们先假设 survivor0 和 survivor1 都是空的，再假设 Eden中没有被回收的对象进入了 survivor0.这个时候 survivor0 就叫to区，同时进入 survivor0 的对象有一个年龄计数器，用来记录幸存次数，从 0 变成 1。</p>
-</li>
-<li><p>继续创建对象，放在 Eden中，当Eden再一次满了，再次触发 YGC，这回Eden中的幸存对象将会进入空的那个 survivor，这里空的是 survivor1，年龄计数器变为1，同时 survivor0 中的对象也进行YGC，s0中的幸存者也会进入s1，那么这个时候，s1就叫to区，s0就叫from 区，s区的垃圾回收是 Eden 回收，他也顺带回收一下，如果 s区满了，再说。</p>
-</li>
-<li><p>一直进行这个 Eden + from &#x3D;&gt; to 的过程，同时对象的年龄计数器累加。</p>
-</li>
-<li><p>当一个对象的年龄计数器值达到临界的时候，默认是15，那么就会认为这个对象的生命周期很长，就会把它放入 老年代。这个过程叫提升 ：Promotion</p>
-</li>
-</ol>
-<h2 id="5-2-总结"><a href="#5-2-总结" class="headerlink" title="5.2 总结"></a>5.2 总结</h2><ul>
-<li><p>针对 s区，复制之后有交换，谁空谁是to</p>
-</li>
-<li><p>关于垃圾回收，频繁在 新生代回收，很少在老年代回收，几乎不再永生代(Meta) 回收。</p>
-</li>
-<li><p>再出发 YGC 的时候，Eden区肯定是被清空了</p>
-</li>
-</ul>
-<h2 id="5-3-特殊情况"><a href="#5-3-特殊情况" class="headerlink" title="5.3 特殊情况"></a>5.3 特殊情况</h2><p>看图：</p>
-<p><img src="/../images/runtime/MemoryHandleSpecialCase.png" alt="heap_memory"></p>
-<p>解释一下： 正常流程肯定能看懂，说一点特殊情况：</p>
-<ul>
-<li><p>Eden 放不下了，可能是 Eden 满了，触发 YGC，然后Eden 还是放不下，这个时候Eden肯定是 空了，说明 对象大小超过了 Eden大小，则直接放入 老年代。</p>
-</li>
-<li><p>上面这种情况，如果 老年代也放不下，触发 FGC，还放不下，那完了，抛出 OOM错误。</p>
-</li>
-<li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
-</li>
-</ul>
-<h1 id="6-堆垃圾回收"><a href="#6-堆垃圾回收" class="headerlink" title="6. 堆垃圾回收"></a>6. 堆垃圾回收</h1><p>大体来看，Heap 中的 GC 分为 3种：</p>
-<ul>
-<li><p>Young GC &#x2F; MinorGC</p>
-</li>
-<li><p>Full GC</p>
-</li>
-<li><p>Old GC &#x2F; Major GC</p>
-</li>
-</ul>
-<p>根据 HotSpot 虚拟机，按照收集区域又分为两种：部分收集和整堆收集</p>
-<ul>
-<li><p>部分收集：不是完整收集整个Java 堆的收集，其中又分为：</p>
-<ul>
-<li><p>新生代收集 MinorGC&#x2F;YoungGC: 只收集年轻代的垃圾收集</p>
-</li>
-<li><p>老年代收集 MajorGC&#x2F;OldGC： 只收集老年代</p>
-<ul>
-<li><p>目前只有CMS GC会有单独收集老年代的行为</p>
-</li>
-<li><p>很多时候 MajorGC 会和 FullGC 混合使用，需要具体分辨是老年代回收还是整堆回收</p>
-</li>
-</ul>
-</li>
-<li><p>混合回收器 Mixed GC：收集整个新生代和部分老年代的垃圾</p>
-<ul>
-<li>只有G1 GC 有这种行为</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><p>整堆收集：收集整个 Java 堆 和 方法区 的垃圾，注意，还包括方法区。</p>
-</li>
-</ul>
-<p>下面说一下各个内存部分的垃圾回收触发机制：</p>
-<h2 id="6-1-年轻代触发机制"><a href="#6-1-年轻代触发机制" class="headerlink" title="6.1 年轻代触发机制"></a>6.1 年轻代触发机制</h2><ul>
-<li><p>年轻代空间不足，就会触发minor gc,这里说的空间不足指的是eden空间不足，survivor 满了不会触发 minor gc，只会发生提升。每次回收都会清空年轻代内存。</p>
-</li>
-<li><p>Java 对象大多数申明周期很短，所以minor gc 发生的特别频繁。</p>
-</li>
-<li><p>minor gc 会触发STW，也就是暂停用户线程，等垃圾回收结束，才会恢复用户线程</p>
-</li>
-</ul>
-<h2 id="6-2-老年代回收："><a href="#6-2-老年代回收：" class="headerlink" title="6.2 老年代回收："></a>6.2 老年代回收：</h2><ul>
-<li><p>发生在老年代的垃圾回收，当对象从老年代消失了，我们就认为 major gc 或者 full gc 发生了，</p>
-</li>
-<li><p>发生一次 major gc，一般来说，伴随着至少一次的minor gc，不是绝对的，以后再说。</p>
-<ul>
-<li>也就是当老年代空间不足时，西安出发一次 minor gc，如果空间还不足，触发 major gc</li>
-</ul>
-</li>
-<li><p>major gc 一般比 minor gc 慢10倍以上，stw 时间更长。</p>
-</li>
-<li><p>如果major gc后空间还是不够，抛出 OOM 异常。</p>
-</li>
-</ul>
-<h2 id="6-3-FullGC-触发机制："><a href="#6-3-FullGC-触发机制：" class="headerlink" title="6.3 FullGC 触发机制："></a>6.3 FullGC 触发机制：</h2><ul>
-<li><p>调用 System.gc() 时</p>
-</li>
-<li><p>老年代空间不足</p>
-</li>
-<li><p>方法区空间不足</p>
-</li>
-<li><p>通过 minor gc 后进入老年代的平均大小大于老年代的可用内存</p>
-</li>
-<li><p>eden from 的对象往 to 区复制，to区空间不够，提升到老年代，老年代空间也不够，触发 full gc</p>
-</li>
-<li><p>开发中尽量避免 full gc</p>
-</li>
-</ul>
-<h1 id="7-TLAB"><a href="#7-TLAB" class="headerlink" title="7. TLAB"></a>7. TLAB</h1><p>前文说过TLAB，说是 堆里面有每个线程的私有缓冲区，有 TLAB，ThreadLocal，Buffer，Allocation，其实后面的三个词全都在说 TLAB。</p>
-<h2 id="7-1-TLAB是啥"><a href="#7-1-TLAB是啥" class="headerlink" title="7.1 TLAB是啥"></a>7.1 TLAB是啥</h2><p>ThreadLocal Buffer Allocation： 线程私有缓冲区，用于结局线程安全问题。</p>
-<h2 id="7-2-为什么要设置TLAB"><a href="#7-2-为什么要设置TLAB" class="headerlink" title="7.2 为什么要设置TLAB"></a>7.2 为什么要设置TLAB</h2><p>堆是整个进程共享的一块区域，如果一大堆线程同事访问堆，会造成县城不安全，如果给数据加锁，那效率就太慢了，所以为了提高效率，加入了线程缓冲区。</p>
-<p>JVM给每个线程在 Eden 划分出来一块 TLAB，这种方式解决了线程安全问题，提高了内存分配吞吐量，我们就管这种方式叫“快速分配策略”.</p>
-<p>虽然说不是所有对象都可以分配在 TLAB上，但是TLAB确实是JVM分配对象的首选。TLAB非常小，仅仅占到了 Eden的 1%。</p>
-<p>如果对象在TLAB分配失败，JVM就会考虑给对象加锁，直接把对象放在Eden中。</p>
-<h2 id="7-3-一些参数"><a href="#7-3-一些参数" class="headerlink" title="7.3 一些参数"></a>7.3 一些参数</h2><ul>
-<li><p>-XX:useTLAB 是否开启TLAB，默认开启</p>
-</li>
-<li><p>-XX:TLABWasteTargetPercent 设置TLAB占Eden的百分比。</p>
-</li>
-</ul>
-<h2 id="7-4-对象创建过程"><a href="#7-4-对象创建过程" class="headerlink" title="7.4 对象创建过程"></a>7.4 对象创建过程</h2><p>有了TLAB以后，对象创建流程如下：</p>
-<p><img src="/../images/runtime/TLAB.png" alt="tlab"></p>
-<h2 id="7-5-剩下的"><a href="#7-5-剩下的" class="headerlink" title="7.5 剩下的"></a>7.5 剩下的</h2><p>p81 没好好看，以后可以补一补。</p>
-<h1 id="8-逃逸分析"><a href="#8-逃逸分析" class="headerlink" title="8. 逃逸分析"></a>8. 逃逸分析</h1><p>随着 JIT(编译器) 的发展，逃逸分析技术逐渐成熟，栈上分配，标量替换优化技术 导致技术上有了一点区别，那就是 堆上分配对象不再那么绝对了。</p>
-<p>大部分情况下，一个对象在堆上分配空间，但是在某些特殊情况下，这个对象经过了逃逸分析，发现这个方法并没有逃离方法，那么这个对象就有可能在栈上分配空间。</p>
-<p>但是提一句，HotSpot虚拟机可是没有逃逸分析里面的部分功能的，比如栈上分配这个，HotSpot就没有。</p>
-<h2 id="8-1-逃逸分析概述"><a href="#8-1-逃逸分析概述" class="headerlink" title="8.1 逃逸分析概述"></a>8.1 逃逸分析概述</h2><p>逃逸分析干嘛的？就是用来优化内存分配的，我们前面说对象都要分配到堆上，但是堆上涉及到GC，而栈却不涉及GC，所以可不可以把对象存到栈上，然后方法执行完成直接弹栈，省的GC了。所以这个就是逃逸分析要干的事，分配一个对象，就要看这个对象有没有发生逃逸，如果发生逃逸，也就是这个对象跑出了当前方法作用域，那么发生逃逸，该咋办咋办，如果没有，则可以进行优化。就可以把这个对象放到栈上。</p>
-<ul>
-<li><p>通过逃逸分析，Java Hotspot 编译器能够分析一个对象的引用从而决定这个对象是否分配到栈上。</p>
-</li>
-<li><p>逃逸分析的基本行为就是分析对象的作用域：</p>
-<ul>
-<li><p>一个对象被定义后，如果只在方法中调用，那么没有发生逃逸。</p>
-</li>
-<li><p>对象被定义后，方法外也引用了它，则发生了逃逸。比如方法中创建的对象最后被return了。</p>
-</li>
-</ul>
-</li>
-<li><p>没有发生逃逸，则对象可以分配到栈上，毕竟别的地方不用，方法执行完，栈帧出栈，对象也跟着出栈。</p>
-</li>
-<li><p>发生逃逸，那就老老实实往堆上分配。</p>
-</li>
-</ul>
-<p>举个例子：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这种情况下，user 对象仅仅在方法内部被调用，则没有逃逸，往栈上分配就行了  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    user = <span class="literal">null</span>;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 这种情况，StringBuffer 最终被return，发生了逃逸。  </span></span><br><span class="line"><span class="keyword">public</span> StringBuffer <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">buffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    buffer.append(a);  </span><br><span class="line">    buffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> buffer;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面的 StringBuffer 改成这种，就不会发生逃逸  </span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">stringBuffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    stringBuffer.append(a);  </span><br><span class="line">    stringBuffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> stringBuffer.toString();  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里举个例子，有如下代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">123123123</span>;</span><br><span class="line"><span class="type">float</span> <span class="variable">j</span> <span class="operator">=</span> i;</span><br><span class="line">System.out.println(j);</span><br></pre></td></tr></table></figure>
 
-<p><strong>参数如下：</strong></p>
+<p>这里的 j 就是 1.2312312E8，也就是 123123120。</p>
+<h2 id="3-3-关于-byte-short-char-的问题"><a href="#3-3-关于-byte-short-char-的问题" class="headerlink" title="3.3 关于 byte short char 的问题"></a>3.3 关于 byte short char 的问题</h2><p>是的，你没有看到任何关于 byte short char 的转换指令，为啥？因为压根就没有，比如 byte -&gt; long，其实jvm底层是用的 i2l 来实现的，JVM 肯定会把 byte short long 当做int处理。</p>
+<p>至于为什么这么设计，因为在局部变量表中一个slot就是4个字节的，或者说32bit，那你这个 byte short long 存进去，那不还是用int的slot来存么，那在底层就完全没有必要区分byte short char了，而且，如果再设计这些指令，指令集可就不够了，毕竟一个指令就是一个字节，所以最多只有256 个指令。</p>
+<h2 id="3-4-窄化类型转换"><a href="#3-4-窄化类型转换" class="headerlink" title="3.4 窄化类型转换"></a>3.4 窄化类型转换</h2><p>说的好高级啊，其实就是强制类型转化，把大范围数据类型强制转化为小范围</p>
 <ul>
-<li><p>-XX:-DoEscapeAnalysis 关闭逃逸分析</p>
+<li><p>int 转化为 byte short char：i2b, i2s, i2c</p>
 </li>
-<li><p>-XX:+DoEscapeAnalysis 开启逃逸分析</p>
+<li><p>long转化为 int：l2i</p>
+</li>
+<li><p>float 转化为 int 或者 long：f2i, f2l</p>
+</li>
+<li><p>double 转化为 int, long, float：d2i, d2l, d2f</p>
+</li>
+<li><p>如果是 float 或者 long 转化为 byte 这种，没有直接的指令支持，那就只好两步走：f2i + i2b</p>
+</li>
+<li><p>如果是 double -&gt; byte，肯定不会 d2f, f2i, i2b, 直接就是 d2i, i2b。一般来说转化最多就是两步</p>
 </li>
 </ul>
-<h2 id="8-2-逃逸分析：代码优化"><a href="#8-2-逃逸分析：代码优化" class="headerlink" title="8.2 逃逸分析：代码优化"></a>8.2 逃逸分析：代码优化</h2><p>总的来说，可以通过逃逸分析干好多事，上面那个，仅仅是一个 栈上分配。</p>
-<p>逃逸检测的优化：</p>
+<p>这个也会有精度损失问题，而且很有可能出现精度损失，但是不管精度损失成啥样，都不会抛出异常，特殊的，如果是 byte 转化为 short，直接就是 i2s，没有b2i这一说啊记着。</p>
+<h2 id="3-5-窄化的特殊情况："><a href="#3-5-窄化的特殊情况：" class="headerlink" title="3.5 窄化的特殊情况："></a>3.5 窄化的特殊情况：</h2><p>当一个浮点数转化为整数时，遵循以下规则：</p>
 <ul>
-<li><p>栈上分配</p>
+<li><p>浮点数是 NaN，转化结果就是 int 或者 long 的0</p>
 </li>
-<li><p>同步省略</p>
-</li>
-<li><p>分离对象&#x2F;标量替换</p>
+<li><p>如果浮点数不是无穷大，那没啥好说的，直接取舍就行了</p>
 </li>
 </ul>
-<h3 id="8-2-1-栈上分配"><a href="#8-2-1-栈上分配" class="headerlink" title="8.2.1 栈上分配"></a>8.2.1 栈上分配</h3><p>就是前面说的，站上分配对象，如果实体仅仅在方法内部使用没有进入外部，则对象会被分配到栈上。</p>
-<h3 id="8-2-2-同步省略"><a href="#8-2-2-同步省略" class="headerlink" title="8.2.2 同步省略"></a>8.2.2 同步省略</h3><p>如果一个对象仅在一个线程中使用，或者说，一个对象只能从一个线程中被访问，那么对于这个对象的操作就不考虑同步。</p>
+<p>当一个double转化为 float的时候：</p>
 <ul>
-<li><p>线程同步的代价是很高的。</p>
+<li><p>double如果特别接近0，接近到float都没法表示了，转化结果就为正负0</p>
 </li>
-<li><p>在动态编译同步代码块的时候，如果JIT 检测到一个对象仅仅在一个线程中被访问，而没有发布到其他线程，则运行时 JVM 就会取消对这个对象进行上锁，大大的提高效率，这就叫 锁消除。</p>
+<li><p>如果double是无穷大，float没法表示，结果就是 float的正负无穷大 Infinity</p>
+</li>
+<li><p>如果double是NaN，那float转化完也是NaN</p>
 </li>
 </ul>
-<p>举个例子：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    <span class="keyword">synchronized</span>(user)&#123;  </span><br><span class="line">        System.out.println(user);  </span><br><span class="line">   &#125;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面这种情况，user 对象仅仅在一个线程中被访问，并没有多个线程共享，所以几遍你给他加了锁，  </span></span><br><span class="line"><span class="comment">// JVM也不会执行，但是废话，这种情况，本来我们就不应该加锁。</span></span><br></pre></td></tr></table></figure>
+<p>那当double转化为 long 或者 int 呢，如果double大到int long 没法表示，那int 和long 就会被转化为他们所能表示的最大值。</p>
+<h1 id="4-对象创建与访问指令"><a href="#4-对象创建与访问指令" class="headerlink" title="4. 对象创建与访问指令"></a>4. 对象创建与访问指令</h1><p>因为 Java是面向对象的语言，所以在字节码层面就对对象做了非常好的支持，有很多指令都是用于对象的。同时对象又分出两类，一类就是类的实例，另一类就是数组，各种各样的数组。</p>
+<h2 id="4-1-对象创建指令"><a href="#4-1-对象创建指令" class="headerlink" title="4.1 对象创建指令"></a>4.1 对象创建指令</h2><p>分为两种，创建类实例和创建数组。</p>
+<ul>
+<li><p>创建类实例：new，操作码就是new，操作数是一个指向常量池的索引，这个索引就是具体的类全限定名</p>
+</li>
+<li><p>创建数组：newarray 创建基本数据类型数组，anewarray 创建引用数据类型数组，multianewarray 创建多维数组，如果是基本数据类型数组，后面的操作数就是数组长度，如果是引用数据类型，操作数就是指向常量池的索引，具体就是你引用的类型的全限定命名。</p>
+</li>
+</ul>
+<p>创建完成后，自动把创建好的对象压入操作数栈。</p>
+<p>关于数组的创建这里，有点坑，就是 关于 multianewarray这个指令，什么时候会用这个指令呢？就是你多维数组的维数完全确定，才会用这个指令，比如：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">String[][] s1 = <span class="keyword">new</span> <span class="title class_">String</span>[<span class="number">10</span>][<span class="number">5</span>];</span><br><span class="line"><span class="comment">// 这里的指令是 multianewarray</span></span><br><span class="line"></span><br><span class="line">String[][] s2 = <span class="keyword">new</span> <span class="title class_">String</span>[<span class="number">10</span>][];</span><br><span class="line"><span class="comment">// 这里的指令是 anewarray</span></span><br></pre></td></tr></table></figure>
 
-<h3 id="8-2-3分离对象或标量替换"><a href="#8-2-3分离对象或标量替换" class="headerlink" title="8.2.3分离对象或标量替换"></a>8.2.3分离对象或标量替换</h3><p>有的对象可能不需要作为一个连续的内存结构存入到内存中，而且也可以被访问到。那么这部分对象的部分(甚至全部) 就可以存到 CPU的寄存器中。</p>
-<p>用Java 说，就是这个对象不用存在 堆中，那就可以放到 栈 中。这里还需要解释几个概念：</p>
-<p><strong>标量</strong></p>
-<p>无法被分解成更小的数据，比如基本数据类型。</p>
-<p><strong>对应聚合量</strong></p>
-<p>还可以被分解的对象就是聚合量，比如我们自己写的类的实例。</p>
-<p><strong>标量替换</strong></p>
-<p>如果经过逃逸分析，发现你目前的对象没有在方法外面使用，他就会把你的聚合量，分解为几个标量，这个过程就叫标量替换。</p>
-<p>说白了，就是吧对象打散了，分配到栈上。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">Point</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>();  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + p.x + <span class="string">&quot; Point.y=&quot;</span> + p.y);  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 最终这个东西会被优化成  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">1</span>;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">y</span> <span class="operator">=</span> <span class="number">2</span>;  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + x + <span class="string">&quot; Point.y=&quot;</span> + y);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>-XX:+EliminateAllocation 开启标量替换，默认就是开启的。</p>
-<h2 id="8-3-总结"><a href="#8-3-总结" class="headerlink" title="8.3 总结"></a>8.3 总结</h2><p>大体说几点：</p>
+<p>至于为啥，如果你的维数不确定，那JVM只能知道你创建了一个一维数组，但是一维数组里面的数组长度是多少JVM不知道，所以JVM不确定你里面的是不是数组，只有维数确定的情况下，JVM才能肯定你是要创建一个多维数组，才给你用 multianewarray 这个指令</p>
+<h2 id="4-2-类成员-字段-的访问指令"><a href="#4-2-类成员-字段-的访问指令" class="headerlink" title="4.2 类成员(字段)的访问指令"></a>4.2 类成员(字段)的访问指令</h2><p>这里只针对类里面的字段，对于数组的还有专门的指令。</p>
 <ul>
-<li><p>逃逸分析并不成熟</p>
+<li><p>访问类字段：getstatic，putstatic。分别代表 把类字段压入操作数栈，和 给类字段赋值。</p>
 </li>
-<li><p>逃逸分析本身也消耗性能，如果分析了半天，结果发现都逃逸了，那完犊子了</p>
-</li>
-<li><p>Oracle HotSpot 并没有栈上分配，所以肯定对象都在堆上</p>
+<li><p>访问类实例字段：getfield，putfield。代表的东西和上面一样。</p>
 </li>
 </ul>
+<p>get 这个指令没啥好说的其实，就是后面跟这个常量池索引，把响应的内容（也就是字段信息，fieldref）压入操作数栈。</p>
+<p>put 这个还真得说说，看下面的例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Order</span>&#123; id = <span class="number">10</span>; &#125;</span><br><span class="line"></span><br><span class="line"><span class="type">Order</span> <span class="variable">order</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Order</span>();</span><br><span class="line">order.id = <span class="number">20</span>;</span><br><span class="line"><span class="comment">// new #x &lt;....Order&gt;</span></span><br><span class="line"><span class="comment">// dup</span></span><br><span class="line"><span class="comment">// invokespecial #x &lt;....Order.&lt;init&gt;</span></span><br><span class="line"><span class="comment">// astore_1</span></span><br><span class="line"><span class="comment">// aload_1</span></span><br><span class="line"><span class="comment">// bipush 20</span></span><br><span class="line"><span class="comment">// putfield #x &lt;...Order.id&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>最后就是 putfield #x，所以这个putfield到底是怎么运作的？</p>
+<p>我们在给 id 赋值的之前，操作数栈栈顶就是order对象的地址（为了省事，以后直接说对象），然后赋值的时候又压入操作数栈 20，然后putfield，putfield这个时候就会把栈里面的前两个东西弹出来，根据后面的操作数（一个fieldref_info）确定要给对象的哪个字段赋值，然后就会给弹出来的第二个对象的相应字段赋上第一个弹出来的值。</p>
+<p>说人话，就是现在操作数栈里有一个对象和一个待赋的值，然后putfield给他俩弹出来，根据接收的操作数，就给对象的响应字段赋上那个值。</p>
+<p>注意，这两种指令：getstatic 和 putstatic 指令，他们的操作数都是一个 fieldref_info，表示要给哪个字段赋值或者取出，但是具体执行这个操作的对象，以及要被赋的值，都是从操作数栈中弹出来的。</p>
+<h2 id="4-3-数组元素操作指令"><a href="#4-3-数组元素操作指令" class="headerlink" title="4.3 数组元素操作指令"></a>4.3 数组元素操作指令</h2><ul>
+<li>把数组元素压入操作数栈指令：baload, saload, caload, iaload, laload, faload, daload, aaload，首先 aload 代表 arrayLoad，然后这些首字母分别代表：byte short char int long float double 引用。</li>
+</ul>
+<p>xaload系列的指令需要从操作数栈中弹出2个值，分别是：数组元素索引（int），数组引用，然后他就会把指定数组里面的指定索引的元素对应的值重新压回操作数栈。</p>
+<ul>
+<li>把操作数栈的值赋值给数组元素：bastore, castore, sastore, iastore, lastore, fastore, dastore, aastore，和上面差不多，不多解释。</li>
+</ul>
+<p>这个xastore系列指令需要从操作数栈弹出3个值，分别是（按顺序）：待赋的值，数组元素的引用（int），数组引用。astore指令就会给对应的数组的指定索引的元素赋上对应的值。</p>
+<ul>
+<li>获取数组长度：arraylength，也没有操作数，从操作数栈栈顶弹出数组引用，获取长度，然后把长度（int）重新压回操作数栈。</li>
+</ul>
+<p>这两类指令可都没有操作数，只有一个操作码，操作数全都是从操作数里弹出来的。</p>
+<p>还有就是上面的那些数据类型没有boolean，很简单，boolean数组用的指令也是 baload和bastore。</p>
+<h2 id="4-4-类型检查指令"><a href="#4-4-类型检查指令" class="headerlink" title="4.4 类型检查指令"></a>4.4 类型检查指令</h2><p>Java语法层面有instanceof 关键字，就是判断一个对象是不是一个类的实例，如果是，那就可以强制类型转换，那么强制转换在JVM层面怎么执行的？</p>
+<ul>
+<li><p>instanceof 指令：跟着一个操作数，这个操作数是一个常量索引，一个类名，他会从操作数栈中弹出栈顶的实例引用，然后把弹出的引用和操作数的类型作对比。如果满足，把true压入操作数栈，如果不满足，压入false。（其实我也不知道他到底最后压回栈的是啥，姑且说是true&#x2F;false）。</p>
+</li>
+<li><p>checkcast 指令：类型进行强制转换的时候会有，他会判断能否进行转换，和 instanceof 差不多，他有一个操作数也是指向常量池的，一个类，然后也会从操作数栈弹出栈顶的实例引用，如果可以强制转换，那就转换就行了，如果不行，抛出 ClassCastException。</p>
+</li>
+</ul>
+<h1 id="5-方法指令"><a href="#5-方法指令" class="headerlink" title="5. 方法指令"></a>5. 方法指令</h1><h2 id="5-1-方法调用"><a href="#5-1-方法调用" class="headerlink" title="5.1 方法调用"></a>5.1 方法调用</h2><p>方法调用总共就几个指令，分别是：</p>
+<ul>
+<li><p>invokevirtual：用于调用对象的实例方法，根据对象的实际类型进行分派（虚方法分派），支持多态，是Java中最常见的调用指令。这个具体说说，就是说JVM在执行你的方法的时候，并不知道你这个方法是谁的，还真不一定是当前类型的，因为很可能你这里用到了类的上转型（可不是接口的啊，接口引用调用方法可就是invokeinterface了），比如 <code>Thread t = new XXXThread(); t.run(); </code>，你这个run，已经被你XXXThread重写了，所以JVM搞不清楚了，这个得具体情况具体分析，得运行以后根据你具体的实现类，去调用方法，这就叫虚方法分派。</p>
+</li>
+<li><p>invokeinterface：这个就是调用接口回调的方法，比如 <code>XXXInterface xx = new XXXInterfaceImpl(); xx.func();</code>，这个情况下就是 invokeinterface指令。</p>
+</li>
+<li><p>invokespecial：调用 构造器，私有方法，父类方法的时候的指令，这三种方法比较特殊，因为都不能重写，构造器和私有方法那是废话，子类是铁定不能重写的，那调用父类方法？这个调用父类方法就是 super.xxx() 这种形式，这个就算你子类重写了，你super也是调用的父类的方法，和你当前子类没半毛钱关系。</p>
+</li>
+<li><p>invokestatic：调用静态方法，这个好理解。</p>
+</li>
+<li><p>invokedynamic：这个比较复杂，不说了。</p>
+</li>
+</ul>
+<p>特别的，如果一个方法是 private static 的，那优先考虑 static，指令那就是 invokestatic。</p>
+<p>如果是接口中的已经实现的方法呢？众所周知（我还真不知道JDK8的接口可以有静态方法），jdk8的接口可以有default 方法和 static 方法（都可以实现），那么我们调用这两种方法，指令是啥？看例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">interface</span> <span class="title class_">AA</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="title function_">method1</span><span class="params">()</span>&#123; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">default</span> <span class="title function_">method2</span><span class="params">()</span>&#123; &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BB</span> <span class="keyword">implements</span> <span class="title class_">AA</span>&#123; &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">    <span class="type">AA</span> <span class="variable">aa</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BB</span>();</span><br><span class="line">    aa.method2(); <span class="comment">// invokeinterface</span></span><br><span class="line">    AA.method1(); <span class="comment">// invokestatic</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，即便是方法在接口中已经实现了，指令仍旧是 invokeinterface，但是接口中的静态方法可不是invokeinterface，即便他是在接口中定义的，调用接口中的静态方法指令是 invokestatic，可以看得出来static的优先级比interface高。</p>
+<h2 id="5-2-方法返回："><a href="#5-2-方法返回：" class="headerlink" title="5.2 方法返回："></a>5.2 方法返回：</h2><p>这个倒是很简单，分为有返回值和无返回值：</p>
+<ul>
+<li><p>有返回值：ireturn（返回 boolean byte char short int），lreturn，freturn，dreturn，areturn。这个返回值类型啊，主要看的是你定义方法的时候写的方法返回值，就算你是 <code>public float f()&#123;int i = 10; return i;&#125;</code> 最后返回也是freturn，和你具体返回的啥没太大关系。</p>
+</li>
+<li><p>无返回值：return</p>
+</li>
+</ul>
+<p>如果有返回值，那他具体会干啥？他会把当前栈帧的操作数栈的栈顶元素弹出，然后结束方法，方法一结束栈帧出栈，操作数栈也没了，然后把这个栈顶元素，压入调用这个方法的方法的操作数栈。</p>
+<h1 id="6-操作数栈管理指令："><a href="#6-操作数栈管理指令：" class="headerlink" title="6. 操作数栈管理指令："></a>6. 操作数栈管理指令：</h1><p>这里的管理，指的是不需要借助任何的东西，操作数栈自己进行操作。</p>
+<ul>
+<li><p>直接废弃栈顶元素，直接弹出：pop，pop2。区别就是 pop 弹出一个slot的元素，pop2弹出两个slot的元素。</p>
+</li>
+<li><p>复制操作：dup，dup2，dup_x1，dup2_x1，dup_x2，dup2_x2。</p>
+</li>
+<li><p>交换：swap，交换栈顶的两个 1slot元素，注意，只能是两个 1slot的元素交换，JVM没有提供两个 2slot的元素的交换指令。</p>
+</li>
+<li><p>nop：啥也不干，对应的16进制是0x00，就是用来站位。</p>
+</li>
+</ul>
+<p>dup需要特别说一下，这个复制是复制栈顶的一个或者两个元素，注意，可以一次复制两个的。然后 dup 和 dup2的区别就是 dup复制1slot的元素，dup2复制占2slot的对应元素，注意我说的可以占2slot的东西，还真不一定是仅仅复制一个2slot的单个元素。比如dup2可以复制栈顶的long，double，也可以复制栈顶的两个元素，一个是int，另一个是float。</p>
+<p>然后，dup指令如果后面带有_x，那就不是单纯的复制，而是复制完了以后把复制品插入到另外的位置。那么具体插入到哪呢？有个技巧：</p>
+<p>dup[n]_xm，对吧，n 如果没有那就是 1，有了那就是2。这条指令的具体意思是，先复制，然后把复制结果往下挪 n + m 个slot。</p>
+<p>首先举例子：什么情况下会pop，看下面的代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">Object</span> <span class="variable">obj1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line">    <span class="type">Object</span> <span class="variable">obj2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 上面的指令省略，不用想，肯定是 new dup invokespecial astore，着重看下面两行：</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">hash</span> <span class="operator">=</span> obj1.toString();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokevirtual &lt;...Object.toString&gt;</span></span><br><span class="line">    <span class="comment">// astore_2</span></span><br><span class="line">    <span class="comment">// 这里因为我们把他赋值给了局部变量，所以存入局部变量表，那么说明这个 toString 的返回值有用</span></span><br><span class="line">    obj2.toString();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokevirtual &lt;...Object.toString&gt;</span></span><br><span class="line">    <span class="comment">// pop</span></span><br><span class="line">    <span class="comment">// return</span></span><br><span class="line">    <span class="comment">// 这里为啥就pop了？因为我们就是调用了一下 toString 方法，返回值并没有保存，所以没用，没用操作数栈就把结果直接弹出</span></span><br><span class="line">    <span class="comment">// 又因为是个 String，引用类型，所以弹出一个slot的值就行了</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="type">long</span> <span class="title function_">bar</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test2</span><span class="params">()</span>&#123;</span><br><span class="line">    bar();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokespecial &lt;...bar&gt;</span></span><br><span class="line">    <span class="comment">// pop2</span></span><br><span class="line">    <span class="comment">// return</span></span><br><span class="line">    <span class="comment">// 这里为啥就是 pop2？因为返回值没用，所以需要弹栈，然后因为返回值是long，占用了操作数栈两个slot，索引pop2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="7-比较指令："><a href="#7-比较指令：" class="headerlink" title="7. 比较指令："></a>7. 比较指令：</h1><p>比较指令，说白了就是比较大小的呗，从栈中弹出俩数比较大小。</p>
+<p>这里我先规定：现在操作数栈中有俩数，按顺序是 v2 和 v1，注意是按顺序，也就是v2 压在 v1上面，是栈顶（其实也很好理解，v1 &gt; v2，肯定是先压入v1，再压入 v2，所以v2 在 v1上面）。然后有下面指令：</p>
+<ul>
+<li><p>fcmpl, fcmpg</p>
+</li>
+<li><p>dcmpl, dcmpg</p>
+</li>
+<li><p>lcmp</p>
+</li>
+</ul>
+<p>第一个字母代表类型（float，double，long），cmp不说，最后一个字母 l 和 g 代表 lower 和 greater。其实没啥区分，正常情况下，这些指令都是弹出v2 和 v1 进行比较，如果 v1 &gt; v2，操作数栈压入1，如果 v1 &#x3D;&#x3D; v2，操作数栈压入0，如果 v1 &lt; v2，压-1。唯一的区别就是：如果v1 或者 v2有一个出现NaN，那么 lower 压入 -1，greater 压入 1.仅此而已。</p>
+<p>所以为啥 lcmp 没有lg，因为long没有 NaN。</p>
+<h1 id="8-控制转移指令："><a href="#8-控制转移指令：" class="headerlink" title="8. 控制转移指令："></a>8. 控制转移指令：</h1><h2 id="8-1-条件跳转指令："><a href="#8-1-条件跳转指令：" class="headerlink" title="8.1 条件跳转指令："></a>8.1 条件跳转指令：</h2><p>条件跳转指令一般是用栈顶元素和0或者null去进行跳转，和比较指令关联很大，一般情况下都是比较指令先把比较结果压入栈顶，然后判断指令从栈顶获取结果进行跳转。</p>
+<p>必须要注意的是，这些跳转指令 后面都有一个操作数，代表如果判断位真则跳转到第几行指令。</p>
+<ul>
+<li><p>ifeq（if_equals），ifne（if_nonequals）如果栈顶元素 &#x3D;&#x3D; 0 &#x2F; !&#x3D; 0 ，则跳转。</p>
+</li>
+<li><p>iflt，ifle，ifgt，ifge。当栈顶元素 &gt; &gt;&#x3D; &lt; &lt;&#x3D; 0 时跳转。</p>
+</li>
+<li><p>ifnull，ifnonnull。如果栈顶元素是null&#x2F;不是null 时跳转。</p>
+</li>
+</ul>
+<p>特别需要注意一个地方，看下面代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">test</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">0</span>; <span class="comment">// iconst_0, istore_1</span></span><br><span class="line">    <span class="keyword">if</span>(a == <span class="number">0</span>) <span class="comment">// iload_1, ifne xx &lt;a = 20&gt;</span></span><br><span class="line">        a = <span class="number">10</span>; <span class="comment">// bipush 10, istore_1, goto xx &lt;return&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        a = <span class="number">20</span>; <span class="comment">// bipush 20, istore_1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> a; <span class="comment">// iload_1, ireturn</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>是的，我知道很简单，我们仔细看一看，如果if判断的结果为真，那他会接着if后面的按顺序执行，也就是走if路线的话根本没有跳转，只有在 if 判断不通过的情况下，走到else，这个时候才发生了指令跳转。但是这些判断指令后面又必须跟一个跳转地址，所以说这里我们判断得是 a&#x3D;&#x3D;0，如果等于则干啥，但是指令其实是反过来的，指令中判断 如果 a !&#x3D; 0，则跳转到else的地方。</p>
+<p>总结一下，就是条件跳转指令会给我们写的if判断的条件取反，我们让他判断 a 是否等于0，指令则会判断 a 是否不等于0，如果是，则直接跳转到 else，如果不是，则不跳转，接着按顺序执行if后面的指令。</p>
+<p>还有啊，这个条件跳转指令，针对的是 一个 int 和 一个常数比较，比如你直接 a &#x3D;&#x3D; 0，就会用条件跳转，如果是连个float，那就是两个float先 cmp，往操作数栈中压入比较结果，然后再条件跳转。</p>
+<h2 id="8-2-比较条件跳转指令"><a href="#8-2-比较条件跳转指令" class="headerlink" title="8.2 比较条件跳转指令"></a>8.2 比较条件跳转指令</h2><p>这个东西就是把条件跳转和比较 结合在一起了，仅此而已。主要针对两个int（或者说JVM给你转换以后是int，害，其实就是 byte short）或者两个引用的比较，当然这里的比较引用肯定是比较的hashcode。</p>
+<ul>
+<li><p>if_icmpeq，if_icmpne，if_icmplt，if_icmple，if_icmpgt，if_icmpge：从栈顶弹出v2 和 v1 两个int，如果 &#x3D;&#x3D; !&#x3D; &lt; &lt;&#x3D; &gt; &gt;&#x3D; 的话，就跳转</p>
+</li>
+<li><p>if_acmpeq，ifacmpne：从栈顶弹出两个引用，判断 &#x3D;&#x3D; !&#x3D;</p>
+</li>
+</ul>
+<h2 id="8-3-多条件跳转指令"><a href="#8-3-多条件跳转指令" class="headerlink" title="8.3 多条件跳转指令"></a>8.3 多条件跳转指令</h2><p>这个多条件不是else if 啊，指的是 switch case 结构。</p>
+<p>具体分为两个：tableswitch 和 lookupswitch，这两个都是规定了如何跳转。区别就是 如果case 的后面的东西连续，那就是tableswitch，可以直接定位。如果不连续，那就需要用到 lookupswitch。</p>
+<p>lookupswitch 优化为题：</p>
+<p>因为lookupswitch不连续，所以他的效率可能慢一点，但是这个指令自己会优化，他会把你所有的case 条件，按顺序排序，比如你是 case 100, 500, 200，那他最后优化就会变成：100, 200, 500.但是这是不是说明，如果你不break，那他就不按从上到下的顺序一溜往下走了？不是的，具体为啥，你可以去看字节码。</p>
+<p>还有jdk7支持的 case 字符串。这个东西更玄学，不细说了，挺多的，可以看：cn.chl.SwitchCase.java 这个文件。</p>
+<h2 id="8-4-无条件跳转指令"><a href="#8-4-无条件跳转指令" class="headerlink" title="8.4 无条件跳转指令"></a>8.4 无条件跳转指令</h2><p>goto 指令，后面跟着一个2字节的操作数，代表往哪里跳转，如果两个字节（65535，无符号的2字节数）不够，那就是用 goto_w 这个指令，和goto一样，区别就是goto_w 接受一个4字节的操作数。</p>
+<p>这里还可以涉及到循环，JVM中可没有任何的循环指令，其实循环都是 条件跳转指令 + 无条件跳转指令实现的。</p>
+<h1 id="9-异常与异常处理"><a href="#9-异常与异常处理" class="headerlink" title="9. 异常与异常处理"></a>9. 异常与异常处理</h1><p>很好，我们都很讨厌异常</p>
+<h2 id="9-1-异常的生成"><a href="#9-1-异常的生成" class="headerlink" title="9.1 异常的生成"></a>9.1 异常的生成</h2><p>众所周知，Java中的异常，其实就是 Exception对象，说的再准确点，就是 Throwable 实现类，所以异常，首先也要创建，然后使用关键字throw出来。</p>
+<p>JVM层面，throw 的指令：athrow。但是这个指令仅限于我们手动抛出异常，如果是自动抛出的异常，比如除以0的异常，会在执行指令idiv和ldiv时自动抛出，那么这里自动抛出的异常就不会涉及athrow指令。</p>
+<p>一旦抛出异常，直接清空方法的操作数栈（不光是清空操作数栈，整个栈帧都会直接弹出），然后把异常对象，压入方法调用者的操作数栈上。</p>
+<h2 id="9-2-异常的捕获"><a href="#9-2-异常的捕获" class="headerlink" title="9.2 异常的捕获"></a>9.2 异常的捕获</h2><p>早期的JVM采用了 jsr ret 等指令来对异常进行处理，但是是早期，现在JVM已经把这些指令废弃了，取而代之的是异常表。</p>
+<p>异常表其实很简单，就是一张表，规定了如果发生哪类异常，则跳转到哪条指令。一般来说只要你存在try catch 或者 try finally 则会出现这个东西。当</p>
+<p>异常表有有你catch的所有异常，如果发生异常，就会去和你异常表匹配，匹配到哪个异常，跳转到哪个异常的处理位置，如果没有匹配，则弹出当前栈帧。</p>
+<p>异常表结构如下：</p>
+<table>
+<thead>
+<tr>
+<th>Nr.</th>
+<th>Start PC</th>
+<th>End Pc</th>
+<th>Handler PC</th>
+<th>Catch Type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第几个，毛用没有</td>
+<td>try的起始位置</td>
+<td>try的结束位置</td>
+<td>抛出异常后的处理位置</td>
+<td>处理的异常类型</td>
+</tr>
+</tbody></table>
+<p>这个举个例子，看 cn.chl.ExceptionByteCode，里面的test5 方法，他的异常表如下：</p>
+<table>
+<thead>
+<tr>
+<th>Nr.</th>
+<th>Start PC</th>
+<th>End PC</th>
+<th>Handler PC</th>
+<th>Catch Type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+<td>9</td>
+<td>java.lang.ClassNotFoundException</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>6</td>
+<td>21</td>
+<td>java.lang.RuntimeException</td>
+</tr>
+</tbody></table>
+<p>所以具体什么意思呢？很简单，第一个，如果在 0 - 6 行字节码出现ClassNotFoundException，则跳转到 9 行进行处理，第二个，如果在 0 - 6 行出现RuntimeException，则跳转到 21行进行处理。就是这么简单。</p>
+<h1 id="10-同步控制指令"><a href="#10-同步控制指令" class="headerlink" title="10. 同步控制指令"></a>10. 同步控制指令</h1><p>说白了，就是同步代码块。</p>
+<p>首先，同步，有两种办法：</p>
+<ul>
+<li><p>直接给方法加上 synchronized 关键字，然后这个方法就是一个同步方法，一次只允许一个线程调用。这种办法在字节码指令角度看不到任何东西，是的，任何，一个方法你加不加同步，字节码都是那样。唯一的区别就是，方法的访问标识符会变。加上的话，方法的访问标识就会变成 public synchronzied。</p>
+</li>
+<li><p>使用同步代码块：synchronized(临界资源)。这个比较牛逼了，下面主要说这个东西。</p>
+</li>
+</ul>
+<p>如果方法内想要进入同步代码块，使用 monitorenter指令，这个指令从操作数栈中弹出这个临界资源（一般是一个对象），我们之前讲对象头结构的时候说过，对象头中存储着线程的信息，比如当前对象是否有锁，这个锁是谁拿着的。那么现在 monitorenter指令得到这个临界资源后，会去对象头中找这俩属性：</p>
+<ul>
+<li><p>看当前对象有没有被加锁，如果没有，ok，我给加上，然后我进入同步代码块</p>
+</li>
+<li><p>如果有锁，看看这个锁是谁拿着的，如果是我拿着的，行，我也可以进入这个代码块</p>
+</li>
+<li><p>如果这个锁不是我拿着，那很遗憾，我就得等着了。</p>
+</li>
+</ul>
+<p>所以我进入了同步代码块，怎么出来？monitorexit指令，这个指令也会从操作数栈得到临界资源，然后修改他的对象头，释放锁。</p>
+<p>需要注意的是，即便我们在同步代码块中没有使用try catch，JVM也会给我们生成异常表，为啥？如果出现异常，难道说当前线程就不释放锁了？不能吧。只要出现异常，则马上跳出同步代码块来释放锁。</p>
+<p>细说一下：上面我们提到，对象头中有一个东西记录这个对象是否有锁，这个东西叫 “监视器计数器”，如果计数器&#x3D;0，说明没有锁，线程可以进入，如果为1，那说明有锁，你得等着了。</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JVM-字节码</title>
+    <url>/2022/06/13/bytecode/</url>
+    <content><![CDATA[<p>前面几经讲完了JVM的一些底层原理，从这章开始，我们会深入字节码文件，说一说字节码的各种指令，从指令层面了解Java代码。</p>
+<span id="more"></span>
+
+<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>从这里开始，就进入了字节码和类加载器篇，这一篇讲字节码文件，可能还有类加载器。</p>
+<h2 id="1-1-正式开始之前，先来道题"><a href="#1-1-正式开始之前，先来道题" class="headerlink" title="1.1 正式开始之前，先来道题"></a>1.1 正式开始之前，先来道题</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Integer</span> <span class="variable">i1</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line"><span class="type">Integer</span> <span class="variable">i2</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line">System.out.println(i1 == i2);</span><br><span class="line"></span><br><span class="line"><span class="type">Integer</span> <span class="variable">i3</span> <span class="operator">=</span> <span class="number">128</span>;</span><br><span class="line"><span class="type">Integer</span> <span class="variable">i4</span> <span class="operator">=</span> <span class="number">128</span>;</span><br><span class="line">System.out.println(i3 == i4);</span><br><span class="line"></span><br><span class="line"><span class="type">Integer</span> <span class="variable">i5</span> <span class="operator">=</span> <span class="number">5</span>;</span><br><span class="line"><span class="type">int</span> <span class="variable">i6</span> <span class="operator">=</span> <span class="number">5</span>;</span><br><span class="line">System.out.println(i5 == i6);</span><br></pre></td></tr></table></figure>
+
+<p>解决这个问题，光看代码不行，你这一看，行啊，false   false   false 呗，为啥？那对象和int能比么,对象比对象那不是比的hashCode吗，俩对象，hash不一致，对吧。结果让你头疼，结果还真就不是，而是 true      false      true。</p>
+<p>所以为了解决这道题，我们就得看字节码，我们会发现，在字节码的角度来说 Integer i1 &#x3D; 10 其实是 <code>Integer i1 = Integer.valueOf(10);</code>  而不是 <code>Integer i1 = new Integer(10)</code>，那问题肯定是在valueOf 上了，所以我们进入源码看 valueOf。我们就会发现惊人的事实，以下高能：</p>
+<p>Integer 内部有一个IntegerCache，里面缓存了一部分Integer对象，这部分对象是已经创建好的，范围是 -128 - 127，如果他发现你传入的int是在这个范围内的话，他就会把对应的Integer直接给你而不会创建新的Integer，所以说上面 i1 和 i2 其实都是一个IntegerCache中的一个固定的Integer，压根就是同一个对象所以肯定想等。</p>
+<p>i5 和 i6 是咋回事？还得看字节码，我们会发现在判断的时候其实i5做了一个intValue的动作得到了 int 5，所以 i5 &#x3D;&#x3D; i6 其实是 i5.intValue() &#x3D;&#x3D; i6，那这个intValue是一个int，所以说也相等。</p>
+<h2 id="1-2-正式开始前，再来一道阴间题目"><a href="#1-2-正式开始前，再来一道阴间题目" class="headerlink" title="1.2 正式开始前，再来一道阴间题目"></a>1.2 正式开始前，再来一道阴间题目</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Father</span>&#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Father</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.print();</span><br><span class="line">        <span class="built_in">this</span>.x = <span class="number">20</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">print</span><span class="params">()</span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Father.x=&quot;</span> + x);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Son</span> <span class="keyword">extends</span> <span class="title class_">Father</span>&#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">30</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Son</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.print();</span><br><span class="line">        <span class="built_in">this</span>.x = <span class="number">40</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">print</span><span class="params">()</span>&#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Son.x=&quot;</span> + x);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">        <span class="comment">// 1. Father f = new Son();</span></span><br><span class="line">        <span class="comment">// 2. Father f = new Father();</span></span><br><span class="line">        System.out.println(f.x);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这家伙，要想想明白这个事，咱们先不看2，咱们先看1.</p>
+<p>众所周知，这个成员变量的赋值顺序：</p>
+<ul>
+<li>默认赋值</li>
+<li>显式赋值 &#x2F; 实例代码块中赋值</li>
+<li>构造器赋值</li>
+<li>后期直接 XXX.xxx 或者 XXX.setXxx(xxx)</li>
+</ul>
+<p>那现在，直接 <code>Father f = new Father();</code> 对吧，根据顺序，首先 x &#x3D; 10，然后构造，所以一上来打印：Father.x &#x3D; 10,然后打印 f.x，那就是 20呗，这个没啥异议。</p>
+<p>然后看2，这个时候看不太懂了，我们去看看字节码，我们又会发现一个小秘密：我们以前说过，创建子类对象会首先调用父类的构造方法，也就是有一个隐藏的 super()，这个super我们说必须放在构造器第一行，对吧。但是我们看字节码我们发现，何止是第一行，父类构造器是整个 &lt;init&gt; 方法的第一步。</p>
+<p>我们的Son类，首先 int x &#x3D; 30 对吧，这个按顺序应该是&lt;init&gt;() 方法的第一步，这是正常情况下，但是在继承中， x &#x3D; 30 和 x &#x3D; 40 却在后面，第一步是调用了 Father.&lt;init&gt;() 方法，然后进入了Father.init，Father调用了 print 方法，但是print已经被子类重写了， 所以调用的其实是子类的print方法，子类要打印子类的x，这个时候因为我们前面说的原因，x &#x3D; 30 还没有执行，所以目前x 只有默认0值，所以打印出来的结果居然是 son.x &#x3D; 0。</p>
+<p>父类构造器执行完成，返回子类构造器，子类x必定是显式初始化了对吧，所以30，调用print，没有异议，然后最后打印 f.x，Java中，成员可没有多态，所以打印的父类的x，也就是20。~~~~</p>
+<p>最后结果：</p>
+<p>Son.x&#x3D;0;Son.x&#x3D;30;20</p>
+<h2 id="1-3-普及几个概念"><a href="#1-3-普及几个概念" class="headerlink" title="1.3 普及几个概念"></a>1.3 普及几个概念</h2><p>这些概念后面要用：</p>
+<p>操作码：opcode</p>
+<p>就是字节码指令的前面那部分，比如 bipush</p>
+<p>操作数：operand</p>
+<p>就是操作码后面的参数，一般是一个数</p>
+<h1 id="2-解析字节码文件"><a href="#2-解析字节码文件" class="headerlink" title="2. 解析字节码文件"></a>2. 解析字节码文件</h1><p>很好，终于是到了这步了，很显然我们的 class文件都是乱码，那么我们就需要把他转成16进制看。以后肯定不用这么的，直接 JClassLib 插件看就行，但是刚开始嘛，多学点，总是好的。</p>
+<p>Windows特别方便，直接notepad++安装一个 hex editor 插件就行了，Ubuntu 不行啊，好吧，vim 走起，弄一个class文件，然后：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim xxx.class</span><br><span class="line">:%!xxd</span><br></pre></td></tr></table></figure>
+
+<p>就行了。</p>
+<h2 id="2-1-Class文件存储方式"><a href="#2-1-Class文件存储方式" class="headerlink" title="2.1 Class文件存储方式"></a>2.1 Class文件存储方式</h2><p>Class 文件整体采用一种类似 C 语言结构体的存储方式，存储单位有两个：无符号数 和 表，下面具体区分：</p>
+<ul>
+<li>无符号数：用于存储基本数据类型，分为 u1 u2 u4 u8 4种类型，分别代表  1 2 4 8 个字节的无符号数，这个东西可以用来描述：数字，索引引用，数量，或者 utf-8 编码的字符串值。</li>
+<li>表：表是由多个无符号数或者其他表构成的复合数据类型，所有表都习惯性的以 _info 结尾。表 用于描述有层次关系的复合结构的数据，整个class文件其实就是一张表，由于一个表长度不一定，所以一般会在表前面加一个数字来表示表长。</li>
+</ul>
+<h2 id="2-2-Class文件结构"><a href="#2-2-Class文件结构" class="headerlink" title="2.2 Class文件结构"></a>2.2 Class文件结构</h2><p>这里写一下java虚拟机规范中的说明：</p>
+<table>
+<thead>
+<tr>
+<th>所用类型</th>
+<th>文件结构</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>u4</td>
+<td>magic 魔数</td>
+<td>识别class文件的标识</td>
+</tr>
+<tr>
+<td>u2</td>
+<td>minor_version : class文件副版本</td>
+<td>识别class文件版本</td>
+</tr>
+<tr>
+<td>u2</td>
+<td>major_version: class文件主版本</td>
+<td>识别class文件版本</td>
+</tr>
+<tr>
+<td>u2</td>
+<td>constant_pool_count：常量池长度</td>
+<td>记录常量池长度.就像之前说的.一个表会在前面记录表长</td>
+</tr>
+<tr>
+<td>cp_info</td>
+<td>constant_pool[c_p_c-1]：常量池</td>
+<td>特别重要.以后再说</td>
+</tr>
+<tr>
+<td>u2</td>
+<td>access_flags：访问标志</td>
+<td>体现你这个东西是个类还是个接口.public还是private</td>
+</tr>
+<tr>
+<td>u2</td>
+<td>this_class：类索引</td>
+<td></td>
+</tr>
+<tr>
+<td>u2</td>
+<td>super_class：父类索引</td>
+<td></td>
+</tr>
+<tr>
+<td>u2</td>
+<td>interfaces_count：接口索引集合长度</td>
+<td></td>
+</tr>
+<tr>
+<td>u2</td>
+<td>interfaces[interfaces_count-1]:接口索引集合</td>
+<td></td>
+</tr>
+<tr>
+<td>u2</td>
+<td>fields_count：字段表集合 长度</td>
+<td>记录字段表长度,这里的字段就是成员.或者我们平常说属性</td>
+</tr>
+<tr>
+<td>field_info</td>
+<td>fields[fields_count-1]：字段表集合</td>
+<td>记录所有的字段</td>
+</tr>
+<tr>
+<td>u2</td>
+<td>methods_count：方法表集合 长度</td>
+<td>记录方法表长</td>
+</tr>
+<tr>
+<td>method_info</td>
+<td>methods[methods_count-1]：方法表集合</td>
+<td>记录所有方法</td>
+</tr>
+<tr>
+<td>u2</td>
+<td>attributes_count：属性表集合 长度</td>
+<td>这个属性指的是当前类自己的属性,比如类名这种的信息,不是字段</td>
+</tr>
+<tr>
+<td>attribute_info</td>
+<td>attributes[attributes_count-1]：属性表 集合</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>是不是觉得上面的特别多，其实很多东西是合二为一的，下面总结一下，ClassFile的结构：</p>
+<ul>
+<li>魔数</li>
+<li>class文件版本</li>
+<li>常量池</li>
+<li>访问标志</li>
+<li>类索引 父类索引 接口索引集合</li>
+<li>字段表集合</li>
+<li>方法表集合</li>
+<li>属性表集合</li>
+</ul>
+<p>很好，知道了这些以后，来吧，开始手撕16进制字节码。</p>
+<h1 id="3-字节码文件详解"><a href="#3-字节码文件详解" class="headerlink" title="3. 字节码文件详解"></a>3. 字节码文件详解</h1><p>上面已经说了字节码文件分为了那么多部分，所以这里详细说一说每个部分都是干嘛的</p>
+<h2 id="3-1-Magic-魔数"><a href="#3-1-Magic-魔数" class="headerlink" title="3.1 Magic 魔数"></a>3.1 Magic 魔数</h2><p>魔数，占用4个字节，用于表示这个class文件是一个合法的class文件，可以被jvm识别。</p>
+<p>肯定是 0xCAFEBABE，如果不是，那说明不是合法的class文件，就会抛出错误，具体啥错误我就不说了。</p>
+<p>这个东西应用比较广，比如两张图片，你去对比他们的十六进制，会发现他们的第一行基本一样。</p>
+<h2 id="3-2-class文件版本号"><a href="#3-2-class文件版本号" class="headerlink" title="3.2 class文件版本号"></a>3.2 class文件版本号</h2><p>跟在magic后面， 5 6 字节一组，7 8 字节一组，56是 minor version，也叫小版本，78是major version，大版本。两个东西共同组成class文件的版本号，比如 大版本是M，小版本是m，那么class文件的版本就是 M.m。</p>
+<p>那这玩意有啥用，不同的编译器，编译出来的版本不一样，下面是一个对照表：</p>
+<table>
+<thead>
+<tr>
+<th>大版本(后面)</th>
+<th>小版本(前面)</th>
+<th>对应编译器版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>45</td>
+<td>3</td>
+<td>1.1</td>
+</tr>
+<tr>
+<td>46</td>
+<td>0</td>
+<td>1.2</td>
+</tr>
+<tr>
+<td>47</td>
+<td>0</td>
+<td>1.3</td>
+</tr>
+</tbody></table>
+<p>不往后写了，因为后面的小版本都是0，然后编译器每加一个版本，大版本+1.</p>
+<p>别犯傻啊，字节码文件里面可是16进制，你看到是34，其实是52，也就是 jdk1.8.</p>
+<p>目前，高版本的编译器可以执行低版本编译器编译出来的字节码文件，但是反过来不行，如果class文件版本高于当前编译器版本，会抛出异常</p>
+<blockquote>
+<p>java.lang.UnsupportedClassVersionError</p>
+</blockquote>
+<h2 id="3-3-常量池-ConstantPool"><a href="#3-3-常量池-ConstantPool" class="headerlink" title="3.3 常量池 ConstantPool"></a>3.3 常量池 ConstantPool</h2><p>这东西是class文件中内容最丰富的地方之一，而且这个对class文件的字段和方法解析也非常的重要。</p>
+<p>随着java的发展，常量池的内容日渐丰富，可以说常量池是class文件的基石。</p>
+<p>这东西分为两部分，首先是版本号后面紧跟着的 常量池计数器，毕竟字节码文件没有分隔符，jvm又得分隔，所以这里就写一个计数器，告诉jvm后面的东西到第几个就结束了，不同于java语言，这个计数器从1开始，而不是0。第二部分是若干常量池表项，常量池表项中，用于存放编译时期产生的各种字面量和符号引用，这部分内容将在类加载以后进入方法区，存在运行时常量池中。</p>
+<h3 id="3-3-1-常量池计数器-Constant-pool-count"><a href="#3-3-1-常量池计数器-Constant-pool-count" class="headerlink" title="3.3.1 常量池计数器 Constant_pool_count"></a>3.3.1 常量池计数器 Constant_pool_count</h3><p>说过了，起始是1，也就是如果常量池计数器&#x3D;1，说明常量池中没东西，那为啥从1开始？因为常量池的东西相互之间各种引用，如果里面的一项谁都没有引用怎么整，怎么表示，那就是引用0呗，所以把0空出来。这里我的常量池计数器是16，也就是22，那么常量池的范围就是1-21.</p>
+<h3 id="3-3-2-常量池表-ConstantPool"><a href="#3-3-2-常量池表-ConstantPool" class="headerlink" title="3.3.2 常量池表 ConstantPool"></a>3.3.2 常量池表 ConstantPool</h3><p>常量池主要存放两大类常量：字面量Literal和符号引用SymbolicReferences。</p>
+<ul>
+<li><p>字面量：两种，第一种是文本字符串，第二种是声明为final的常量值。</p>
+</li>
+<li><p>符号引用：类和接口的全限定名，字段的名称和描述符，方法的名称和描述符。</p>
+<ul>
+<li><p>全限定名：包名+类名，但是和全类名不一样，他把全类名的 . 换成了 &#x2F;，比如：cn&#x2F;zhzp&#x2F;commons&#x2F;JwtUtils 这就是全限定名，为了不混淆，一般在最后面加一个 ; 表示结尾，就是 cn&#x2F;zhzp&#x2F;commons&#x2F;JwtUtils;</p>
+</li>
+<li><p>简单名称：上面提到的 字段名，方法名，仅仅是那个名字，就是简单名称，比如 main 方法的 main这个单词，就是一个简单名称。</p>
+</li>
+<li><p>描述符：用于描述字段的数据类型，方法的形参列表，返回值类型。这里提到了数据类型，按照规定，有以下规则来表示类型：</p>
+<table>
+<thead>
+<tr>
+<th>标志符</th>
+<th>数据类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>B</td>
+<td>基本数据类型 byte</td>
+</tr>
+<tr>
+<td>C</td>
+<td>基本数据类型 char</td>
+</tr>
+<tr>
+<td>D</td>
+<td>基本数据类型 double</td>
+</tr>
+<tr>
+<td>F</td>
+<td>基本数据类型 float</td>
+</tr>
+<tr>
+<td>I</td>
+<td>基本数据类型 int</td>
+</tr>
+<tr>
+<td>J</td>
+<td>基本数据类型 long</td>
+</tr>
+<tr>
+<td>S</td>
+<td>基本数据类型 short</td>
+</tr>
+<tr>
+<td>Z</td>
+<td>基本数据类型 boolean</td>
+</tr>
+<tr>
+<td>V</td>
+<td>代表void类型</td>
+</tr>
+<tr>
+<td>L</td>
+<td>代表对象类型，L + 全限定名，比如 Ljava&#x2F;lang&#x2F;Object</td>
+</tr>
+<tr>
+<td>[</td>
+<td>代表一维数组，比如 int[][][][][] [] [] -&gt; [[[I</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>这里我们再回到我们刚学jvm的时候学到的类加载三个阶段：加载链接初始化，链接阶段分为 验证 准备 解析，最后一步解析当时说的是：把字节码文件中的符号引用替换成直接引用。这里我们详细的说一说：</p>
+<p>这里我们提到符号引用记录全限定名，比如我们用到了 System.out.println()，那他符号引用就会记录 Ljava&#x2F;lang&#x2F;System（不一定对，我猜的啊，只是举个例子），就说明我们当前这个类需要引用到 System，但这只是一个符号。然后在类加载阶段，就会解析这个符号引用，然后去加载这个 System类，加载完以后我们也学过方法区了，System这个类就会放在方法区，就会有一个内存地址，这个时候，把常量池中的符号引用，替换成内存地址，让常量池可以真正引用到方法区的System类。</p>
+<p>这个不局限于类或者接口，同理方法也是这样的，常量池中有一个 add 符号，啥也不是，然后类加载之后把他真正的指向方法区中的add方法内存。</p>
+<p>所以再说啥叫符号引用和直接引用：</p>
+<p>符号引用，和内存半毛钱关系没有，仅仅是一个符号，用来表示这个class引用了啥。</p>
+<p>直接引用，一个内存地址，偏移量，或者句柄，总之可以定位到真正的对象，和内存有直接关系。</p>
+</blockquote>
+<p>常量池中包含了这个class结构和他的子结构中包含的所有：字符串常量，类和接口名，字段名，和其他常量。</p>
+<p>常量池中的每一项都具有相同的结构，每一项的第一个字节是类型标记符，用于确定这一项的格式，这个字节叫做 tag byte。</p>
+<p>再具体的，就是说常量池中每一部分都是怎么构成的，不说了，太多了，我在里面又放了一个尚硅谷的md文件，看那个就行了。</p>
+<h2 id="3-4-访问标志-Access-Flag"><a href="#3-4-访问标志-Access-Flag" class="headerlink" title="3.4 访问标志 Access_Flag"></a>3.4 访问标志 Access_Flag</h2><p>常量池后面u2是访问标志，访问标志有很多啊，比如 ACC_PUBLIC, ACC_SUPER 这种的，每一种访问标志都有一个十六进制数值表示，然后class文件中的这个访问标志其实个加和，是多个访问标志加到一起得到的数字。</p>
+<p>各个访问标志也在尚硅谷的md里面，需要的话自己看，不多说了。</p>
+<p>补充说明：</p>
+<ul>
+<li>带有 ACC_INTERFACE 标识的class，说明他是一个接口，没带，那就是类。</li>
+<li>如果一个class有 ACC_INTERFACE,那他必须同时有 ACC_ABSTRACT，不能有 ACC_SUPER  ACC_ENUM  ACC_FINAL.</li>
+<li>注解类型必须有 ACC_ANNOTATION 标识，如果有 ACC_ANNOTATION，那必须同时有 ACC_INTERFACE 标识。</li>
+<li>ACC_SUPER，只要是类，那基本都有这个标志，详细的不多说了。</li>
+</ul>
+<h2 id="3-5-类索引-父类索引-接口索引集合"><a href="#3-5-类索引-父类索引-接口索引集合" class="headerlink" title="3.5 类索引 父类索引 接口索引集合"></a>3.5 类索引 父类索引 接口索引集合</h2><p>先说啥叫索引，上面不是有常量池吗，常量池中有符号引用对吧，然后常量池里面的每一项都一个位置对吧，那么索引的意思就是指向了常量池的哪个位置，指向了常量池的第几项。所以索引是一个u2。</p>
+<p>放在这里也很好理解了，类索引就是常量池中本类符号引用的位置，父类索引同理，然后接口索引集合，首先他是个集合，那他肯定前面肯定有一个u2的计数器，然后后面才是每一个索引。</p>
+<h2 id="3-6-字段表集合"><a href="#3-6-字段表集合" class="headerlink" title="3.6 字段表集合"></a>3.6 字段表集合</h2><p>首先，集合，所有u2的计数器，不多说。</p>
+<p>然后，我们着重看看字段表里面包含了啥，包含以下内容：</p>
+<ul>
+<li>访问标志，这里的访问表示还不同于上面的class文件访问标识，而是字段自己的一套访问表示，在尚硅谷那里都有写，这里不说了，占用u2</li>
+<li>字段名索引，显然是指向常量池中的属性名称。</li>
+<li>字段描述符搜因，字段的描述符就是这个字段的类型，同理指向常量池</li>
+<li>字段属性表集合，这个东西比较特殊，有些字段也是有属性的，用于存放一些额外信息，比如初始化值(主要针对常量)，注释等信息，这里不举例了，了解就行。</li>
+</ul>
+<h2 id="3-7-方法表集合"><a href="#3-7-方法表集合" class="headerlink" title="3.7 方法表集合"></a>3.7 方法表集合</h2><p>在字节码文件中，每一个 method_info 都对应着当前类或接口中的方法，用于描述这个方法的方法名，访问标识，返回值类型，参数列表等信息。</p>
+<p>如果一个方法不是abstract 不是native的，那么这个方法就会在字节码中体现出来。</p>
+<p>methods 中只会有当前类或者接口中声明的方法，不会有父类的方法，同时，methods中可能会有些类加载期间自动加上的方法，比如 clinit init 这种方法。</p>
+<p>方法表中包含的信息，总的来说，包括这些：u2访问标识，u2方法名索引，u2描述符索引，u2属性计数器，attribute_info属性集合。</p>
+<p>然后属性里面有啥东西？特别麻烦，各种 code，什么 本地变量表，操作数栈深度，还什么line_number_table，不说了，太恶心了，这里不说了。</p>
+<h2 id="3-8-属性表集合"><a href="#3-8-属性表集合" class="headerlink" title="3.8 属性表集合"></a>3.8 属性表集合</h2><p>一上来u2计数器，不说了。</p>
+<p>只要是属性，不管是这里的属性，还是字段表的属性，还是方法表的属性，都有有些共同的地方，一般来说，属性表肯定有三个东西：</p>
+<ul>
+<li>属性名索引</li>
+<li>属性长度</li>
+<li>属性表</li>
+</ul>
+<p>然后，根据属性名索引找到属性名，然后拿着属性名去找这个名字的属性里面包含了哪些信息，就这么个过程，不细说了。</p>
+<h1 id="4-字节码相关命令"><a href="#4-字节码相关命令" class="headerlink" title="4. 字节码相关命令"></a>4. 字节码相关命令</h1><p>上面的字节码，一个一个16进制扣，看得我反胃了开始，不看了，太恶心了。</p>
+<p>说一说一些命令，以及一些命令的参数：</p>
+<h2 id="4-1-javac-命令"><a href="#4-1-javac-命令" class="headerlink" title="4.1 javac 命令"></a>4.1 javac 命令</h2><p>肯定都用过这个东西，有个小知识点得说一说，使用这个命令的时候如果加上 -g 参数，就会生成局部变量表，不加的话，是没有局部变量表的。</p>
+<p>idea 或者 eclipse 给我们编译都会把局部变量表编译出来。</p>
+<p>其他参数：</p>
+<ul>
+<li><p>-version，返回 javac所在的jdk的版本，而不是class是被哪个jdk生成的，和class文件没关系，直接 javac -version就行了</p>
+</li>
+<li><p>-public，仅显示当前class中的公开成员</p>
+</li>
+<li><p>-protected，显示当前class中的高于protected成员</p>
+</li>
+<li><p>-p、-private，显示高于private成员</p>
+</li>
+<li><p>-package，显示程序包&#x2F;受保护的&#x2F;公开类 和成员</p>
+</li>
+<li><p>-sysinfo，显示正在处理的类的系统信息，比如路径，大小，md5，散列 等等信息。</p>
+</li>
+<li><p>-constants，显示静态常量，和上面的其实差不多，只是上面的显示常量不显示值，这里会显示值而已。</p>
+</li>
+</ul>
+<h2 id="4-2-javap命令"><a href="#4-2-javap命令" class="headerlink" title="4.2 javap命令"></a>4.2 javap命令</h2><p>也用过吧，这玩意用来反编译的，参数如下：</p>
+<ul>
+<li><p>-s，输出内部类型签名，其实就是返回每个成员的描述信息</p>
+</li>
+<li><p>-l，返回行号和局部变量表，前提是你得有局部变量表</p>
+</li>
+<li><p>-c，对代码进行反汇编，挺高深奥，其实就是返回你每个方法的code属性，代码都给你转成jvm指令</p>
+</li>
+<li><p>-v、-verbose，输出附加信息，包括行号，本地变量表，反汇编等详细信息。简单说，一个v包括上面的所有东西，但是不包括私有，你要包括私有咋办，直接 <code>javap -v -p xxx.class</code></p>
+</li>
+</ul>
+<p>常用的是 -v -c -l</p>
+<p>顺带说一句，javap里面你看不到clinit和init，因为javap又给你还原成了你的构造方法，或者代码块。</p>
+<h1 id="5-字节码指令"><a href="#5-字节码指令" class="headerlink" title="5. 字节码指令"></a>5. 字节码指令</h1><p>字节码指令，首先众所周知，分为两个部分，操作符 和 操作数，然后每个操作符都会有一个助记符，说白了，就是每一个指令，都会有一个对应的16进制数字来表示，方便在字节码文件中体现，然后助记符后面又会有一个16进制操作数。这就是一个指令具体在字节码中的结构。</p>
+<h2 id="5-1-执行模型"><a href="#5-1-执行模型" class="headerlink" title="5.1 执行模型"></a>5.1 执行模型</h2><p>jvm执行指令的流程，如果不考虑异常处理的话，可以概括成以下过程：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">do</span>&#123;</span><br><span class="line">    自动计算PC寄存器的值 + <span class="number">1</span>;</span><br><span class="line">    根据PC寄存器的值到相应的地方取出指令;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(指令存在操作数)</span><br><span class="line">        取出操作数;</span><br><span class="line"></span><br><span class="line">    执行操作码对应的操作;</span><br><span class="line"></span><br><span class="line">&#125;<span class="keyword">while</span>(字节码长度 &gt; <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-2-字节码数据类型"><a href="#5-2-字节码数据类型" class="headerlink" title="5.2 字节码数据类型"></a>5.2 字节码数据类型</h2><p>一般情况下，字节码指令是有数据类型区分的，比如 iload，这个i就是int，fload 自然就是 load float。常见的数据类型：</p>
+<ul>
+<li><p>int -&gt; i</p>
+</li>
+<li><p>float -&gt; f</p>
+</li>
+<li><p>double -&gt; d</p>
+</li>
+<li><p>char -&gt; c</p>
+</li>
+<li><p>byte -&gt; b</p>
+</li>
+<li><p>short -&gt; s</p>
+</li>
+<li><p>long -&gt; l</p>
+</li>
+</ul>
+<p>需要注意的是，绝大多数指令对于整数，一般不支持 byte short char，甚至不支持 boolean，其实在运算的时候，会通过带符号扩展 变为 int，而对于boolean，boolean这会通过 零位扩展转化为char进行运算。这个规则也适用于数组，数组里面的各个元素也会转为int。所以大部分对于 char byte short boolean 的操作，其实都是用int操作的。</p>
+<h2 id="5-3-指令分类"><a href="#5-3-指令分类" class="headerlink" title="5.3 指令分类"></a>5.3 指令分类</h2><p>指令，那太多了，所以我们先分个类，对于字节码指令，有以下分类：</p>
+<ul>
+<li><p>加载与存储指令</p>
+</li>
+<li><p>算数指令</p>
+</li>
+<li><p>类型转换指令</p>
+</li>
+<li><p>对象的创建和访问指令</p>
+</li>
+<li><p>操作数栈管理指令</p>
+</li>
+<li><p>比较控制指令</p>
+</li>
+<li><p>异常处理指令</p>
+</li>
+<li><p>同步控制指令</p>
+</li>
+</ul>
+<p>注意：</p>
+<p>一个指令，可以从局部变量表，常量池，堆中对象，方法调用，系统调用中获取数据，这些数据会压入操作数栈</p>
+<p>一个指令，也可以从操作数栈获取多个数据，也就是pop多次，然后可以进行各种操作，然后结果还可以存入操作数栈</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>垃圾回收</title>
+    <url>/2022/06/02/garbage-collect/</url>
+    <content><![CDATA[<p>这章开始进入垃圾回收，只是这一章不讲垃圾回收的具体回收器，而是讲一下垃圾回收的一些基本概念。</p>
+<span id="more"></span>
+
+<h1 id="1-GC-垃圾收集"><a href="#1-GC-垃圾收集" class="headerlink" title="1. GC 垃圾收集"></a>1. GC 垃圾收集</h1><p>同理，首先明确几个概念：</p>
+<ul>
+<li><p>什么是垃圾</p>
+</li>
+<li><p>为啥要清理垃圾</p>
+</li>
+<li><p>垃圾回收机制</p>
+</li>
+</ul>
+<h2 id="1-1-什么是垃圾"><a href="#1-1-什么是垃圾" class="headerlink" title="1.1 什么是垃圾"></a>1.1 什么是垃圾</h2><p>垃圾指的是，在程序运行期间没有任何指针指向的对象，这个对象就是垃圾。</p>
+<p>如果不及时清理垃圾，这些垃圾对象就会一直存在占用空间，可能导致内存溢出。</p>
+<h2 id="1-2-为什么要GC"><a href="#1-2-为什么要GC" class="headerlink" title="1.2 为什么要GC"></a>1.2 为什么要GC</h2><ul>
+<li><p>对于高级语言来说，如果不进行GC，内存迟早消耗完，所以需要不断地分配内存和回收内存</p>
+</li>
+<li><p>除了垃圾回收，GC同时还能整理内存碎片，碎片整理把堆内存移到堆的一端，给新对象腾地方</p>
+</li>
+<li><p>业务越来越庞大，没有GC程序就没法运行，而经常GC会导致频繁地STW，所以就需要不断的对GC进行优化。</p>
+</li>
+</ul>
+<h2 id="1-3-Java垃圾回收机制"><a href="#1-3-Java垃圾回收机制" class="headerlink" title="1.3 Java垃圾回收机制"></a>1.3 Java垃圾回收机制</h2><ul>
+<li><p>自动内存管理，无需开发人员手动分配和释放，降低了内存溢出的可能性。</p>
+</li>
+<li><p>能让我们更专注于 业务逻辑的开发</p>
+</li>
+</ul>
+<h1 id="2-GC-机制与算法-标记阶段"><a href="#2-GC-机制与算法-标记阶段" class="headerlink" title="2. GC 机制与算法-标记阶段"></a>2. GC 机制与算法-标记阶段</h1><p>大纲：</p>
+<ul>
+<li><p>标记阶段：引用计数算法</p>
+</li>
+<li><p>标记阶段：可达性分析算法</p>
+</li>
+<li><p>对象的 finalization 机制</p>
+</li>
+<li><p>MAT和JProfiler 的 GC roots 溯源</p>
+</li>
+<li><p>清除阶段：标记清除算法</p>
+</li>
+<li><p>清除阶段：复制算法</p>
+</li>
+<li><p>清除阶段：标记-压缩 算法</p>
+</li>
+</ul>
+<h2 id="2-1-垃圾标记阶段"><a href="#2-1-垃圾标记阶段" class="headerlink" title="2.1 垃圾标记阶段"></a>2.1 垃圾标记阶段</h2><ul>
+<li><p>在堆中存放着几乎所有的Java实例，在回收之前，首先要区分哪些是存活对象，哪些对象已经死了，只有已经死亡的对象，GC才会在收集的时候释放他们的内存，这个区分死活的阶段就是<strong>垃圾标记阶段</strong></p>
+</li>
+<li><p>如何判断一个对象已经死了？就是，没有任何指针指向他，不被任何存活对象引用，那他就死了</p>
+</li>
+<li><p>判断没有引用的算法有两个：<strong>引用计数算法</strong> 和 <strong>可达性分析算法</strong></p>
+</li>
+</ul>
+<h3 id="2-1-1-引用计数算法"><a href="#2-1-1-引用计数算法" class="headerlink" title="2.1.1 引用计数算法"></a>2.1.1 引用计数算法</h3><ul>
+<li><p>Reference Counting，比较简单，就是给每一个对象保留一个引用计数器来记录被引用的情况</p>
+</li>
+<li><p>当一个对象引用A对象，A的计数器+1，同理，引用失效，计数器 - 1</p>
+</li>
+<li><p>优点：实现简单，垃圾对象便于标识；判定效率高，没有延迟</p>
+</li>
+<li><p>缺点：</p>
+<ul>
+<li><p>需要另外的字段存储计数器，有额外存储空间开销</p>
+</li>
+<li><p>每次操作都需要更新计数器，伴随着 - + 操作，额外时间开销</p>
+</li>
+<li><p>无法处理循环引用问题，导致 Java 垃圾回收器不使用这个东西</p>
+<blockquote>
+<p>什么叫循环引用：</p>
+<p><img src="/images/gc/gc_ref_counting.png"></p>
+<p>如上图第二种情况，如果三个对象循环引用，那么根据技术算法，他们的计数器都是1，不是0，但是其实，这三个对象已经是垃圾了，但是由于算法问题，这个垃圾不被回收。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>小结：</p>
+<ul>
+<li><p>引用计数算法是很多语言的标记算法，比如python</p>
+</li>
+<li><p>具体场景下，可能还会使用引用计数，来提高系统的吞吐量</p>
+</li>
+<li><p>Java没有选择引用计数是因为循环依赖不好处理</p>
+</li>
+<li><p>python如何解决循环依赖：1. 解除相互之间的引用；2.引入强引用和弱引用</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-1-2-可达性分析算法-根搜索，追踪性垃圾收集"><a href="#2-1-2-可达性分析算法-根搜索，追踪性垃圾收集" class="headerlink" title="2.1.2 可达性分析算法(根搜索，追踪性垃圾收集)"></a>2.1.2 可达性分析算法(根搜索，追踪性垃圾收集)</h3><ul>
+<li><p>相对引用计数来说，可达算法同样简单高效，而且这个算法可以很好的解决循环引用问题</p>
+</li>
+<li><p>Java C# 都采用可达算法</p>
+</li>
+</ul>
+<p>说先说一个基本概念：GC Roots：一个必须活跃的引用集合，在这个基础上，进行可达性分析算法的基本思路</p>
+<ul>
+<li><p>以GC Roots 为起始点，往下<strong>搜索被根对象集合连接的目标对象是否可达</strong></p>
+</li>
+<li><p>经过可达性分析后，内存中存活的对象直接或间接的被根对象集合连接着，搜索过的路径就叫做 <strong>引用链</strong></p>
+</li>
+<li><p>如果目标对象没有被任何引用链相连，则不可达，说明对象已经死亡，需要被收集</p>
+</li>
+<li><p>可达算法中，只有被根对象集合直接或间接引用的对象，才是存活对象</p>
+</li>
+<li><p>可达性分析必须在数据的快照中进行，来保证数据一致性</p>
+</li>
+<li><p>这个算法会导致 STW，即使是号称不会STW的CMS(新的垃圾回收器)，在枚举根节点的时候也是会停顿的。</p>
+</li>
+</ul>
+<h2 id="2-2-详细说说-GC-Roots"><a href="#2-2-详细说说-GC-Roots" class="headerlink" title="2.2 详细说说 GC Roots"></a>2.2 详细说说 GC Roots</h2><p>GC Roots 中包含一下内容：</p>
+<ul>
+<li><p>虚拟机栈中引用的对象，比如方法参数和局部变量</p>
+</li>
+<li><p>本地方法栈中 JNI(本地方法) 中引用的对象</p>
+</li>
+<li><p>方法区中，类的静态属性引用的对象</p>
+</li>
+<li><p>方法区中，常量引用的对象</p>
+</li>
+<li><p>被同步锁 synchronized 所持有的对象</p>
+</li>
+<li><p>JVM内部的引用，比如基本数据类型的 Class，各种异常等常驻对象</p>
+</li>
+<li><p>除了这些以外，根据用户所选用的垃圾收集器和和内存区域不同，还可能有其他的对象临时加入roots，举个例子就是 分代收集和局部回收。就是说，你要收集堆中年轻代的数据，那么年轻代外面，老年代的数据也可能被认为是roots。</p>
+</li>
+<li><p>可以这么认为，如果一个指针指向堆中的一个对象，但是这个指针不在堆中，那么他就可能是 root，那么根据上面所说的分代回收，我认为可以这么理解，指针指向了一个待回收区域但是指针不在这个区域，对于这个区域来说，这个指针就是 root。当然，这个区域一般都是堆，毕竟只有 堆 和 方法区有垃圾收集，而且方法区一般不收集。</p>
+</li>
+</ul>
+<p>我觉得可以这么理解，如果GC区域不同，那么GC Roots 也就不确定，GC Roots归根到底就是除了这个被回收区域以外有可能用到这个区域中对象的地方，就是GC Roots，比如我们要收集堆，那么堆中的对象大多被栈指向，所以栈在这里就是堆的GC Roots，那么如果我们要回收年轻代，那么老年代也有可能是GC Roots。</p>
+<h2 id="2-3-对象的-finalize机制"><a href="#2-3-对象的-finalize机制" class="headerlink" title="2.3 对象的 finalize机制"></a>2.3 对象的 finalize机制</h2><p>对象Object内有一个方法：finalize() 方法，这个方法是对象被GC的时候，释放之前，会调用这么一个方法，有那么点类似于析构函数，我们最好不要手动去调用他，最好让JVM去调用他。</p>
+<p>就是因为finalize的存在，导致一个对象在虚拟机中存在三种状态：</p>
+<ul>
+<li><p>可触及的：GC Roots 连接的对象，肯定是存活的</p>
+</li>
+<li><p>可复活的：对象的所有引用都被释放，但是对象可能在 finalize方法中复活</p>
+</li>
+<li><p>不可触及的：对象的finalize方法被调用，且对象没有复活，那么这个对象就是不可触及的，一个不可触及的对象肯定不能复活，因为一个对象的finalize方法只能调用一次。</p>
+</li>
+</ul>
+<p>只有不可触及的对象，才会被回收。</p>
+<h2 id="2-4-总结标记过程"><a href="#2-4-总结标记过程" class="headerlink" title="2.4 总结标记过程"></a>2.4 总结标记过程</h2><p>就因为有finalize方法的存在，gc不能仅仅通过引用链来判断是否回收，总共需要两次标记：</p>
+<ul>
+<li><p>如果对象到GC Roots 之间没有引用链，进行第一次标记</p>
+</li>
+<li><p>进行筛选，判断该对象的finalize方法有没有必要执行：</p>
+<ul>
+<li><p>如果对象没有重写 finalize 方法或者 finalize方法已经被调用过了，则被判定位不可触及对象</p>
+</li>
+<li><p>如果对象重写了finalize方法，且还未执行过，则会把这个对象插入F-Queue 中，一个被虚拟机自动创建的，低优先级的线程 Finalizer，挨个触发队列里面的finalize方法。</p>
+</li>
+<li><p>finalize方法是对象最后逃离死亡的机会，稍后GC会对 F-Queue里面的对象进行第二次标记，如果调用finalize，方法里面和引用链中任何一个对象建立了联系，那么这个对象就被移出“即将回收集合”。之后，如果对象再次没有引用的情况，这时finalize方法不会调用，finalize方法只执行一次，然后对象直接变成不可触及。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="省略"><a href="#省略" class="headerlink" title="省略"></a>省略</h2><p>中间差了一堆东西，有堆相关工具的使用，以后有需要看 P144 - P146</p>
+<h1 id="3-GC-清理阶段"><a href="#3-GC-清理阶段" class="headerlink" title="3. GC -清理阶段"></a>3. GC -清理阶段</h1><p>成功区分出存活对象和死亡对象后，JVM要进行下一步，也就是清理垃圾，释放内存，给下面的对象腾地方</p>
+<p>具体算法下面三个：</p>
+<ul>
+<li><p>复制算法 Copying</p>
+</li>
+<li><p>标记-清除 算法 Mark-Sweep</p>
+</li>
+<li><p>标记-压缩 算法 Mark-Compact</p>
+</li>
+</ul>
+<h2 id="3-1-标记清除算法"><a href="#3-1-标记清除算法" class="headerlink" title="3.1 标记清除算法"></a>3.1 标记清除算法</h2><p>标记清除是一个比较低级，常见的垃圾回收算法，第一次被用在 Lisp语言上(Lisp：世界上第一个有GC的语言)。</p>
+<h3 id="3-1-1-执行过程"><a href="#3-1-1-执行过程" class="headerlink" title="3.1.1 执行过程"></a>3.1.1 执行过程</h3><p>当内存满了以后，就会停止整个程序(包括用户线程，这个停止就叫 Stop The World，也就是我们说的 STW)，然后进行下面两件事：</p>
+<ul>
+<li><p>Collector进行标记，从GCRoots 开始遍历可达对象(很显然就是我们前面说的可达性分析算法)，在对象头header中标记这是个可达对象，被引用对象，注意，标记的不是垃圾，没被标记的才是垃圾。</p>
+</li>
+<li><p>Collector进行清理，遍历对象，检查对象头的可达标记，如果没有，则被回收。</p>
+</li>
+</ul>
+<h3 id="3-1-2-缺点"><a href="#3-1-2-缺点" class="headerlink" title="3.1.2 缺点"></a>3.1.2 缺点</h3><ul>
+<li><p>效率不高，主要原因就是需要遍历，怎么遍历的？递归</p>
+</li>
+<li><p>在GC的时候需要停止整个程序，用户体验不好</p>
+</li>
+<li><p>清理出来的内存不是连续的，所以同时还需要维护一个内存空闲列表，我们之前说对象内存分配的时候 Chapter07-23 下说过。</p>
+</li>
+</ul>
+<h3 id="3-1-3-注-清除到底指的啥"><a href="#3-1-3-注-清除到底指的啥" class="headerlink" title="3.1.3 注:清除到底指的啥"></a>3.1.3 注:清除到底指的啥</h3><p>清除指的不是说直接这块内存上的东西就清空了，并非。</p>
+<p>垃圾还会留着，但是内存地址会写到空闲列表中，如果再次分配对象，新对象会覆盖垃圾对象。</p>
+<h2 id="3-2-复制算法"><a href="#3-2-复制算法" class="headerlink" title="3.2 复制算法"></a>3.2 复制算法</h2><p>为了解决标记清除算法低效的问题，提出的复制算法，这个算法同理 堆中年轻代的GC。</p>
+<p>思路：</p>
+<p>将内存分为两半，一半空着，另一半放数据，当数据区进行垃圾回收时，同理先进行可达性分析，但是，在分析的同时，如果发现对象是可达的，就会把对象复制到另一半内存中，不是复制内存地址，而是整个对象拷贝(拷贝肯定是规整的拷贝)。然后可达性分析完成，数据也就全部复制到另一半，就说明当前这块内存已经没有有用数据了，全都是垃圾，所以直接清理这一半内存即可。然后下一次GC，把对象全都复制到这里即可。</p>
+<h3 id="3-2-1-优点"><a href="#3-2-1-优点" class="headerlink" title="3.2.1 优点"></a>3.2.1 优点</h3><ul>
+<li><p>简单，快速</p>
+</li>
+<li><p>复制以后内存连续，不会出现内存碎片</p>
+</li>
+</ul>
+<h3 id="3-2-2-缺点"><a href="#3-2-2-缺点" class="headerlink" title="3.2.2 缺点"></a>3.2.2 缺点</h3><ul>
+<li>需要两倍大的内存空间</li>
+</ul>
+<h3 id="3-2-3-注意"><a href="#3-2-3-注意" class="headerlink" title="3.2.3 注意"></a>3.2.3 注意</h3><p>如果空间的存活对象多，那一次直接全盘复制一轮，垃圾没几个，就会导致效率过低。</p>
+<p>这个算法的应用场景最好是存活对象不太多的时候。垃圾多，复制的少，就会效率高。所以这就解释了为啥新生代采用类似这个算法来GC，原因就是新生代的对象大多数朝生暮死。</p>
+<h2 id="3-3-标记-压缩-整理-算法"><a href="#3-3-标记-压缩-整理-算法" class="headerlink" title="3.3 标记-压缩(整理) 算法"></a>3.3 标记-压缩(整理) 算法</h2><h3 id="3-3-1-背景"><a href="#3-3-1-背景" class="headerlink" title="3.3.1 背景"></a>3.3.1 背景</h3><p>复制算法适用于存活对象少，垃圾多的地方，比如新生代，所以新生代采用复制算法，但是老年代普遍对象比较大，岁数大，复制算法不再适用，所以基于老年代，就需要其他的垃圾收集算法。</p>
+<p>标记清除算法可以用在老年代，但是效率底下，会产生内存碎片，所以JVM在次基础上，退出了 标记压缩算法。</p>
+<h3 id="3-3-2-执行过程"><a href="#3-3-2-执行过程" class="headerlink" title="3.3.2 执行过程"></a>3.3.2 执行过程</h3><p>第一阶段和标记清除算法一样，也是需要进行遍历标记。</p>
+<p>然后，将所有存活对象按顺序压缩到内存的一端，然后这一端以外的对象全部清除。</p>
+<h3 id="3-3-3-优点"><a href="#3-3-3-优点" class="headerlink" title="3.3.3 优点"></a>3.3.3 优点</h3><ul>
+<li><p>解决了标记清除算法中 内存碎片的问题</p>
+</li>
+<li><p>解决了复制算法中内存双倍的问题</p>
+</li>
+</ul>
+<h3 id="3-3-4-缺点"><a href="#3-3-4-缺点" class="headerlink" title="3.3.4 缺点"></a>3.3.4 缺点</h3><ul>
+<li><p>效率低于复制算法</p>
+</li>
+<li><p>移动数据时，指针的指向需要修改</p>
+</li>
+<li><p>移动过程中 STW</p>
+</li>
+</ul>
+<h1 id="4-垃圾收集拓展"><a href="#4-垃圾收集拓展" class="headerlink" title="4. 垃圾收集拓展"></a>4. 垃圾收集拓展</h1><p>拓展两个东西：</p>
+<ul>
+<li><p>增量收集算法</p>
+</li>
+<li><p>分区算法</p>
+</li>
+</ul>
+<p>这两个算法都是为了提高垃圾收集效率，降低STW。</p>
+<h2 id="4-1-增量收集算法"><a href="#4-1-增量收集算法" class="headerlink" title="4.1 增量收集算法"></a>4.1 增量收集算法</h2><p>我们之前看三种垃圾收集算法，有个共同的特点，就是STW时间长，垃圾攒的太多了，一次收集有点费劲，所以出现了增量收集算法。</p>
+<p>思想如下：</p>
+<p>弄一个GC线程，一个用户线程，咱们也别等到他内存沾满了GC，咱们直接 用户线程和GC线程交替执行，这样就会节省GC时间，减短STW时间，特别好。</p>
+<p>然而问题就是：切换线程也很消耗资源。</p>
+<h2 id="4-2-分区算法"><a href="#4-2-分区算法" class="headerlink" title="4.2 分区算法"></a>4.2 分区算法</h2><p>众所周知，堆空间越大，收集的区域越大，收集就越费劲，所以我们干脆把堆分成n多不同小区域，分开收集，这样就可以降低消耗时间，降低STW。</p>
+<p>分代算法把对象分为了年轻代和老年代，分区算法就是把整个堆分成了若干小区域。</p>
+<p>每个区域独立分配，独立回收，好处就是可以控制一次收集多少个区域。</p>
+<p>缺点：可能会导致GC 频繁，线程切换频率提高，降低吞吐量。</p>
+<h1 id="5-垃圾回收的相关概念"><a href="#5-垃圾回收的相关概念" class="headerlink" title="5. 垃圾回收的相关概念"></a>5. 垃圾回收的相关概念</h1><ul>
+<li><p>System.gc() 的理解</p>
+</li>
+<li><p>内存溢出与泄露</p>
+</li>
+<li><p>Stop The World</p>
+</li>
+<li><p>垃圾回收的并行与并发</p>
+</li>
+<li><p>安全点与安全区域：只有在安全点才能停止用户线程</p>
+</li>
+</ul>
+<h2 id="5-1-System-gc"><a href="#5-1-System-gc" class="headerlink" title="5.1 System.gc()"></a>5.1 System.gc()</h2><blockquote>
+<p>本地方法，System.gc() 调用 Runtime.getRuntime().gc()</p>
+</blockquote>
+<p>我们可以通过 System.gc() 和 Runtime.getRuntime().gc() 来显式调用 FullGC(对整个堆进行回收)。</p>
+<p>但是同时，JVM附带一个免责声明，JVM不保证你调用gc() 就一定能执行GC。</p>
+<p>一般情况下，GC应该是自动进行的，不应该是我们手动进行，否则就太麻烦了，有一种应用场景是我们要写一个性能基准，我们手动调用gc。</p>
+<p>所以说，我们可以认为 System.gc() 是提醒JVM进行垃圾收集，至于JVM干不干活？不知道。</p>
+<p>详细请看：pri.TestSystemGC 和 pri.LocalVarGC</p>
+<h2 id="5-2-内存溢出-Out-Of-Memory"><a href="#5-2-内存溢出-Out-Of-Memory" class="headerlink" title="5.2 内存溢出(Out Of Memory)"></a>5.2 内存溢出(Out Of Memory)</h2><p>首先，什么叫内存溢出：java给的解释是，内存不够了，而且gc完了也不够，那就内存溢出</p>
+<p>为什么会内存溢出：</p>
+<ul>
+<li><p>堆空间大小设置的不够</p>
+</li>
+<li><p>大对象太多而且不能回收，最后就会沾满。jdk7中会抛出：java.lang.OutOfMemory: PermGen space; jdk8中则会抛出：java.lang.OutOfMemory: Metaspace</p>
+</li>
+</ul>
+<p>这里可以看出，再抛出 OOM 之前，肯定要触发一次GC，去尽可能腾出空间</p>
+<ul>
+<li>比如：他会尝试去回收软引用指向的对象</li>
+</ul>
+<p>但是，也并非任何情况下都会进行GC，如果我们要分配一个超大的对象，JVM判断整个堆压根就不够用，GC没有意义，就不会GC，直接抛出OOM。</p>
+<h2 id="5-3-内存泄露-Memory-Leak"><a href="#5-3-内存泄露-Memory-Leak" class="headerlink" title="5.3 内存泄露(Memory Leak)"></a>5.3 内存泄露(Memory Leak)</h2><p>总的来说，就是一个对象，程序不会再用到他了，但是GC又不能把它回收，这就很恶心，这就是内存泄露.</p>
+<p>实际情况是，我们的一些代码习惯不好，导致一些对象有了特别长的生命周期，最终导致 OOM，这个也可以理解成<strong>宽泛意义上的内存泄露。</strong></p>
+<p>尽管发生内存泄露不会立马导致程序崩溃，但是会逐步侵蚀内存，最终有可能导致内存溢出。</p>
+<blockquote>
+<p>注意：这里说的所有内存不是真实内存，而是虚拟机内存，虚拟机内存取决于物理内存。</p>
+</blockquote>
+<p>尤其注意：要举内存泄露的例子，不要举循环引用。循环引用是不是内存泄露？是，但是Java不会发生这种情况，因为Java没有采用引用计数算法。</p>
+<p>具体举几个例子：</p>
+<ul>
+<li><p>单例模式的某些对象，因为是单例，所以可能生命周期特别长，然后单例里面引用了外部的一些生命周期短的对象，用完了不释放</p>
+</li>
+<li><p>各种流，比如 socket，io 等东西，用完了不close</p>
+</li>
+<li><p>看弹幕说有ThreadLocal？</p>
+</li>
+</ul>
+<h2 id="5-4-并发和并行"><a href="#5-4-并发和并行" class="headerlink" title="5.4 并发和并行"></a>5.4 并发和并行</h2><p>并发：就是单核CPU，来回切换时间片，来达到宏观并行，看似同时操作，实际频繁切换。同一个时间段上同时发生。</p>
+<p>并行：多核CPU，每个CPU都在干活，好多任务同时进行，就是并行。同一个时间点上同时发生</p>
+<h2 id="5-5-垃圾回收的并发与并行"><a href="#5-5-垃圾回收的并发与并行" class="headerlink" title="5.5 垃圾回收的并发与并行"></a>5.5 垃圾回收的并发与并行</h2><p>并行(Parallel)的垃圾回收器：</p>
+<p><strong>多条垃圾回收线程并行工作</strong>，但是用户线程仍然停止，比如：ParNew，Parallel Scavenge，Parallel Old</p>
+<p>串行(Serial) 的垃圾回收器：</p>
+<p>与并行的对应，只有一个垃圾回收线程工作，同样STW</p>
+<p>并发(Concurrent)的垃圾回收器：</p>
+<p>回收线程和用户线程同时进行，但是不一定是并行的。得看你CPU，单核CPU那就是靠线程切换来达到并发效果，多核那就是GC和用户在两个CPU上。这样看起来不会暂停用户线程(只要是GC，就必定需要暂停用户线程)。</p>
+<p>比如G1,CMS。</p>
+<h2 id="5-6-安全点-Safe-Point"><a href="#5-6-安全点-Safe-Point" class="headerlink" title="5.6 安全点 Safe Point"></a>5.6 安全点 Safe Point</h2><p>并非任何时间都可以停下来GC，只有在特定的时间点才会进行GC，STW，那么这个时间点就是 sp。</p>
+<p>sp的选择挺重要的，如果sp过少，那么gc次数少，如果sp多，那么经常gc就会导致性能下降。大多数指令的执行时间都比较短。那么选择sp的一个标准就是 “是否具有让程序长时间执行的特征”。选择一个执行时间长的指令作为sp，比如 方法调用 循环跳转 异常跳转。</p>
+<p>所以，如果保证所有线程都走到了安全点？两种办法：</p>
+<ul>
+<li><p>抢先式中断：先让所有线程停下来，然后让没有到达安全点的线程继续跑到安全点。然后这种方法已经不用了</p>
+</li>
+<li><p>主动式中断：设置一个中断标志，线程跑到安全点主动轮询这个标志，如果标志是true，说明JVM现在要GC，那么线程停止。</p>
+</li>
+</ul>
+<h2 id="5-7-安全区域-Safe-Region"><a href="#5-7-安全区域-Safe-Region" class="headerlink" title="5.7 安全区域 Safe Region"></a>5.7 安全区域 Safe Region</h2><p>安全点确保了正在执行的线程可以停止进行GC，如果一个线程sleep了，他没法运行，咋办，这时候引入安全区域。</p>
+<p>在一个区域内，引用不会发生改变，就说明在这个区域内任何地方都是安全的，那么就可以进行GC。这个区域就是sr。sr可以看作是sp的扩展。</p>
+<h1 id="6-四种引用"><a href="#6-四种引用" class="headerlink" title="6. 四种引用"></a>6. 四种引用</h1><p>我们希望有这么一类对象，当我们内存不够的时候，触发GC，然后GC完了还是不够，那么JVM就会根据引用的不同，自动抛弃一些对象来腾地方。那么这里就涉及到了四种引用：强 软 弱 虚。四种引用的强度依次递减。</p>
+<p>涉及到的对象：</p>
+<p>父类：java.lang.ref.Reference 这是个抽象类</p>
+<p>实现：WeakReference(弱), SoftReference(软), PhantomReference(虚)</p>
+<h2 id="6-1-概括的说一下四种引用："><a href="#6-1-概括的说一下四种引用：" class="headerlink" title="6.1 概括的说一下四种引用："></a>6.1 概括的说一下四种引用：</h2><ul>
+<li><p>强引用 StrongReference：最传统的引用方式，代码中最普遍存在的引用赋值，Object o &#x3D; new Object() 这种引用关系，只要引用关系还在，任何情况下GC都不能释放对象。</p>
+</li>
+<li><p>软引用 SoftReference：在系统要内存溢出之前，会把这些引用指向的对象进行二次回收，如果还是不够，才会抛出OOM</p>
+</li>
+<li><p>弱引用 WeakReference：被弱引用关联的对象只能活到下一次GC，下一次GC无论内存够不够，都会回收</p>
+</li>
+<li><p>虚引用 PhantomReference：一个对象是否存在虚引用，完全不会影响他的生存时间，我们也无法通过虚引用获取实例，设置虚引用的<strong>唯一目的就是他关联的对象被收集了以后得到一个系统通知</strong>。</p>
+</li>
+</ul>
+<h2 id="6-2-强引用"><a href="#6-2-强引用" class="headerlink" title="6.2 强引用"></a>6.2 强引用</h2><p>这种引用在程序中最常见，我们直接通过new直接创建一个对象，然后直接把这个对象赋值给一个变量，那么就构成了强引用。</p>
+<p>强引用是可触及的(还有指向的时候，我们手动置为null不算)，GC 永远不会回收他。</p>
+<p>对于一个普通的对象，只要对象超过了作用域，或者我们手动把变量变为null，则对象会被GC。</p>
+<p>相对的，我们把软 弱 虚 表示为：软可触及，弱可触及，虚可触及。他们都是在一定情景下可以被回收，只有强可达不可能被回收。</p>
+<p>所以强引用是造成内存泄漏的主要原因.</p>
+<h2 id="6-3-软引用-Soft-Reference"><a href="#6-3-软引用-Soft-Reference" class="headerlink" title="6.3 软引用 Soft Reference"></a>6.3 软引用 Soft Reference</h2><p>软引用用来描述一些虽然存活，但是不重要的对象，如果要发生内存泄漏，GC会先回收所有的软引用指向的对象，如果内存还是不够，则会抛出OOM异常。一句话概括：内存不足即回收。</p>
+<p>软引用使用场景：高速缓存，如果还有内存，则会使用缓存，提高速度，如果内存没了，就会清除缓存，免得因为缓存而导致内存溢出。</p>
+<p>虚拟机在某一时刻决定清理软可达的对象时，就会清理软引用。我们也可以把软引用放入一个队列，依次清理。</p>
+<p>类似弱引用，区别就是JVM迫不得已才会回收软科大对象，弱引用是直接就回收了。</p>
+<h2 id="6-4-弱引用-Weak-Reference"><a href="#6-4-弱引用-Weak-Reference" class="headerlink" title="6.4 弱引用 Weak Reference"></a>6.4 弱引用 Weak Reference</h2><p>只被弱引用关联的对象只能活到下一次GC，无论下一次GC是否有空间，弱引用关联的对象都会被回收。一句话概括：发现即回收。</p>
+<p>但是，由于GC线程的优先级比较低，所以可能不能马上发现弱引用，所以弱引用可能也能存活很长时间。</p>
+<p>这个东西同理和软引用一样，我们也可以弄一个队列，把弱引用放入队列中进行处理。</p>
+<p>弱引用和软引用适合做缓存，如果内存不够了就释放内存，内存够就放缓存。</p>
+<h2 id="6-5-虚引用-Phantom-Reference"><a href="#6-5-虚引用-Phantom-Reference" class="headerlink" title="6.5 虚引用 Phantom Reference"></a>6.5 虚引用 Phantom Reference</h2><p>这东西，完全不决定对象的生命周期，有跟没有一个样，甚至我们没法像前两种引用一样去get。</p>
+<p>这东西唯一的作用，就是对象被回收的时候我们会收到一个系统通知。</p>
+<p>同时这个引用在创建的时候必须传入一个回收队列。</p>
+<p>因为，系统回收一个对象如果发现这个对象有一个虚引用，就会回收后把这个虚引用放入引用队列，来进行通知。</p>
+<h2 id="6-6-代码"><a href="#6-6-代码" class="headerlink" title="6.6 代码"></a>6.6 代码</h2><p>上面说的十分抽象，这里给一段代码看看：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 对于强 软 弱 引用 代码如下：</span></span><br><span class="line"><span class="comment"> * 软和弱引用好歹可以通过get得到他们指向的对象，我们gc以后通过get去获取对象看看情况，</span></span><br><span class="line"><span class="comment"> * 但是对于虚引用那就是另外一种情况了。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">        <span class="comment">// 强引用，除非null才回收</span></span><br><span class="line">        <span class="type">User</span> <span class="variable">u1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 软引用，内存不足及回收</span></span><br><span class="line">        SoftReference&lt;User&gt; u2 = <span class="keyword">new</span> <span class="title class_">SoftReference</span>&lt;&gt;(<span class="keyword">new</span> <span class="title class_">User</span>());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 弱引用，发现及回收</span></span><br><span class="line">        WeakReference&lt;User&gt; u3 = <span class="keyword">new</span> <span class="title class_">SoftReference</span>&lt;&gt;(<span class="keyword">new</span> <span class="title class_">User</span>());</span><br><span class="line"></span><br><span class="line">        System.gc();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// u1 还在，u2 看情况，如果内存满了就没了，u3 八成是没了</span></span><br><span class="line">        u1.get();</span><br><span class="line">        u2.get();</span><br><span class="line">        u3.get();</span><br><span class="line">    &#125;    </span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面仅仅是强软弱引用的情况，对于虚引用，那得下面专门说了。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">//package pri;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.ref.PhantomReference;</span><br><span class="line"><span class="keyword">import</span> java.lang.ref.ReferenceQueue;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PhantomReferenceTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> PhantomReferenceTest obj;</span><br><span class="line">    <span class="keyword">static</span> ReferenceQueue&lt;PhantomReferenceTest&gt; queue;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 这个线程用于监听ReferenceQueue</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">CheckReferenceQueue</span> <span class="keyword">extends</span> <span class="title class_">Thread</span>&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span>&#123;</span><br><span class="line">            <span class="keyword">while</span>(<span class="literal">true</span>)&#123;</span><br><span class="line">                <span class="keyword">if</span>(queue != <span class="literal">null</span>)&#123;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 前面我们说到了第二次gc会把obj对象彻底清理掉，因为finlize已经执行过了</span></span><br><span class="line">                    <span class="comment">// 所以虚引用指向的对象被回收时，是怎么个流程？</span></span><br><span class="line">                    <span class="comment">// 我们创建虚引用的时候传入了一个队列，回收时，这个队列就会接收到这个虚引用，</span></span><br><span class="line">                    <span class="comment">// 但是注意，虚引用和软弱引用不一样，虚引用压根就没法get到他指向的那个对象</span></span><br><span class="line">                    <span class="comment">// 所以这里其实仅仅就是通知一下这个队列：ok，现在有一个虚引用指向的对象被我gc回收了，</span></span><br><span class="line">                    <span class="comment">// 虚引用就是充当一个信号的作用</span></span><br><span class="line"></span><br><span class="line">                    PhantomReference&lt;PhantomReferenceTest&gt; objt = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">try</span>&#123;</span><br><span class="line">                        <span class="comment">// 从引用队列中得到虚引用，如果得到了，说明gc的时候obj被回收了，</span></span><br><span class="line">                        <span class="comment">// 因为只有真正被回收，才会把虚引用传给队列。</span></span><br><span class="line">                        objt = (PhantomReference&lt;PhantomReferenceTest&gt;) queue.remove();</span><br><span class="line"></span><br><span class="line">                        System.out.println(<span class="string">&quot;objt=&quot;</span> + objt);</span><br><span class="line">                    &#125;<span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">                        e.printStackTrace();</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 最后判断一下，虚引用不为null，说明回收成功,然后回到108行</span></span><br><span class="line">                    <span class="keyword">if</span>(objt != <span class="literal">null</span>)&#123;</span><br><span class="line">                        System.out.println(<span class="string">&quot;objt != null,队列中可以得到虚引用，证明回收成功&quot;</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">finalize</span><span class="params">()</span> <span class="keyword">throws</span> Throwable&#123;</span><br><span class="line">        <span class="built_in">super</span>.finalize();</span><br><span class="line">        System.out.println(<span class="string">&quot;finlize start&quot;</span>);</span><br><span class="line">        obj = <span class="built_in">this</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;重新给obj赋值为this，finlize中把obj救活了&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 首先创建一个自己的强引用</span></span><br><span class="line">        obj = <span class="keyword">new</span> <span class="title class_">PhantomReferenceTest</span>();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建引用队列，这个玩意待会儿会接收gc信息</span></span><br><span class="line">        queue = <span class="keyword">new</span> <span class="title class_">ReferenceQueue</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建一个监听ReferenceQueue的线程，同时设置为守护线程，也就是这个线程不会随着main线程的结束而结束</span></span><br><span class="line">        <span class="type">CheckReferenceQueue</span> <span class="variable">checkReferenceQueue</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CheckReferenceQueue</span>();</span><br><span class="line">        checkReferenceQueue.setDaemon(<span class="literal">true</span>);</span><br><span class="line">        checkReferenceQueue.start();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 给obj添加虚引用，创建虚引用的同时需要指定引用队列</span></span><br><span class="line">        PhantomReference&lt;PhantomReferenceTest&gt; ref = <span class="keyword">new</span> <span class="title class_">PhantomReference</span>&lt;&gt;(obj, queue);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 很好，我们先试试虚引用能不能像软弱引用一样get，发现不行，也就是说虚引用仅仅就充当一个信号的作用</span></span><br><span class="line">            System.out.println(ref.get());</span><br><span class="line"></span><br><span class="line">            System.out.println(<span class="string">&quot;第一次GC&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 我们进行第一轮gc，我们给强引用置空，这个时候虚引用指向的这个对象就没有强引用，</span></span><br><span class="line">            <span class="comment">// 按理说会直接回收掉</span></span><br><span class="line">            obj = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">            System.gc();</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 但是我们发现这个时候obj居然不为空，居然还是this，这是为啥？</span></span><br><span class="line">            <span class="comment">// 因为我们上面重写了finlize方法，这个方法里面复活了obj，让obj重新回到了可触及的状态</span></span><br><span class="line">            <span class="comment">// 所以第一轮gc并没有清理掉obj</span></span><br><span class="line">            <span class="keyword">if</span>(obj == <span class="literal">null</span>)&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;obj == null&quot;</span>);</span><br><span class="line">            &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;obj != null, finlize生效使obj复活&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            System.out.println(<span class="string">&quot;第二次GC&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 很好，我们开始进行第二轮gc，再一次清除强引用指向并调用gc开始清理</span></span><br><span class="line">            obj = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">            System.gc();</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// ok，这个时候先不要着急看这里，回到上面的第11行，我们从第十一行接着分析。</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">            <span class="comment">// 行了，上面的队列刘晨我们走完了，最后这里收个尾，最后判断一下obj是不是null</span></span><br><span class="line">            <span class="comment">// 是的话，ok，回收成功</span></span><br><span class="line">            System.out.println(<span class="string">&quot;obj == null?  &quot;</span> + (obj == <span class="literal">null</span>));</span><br><span class="line"></span><br><span class="line">        &#125;<span class="keyword">catch</span>(InterruptedException e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
         <category>JVM</category>
@@ -1505,662 +2425,303 @@
       </tags>
   </entry>
   <entry>
-    <title>垃圾回收</title>
-    <url>/2022/06/02/garbage-collect/</url>
-    <content><![CDATA[<p>这章开始进入垃圾回收，只是这一章不讲垃圾回收的具体回收器，而是讲一下垃圾回收的一些基本概念。</p>
+    <title>JVM-堆</title>
+    <url>/2022/05/28/jvm-heap/</url>
+    <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
+<blockquote>
+<p>首先要说的一点是，整个这一章，都是关于堆的，在网课里面堆讲了30集，着实离谱，而且东西奇多，所以笔记也会多到离谱</p>
+</blockquote>
 <span id="more"></span>
 
-<h1 id="1-GC-垃圾收集"><a href="#1-GC-垃圾收集" class="headerlink" title="1. GC 垃圾收集"></a>1. GC 垃圾收集</h1><p>同理，首先明确几个概念：</p>
-<ul>
-<li><p>什么是垃圾</p>
-</li>
-<li><p>为啥要清理垃圾</p>
-</li>
-<li><p>垃圾回收机制</p>
-</li>
-</ul>
-<h2 id="1-1-什么是垃圾"><a href="#1-1-什么是垃圾" class="headerlink" title="1.1 什么是垃圾"></a>1.1 什么是垃圾</h2><p>垃圾指的是，在程序运行期间没有任何指针指向的对象，这个对象就是垃圾。</p>
-<p>如果不及时清理垃圾，这些垃圾对象就会一直存在占用空间，可能导致内存溢出。</p>
-<h2 id="1-2-为什么要GC"><a href="#1-2-为什么要GC" class="headerlink" title="1.2 为什么要GC"></a>1.2 为什么要GC</h2><ul>
-<li><p>对于高级语言来说，如果不进行GC，内存迟早消耗完，所以需要不断地分配内存和回收内存</p>
-</li>
-<li><p>除了垃圾回收，GC同时还能整理内存碎片，碎片整理把堆内存移到堆的一端，给新对象腾地方</p>
-</li>
-<li><p>业务越来越庞大，没有GC程序就没法运行，而经常GC会导致频繁地STW，所以就需要不断的对GC进行优化。</p>
-</li>
-</ul>
-<h2 id="1-3-Java垃圾回收机制"><a href="#1-3-Java垃圾回收机制" class="headerlink" title="1.3 Java垃圾回收机制"></a>1.3 Java垃圾回收机制</h2><ul>
-<li><p>自动内存管理，无需开发人员手动分配和释放，降低了内存溢出的可能性。</p>
-</li>
-<li><p>能让我们更专注于 业务逻辑的开发</p>
-</li>
-</ul>
-<h1 id="2-GC-机制与算法-标记阶段"><a href="#2-GC-机制与算法-标记阶段" class="headerlink" title="2. GC 机制与算法-标记阶段"></a>2. GC 机制与算法-标记阶段</h1><p>大纲：</p>
-<ul>
-<li><p>标记阶段：引用计数算法</p>
-</li>
-<li><p>标记阶段：可达性分析算法</p>
-</li>
-<li><p>对象的 finalization 机制</p>
-</li>
-<li><p>MAT和JProfiler 的 GC roots 溯源</p>
-</li>
-<li><p>清除阶段：标记清除算法</p>
-</li>
-<li><p>清除阶段：复制算法</p>
-</li>
-<li><p>清除阶段：标记-压缩 算法</p>
-</li>
-</ul>
-<h2 id="2-1-垃圾标记阶段"><a href="#2-1-垃圾标记阶段" class="headerlink" title="2.1 垃圾标记阶段"></a>2.1 垃圾标记阶段</h2><ul>
-<li><p>在堆中存放着几乎所有的Java实例，在回收之前，首先要区分哪些是存活对象，哪些对象已经死了，只有已经死亡的对象，GC才会在收集的时候释放他们的内存，这个区分死活的阶段就是<strong>垃圾标记阶段</strong></p>
-</li>
-<li><p>如何判断一个对象已经死了？就是，没有任何指针指向他，不被任何存活对象引用，那他就死了</p>
-</li>
-<li><p>判断没有引用的算法有两个：<strong>引用计数算法</strong> 和 <strong>可达性分析算法</strong></p>
-</li>
-</ul>
-<h3 id="2-1-1-引用计数算法"><a href="#2-1-1-引用计数算法" class="headerlink" title="2.1.1 引用计数算法"></a>2.1.1 引用计数算法</h3><ul>
-<li><p>Reference Counting，比较简单，就是给每一个对象保留一个引用计数器来记录被引用的情况</p>
-</li>
-<li><p>当一个对象引用A对象，A的计数器+1，同理，引用失效，计数器 - 1</p>
-</li>
-<li><p>优点：实现简单，垃圾对象便于标识；判定效率高，没有延迟</p>
-</li>
-<li><p>缺点：</p>
-<ul>
-<li><p>需要另外的字段存储计数器，有额外存储空间开销</p>
-</li>
-<li><p>每次操作都需要更新计数器，伴随着 - + 操作，额外时间开销</p>
-</li>
-<li><p>无法处理循环引用问题，导致 Java 垃圾回收器不使用这个东西</p>
+<h1 id="1-堆的概述"><a href="#1-堆的概述" class="headerlink" title="1. 堆的概述"></a>1. 堆的概述</h1><ul>
+<li><p>一个JVM实例只存在一个堆内存，堆也是 Java内存管理的核心区域</p>
 <blockquote>
-<p>什么叫循环引用：</p>
-<p><img src="/images/gc/gc_ref_counting.png"></p>
-<p>如上图第二种情况，如果三个对象循环引用，那么根据技术算法，他们的计数器都是1，不是0，但是其实，这三个对象已经是垃圾了，但是由于算法问题，这个垃圾不被回收。</p>
+<p>一个进程对应一个JVM实例，JVM实例只有一个Runtime，Runtime里面只有堆和方法区是线程公用，所以说的直白了，一个进程只有一个堆</p>
 </blockquote>
 </li>
-</ul>
+<li><p>JVM启动时堆的大小已经确定</p>
 </li>
-<li><p>小结：</p>
-<ul>
-<li><p>引用计数算法是很多语言的标记算法，比如python</p>
+<li><p>堆的大小可以调节</p>
 </li>
-<li><p>具体场景下，可能还会使用引用计数，来提高系统的吞吐量</p>
-</li>
-<li><p>Java没有选择引用计数是因为循环依赖不好处理</p>
-</li>
-<li><p>python如何解决循环依赖：1. 解除相互之间的引用；2.引入强引用和弱引用</p>
-</li>
-</ul>
-</li>
-</ul>
-<h3 id="2-1-2-可达性分析算法-根搜索，追踪性垃圾收集"><a href="#2-1-2-可达性分析算法-根搜索，追踪性垃圾收集" class="headerlink" title="2.1.2 可达性分析算法(根搜索，追踪性垃圾收集)"></a>2.1.2 可达性分析算法(根搜索，追踪性垃圾收集)</h3><ul>
-<li><p>相对引用计数来说，可达算法同样简单高效，而且这个算法可以很好的解决循环引用问题</p>
-</li>
-<li><p>Java C# 都采用可达算法</p>
-</li>
-</ul>
-<p>说先说一个基本概念：GC Roots：一个必须活跃的引用集合，在这个基础上，进行可达性分析算法的基本思路</p>
-<ul>
-<li><p>以GC Roots 为起始点，往下<strong>搜索被根对象集合连接的目标对象是否可达</strong></p>
-</li>
-<li><p>经过可达性分析后，内存中存活的对象直接或间接的被根对象集合连接着，搜索过的路径就叫做 <strong>引用链</strong></p>
-</li>
-<li><p>如果目标对象没有被任何引用链相连，则不可达，说明对象已经死亡，需要被收集</p>
-</li>
-<li><p>可达算法中，只有被根对象集合直接或间接引用的对象，才是存活对象</p>
-</li>
-<li><p>可达性分析必须在数据的快照中进行，来保证数据一致性</p>
-</li>
-<li><p>这个算法会导致 STW，即使是号称不会STW的CMS(新的垃圾回收器)，在枚举根节点的时候也是会停顿的。</p>
-</li>
-</ul>
-<h2 id="2-2-详细说说-GC-Roots"><a href="#2-2-详细说说-GC-Roots" class="headerlink" title="2.2 详细说说 GC Roots"></a>2.2 详细说说 GC Roots</h2><p>GC Roots 中包含一下内容：</p>
-<ul>
-<li><p>虚拟机栈中引用的对象，比如方法参数和局部变量</p>
-</li>
-<li><p>本地方法栈中 JNI(本地方法) 中引用的对象</p>
-</li>
-<li><p>方法区中，类的静态属性引用的对象</p>
-</li>
-<li><p>方法区中，常量引用的对象</p>
-</li>
-<li><p>被同步锁 synchronized 所持有的对象</p>
-</li>
-<li><p>JVM内部的引用，比如基本数据类型的 Class，各种异常等常驻对象</p>
-</li>
-<li><p>除了这些以外，根据用户所选用的垃圾收集器和和内存区域不同，还可能有其他的对象临时加入roots，举个例子就是 分代收集和局部回收。就是说，你要收集堆中年轻代的数据，那么年轻代外面，老年代的数据也可能被认为是roots。</p>
-</li>
-<li><p>可以这么认为，如果一个指针指向堆中的一个对象，但是这个指针不在堆中，那么他就可能是 root，那么根据上面所说的分代回收，我认为可以这么理解，指针指向了一个待回收区域但是指针不在这个区域，对于这个区域来说，这个指针就是 root。当然，这个区域一般都是堆，毕竟只有 堆 和 方法区有垃圾收集，而且方法区一般不收集。</p>
-</li>
-</ul>
-<p>我觉得可以这么理解，如果GC区域不同，那么GC Roots 也就不确定，GC Roots归根到底就是除了这个被回收区域以外有可能用到这个区域中对象的地方，就是GC Roots，比如我们要收集堆，那么堆中的对象大多被栈指向，所以栈在这里就是堆的GC Roots，那么如果我们要回收年轻代，那么老年代也有可能是GC Roots。</p>
-<h2 id="2-3-对象的-finalize机制"><a href="#2-3-对象的-finalize机制" class="headerlink" title="2.3 对象的 finalize机制"></a>2.3 对象的 finalize机制</h2><p>对象Object内有一个方法：finalize() 方法，这个方法是对象被GC的时候，释放之前，会调用这么一个方法，有那么点类似于析构函数，我们最好不要手动去调用他，最好让JVM去调用他。</p>
-<p>就是因为finalize的存在，导致一个对象在虚拟机中存在三种状态：</p>
-<ul>
-<li><p>可触及的：GC Roots 连接的对象，肯定是存活的</p>
-</li>
-<li><p>可复活的：对象的所有引用都被释放，但是对象可能在 finalize方法中复活</p>
-</li>
-<li><p>不可触及的：对象的finalize方法被调用，且对象没有复活，那么这个对象就是不可触及的，一个不可触及的对象肯定不能复活，因为一个对象的finalize方法只能调用一次。</p>
-</li>
-</ul>
-<p>只有不可触及的对象，才会被回收。</p>
-<h2 id="2-4-总结标记过程"><a href="#2-4-总结标记过程" class="headerlink" title="2.4 总结标记过程"></a>2.4 总结标记过程</h2><p>就因为有finalize方法的存在，gc不能仅仅通过引用链来判断是否回收，总共需要两次标记：</p>
-<ul>
-<li><p>如果对象到GC Roots 之间没有引用链，进行第一次标记</p>
-</li>
-<li><p>进行筛选，判断该对象的finalize方法有没有必要执行：</p>
-<ul>
-<li><p>如果对象没有重写 finalize 方法或者 finalize方法已经被调用过了，则被判定位不可触及对象</p>
-</li>
-<li><p>如果对象重写了finalize方法，且还未执行过，则会把这个对象插入F-Queue 中，一个被虚拟机自动创建的，低优先级的线程 Finalizer，挨个触发队列里面的finalize方法。</p>
-</li>
-<li><p>finalize方法是对象最后逃离死亡的机会，稍后GC会对 F-Queue里面的对象进行第二次标记，如果调用finalize，方法里面和引用链中任何一个对象建立了联系，那么这个对象就被移出“即将回收集合”。之后，如果对象再次没有引用的情况，这时finalize方法不会调用，finalize方法只执行一次，然后对象直接变成不可触及。</p>
-</li>
-</ul>
-</li>
-</ul>
-<h2 id="省略"><a href="#省略" class="headerlink" title="省略"></a>省略</h2><p>中间差了一堆东西，有堆相关工具的使用，以后有需要看 P144 - P146</p>
-<h1 id="3-GC-清理阶段"><a href="#3-GC-清理阶段" class="headerlink" title="3. GC -清理阶段"></a>3. GC -清理阶段</h1><p>成功区分出存活对象和死亡对象后，JVM要进行下一步，也就是清理垃圾，释放内存，给下面的对象腾地方</p>
-<p>具体算法下面三个：</p>
-<ul>
-<li><p>复制算法 Copying</p>
-</li>
-<li><p>标记-清除 算法 Mark-Sweep</p>
-</li>
-<li><p>标记-压缩 算法 Mark-Compact</p>
-</li>
-</ul>
-<h2 id="3-1-标记清除算法"><a href="#3-1-标记清除算法" class="headerlink" title="3.1 标记清除算法"></a>3.1 标记清除算法</h2><p>标记清除是一个比较低级，常见的垃圾回收算法，第一次被用在 Lisp语言上(Lisp：世界上第一个有GC的语言)。</p>
-<h3 id="3-1-1-执行过程"><a href="#3-1-1-执行过程" class="headerlink" title="3.1.1 执行过程"></a>3.1.1 执行过程</h3><p>当内存满了以后，就会停止整个程序(包括用户线程，这个停止就叫 Stop The World，也就是我们说的 STW)，然后进行下面两件事：</p>
-<ul>
-<li><p>Collector进行标记，从GCRoots 开始遍历可达对象(很显然就是我们前面说的可达性分析算法)，在对象头header中标记这是个可达对象，被引用对象，注意，标记的不是垃圾，没被标记的才是垃圾。</p>
-</li>
-<li><p>Collector进行清理，遍历对象，检查对象头的可达标记，如果没有，则被回收。</p>
-</li>
-</ul>
-<h3 id="3-1-2-缺点"><a href="#3-1-2-缺点" class="headerlink" title="3.1.2 缺点"></a>3.1.2 缺点</h3><ul>
-<li><p>效率不高，主要原因就是需要遍历，怎么遍历的？递归</p>
-</li>
-<li><p>在GC的时候需要停止整个程序，用户体验不好</p>
-</li>
-<li><p>清理出来的内存不是连续的，所以同时还需要维护一个内存空闲列表，我们之前说对象内存分配的时候 Chapter07-23 下说过。</p>
-</li>
-</ul>
-<h3 id="3-1-3-注-清除到底指的啥"><a href="#3-1-3-注-清除到底指的啥" class="headerlink" title="3.1.3 注:清除到底指的啥"></a>3.1.3 注:清除到底指的啥</h3><p>清除指的不是说直接这块内存上的东西就清空了，并非。</p>
-<p>垃圾还会留着，但是内存地址会写到空闲列表中，如果再次分配对象，新对象会覆盖垃圾对象。</p>
-<h2 id="3-2-复制算法"><a href="#3-2-复制算法" class="headerlink" title="3.2 复制算法"></a>3.2 复制算法</h2><p>为了解决标记清除算法低效的问题，提出的复制算法，这个算法同理 堆中年轻代的GC。</p>
-<p>思路：</p>
-<p>将内存分为两半，一半空着，另一半放数据，当数据区进行垃圾回收时，同理先进行可达性分析，但是，在分析的同时，如果发现对象是可达的，就会把对象复制到另一半内存中，不是复制内存地址，而是整个对象拷贝(拷贝肯定是规整的拷贝)。然后可达性分析完成，数据也就全部复制到另一半，就说明当前这块内存已经没有有用数据了，全都是垃圾，所以直接清理这一半内存即可。然后下一次GC，把对象全都复制到这里即可。</p>
-<h3 id="3-2-1-优点"><a href="#3-2-1-优点" class="headerlink" title="3.2.1 优点"></a>3.2.1 优点</h3><ul>
-<li><p>简单，快速</p>
-</li>
-<li><p>复制以后内存连续，不会出现内存碎片</p>
-</li>
-</ul>
-<h3 id="3-2-2-缺点"><a href="#3-2-2-缺点" class="headerlink" title="3.2.2 缺点"></a>3.2.2 缺点</h3><ul>
-<li>需要两倍大的内存空间</li>
-</ul>
-<h3 id="3-2-3-注意"><a href="#3-2-3-注意" class="headerlink" title="3.2.3 注意"></a>3.2.3 注意</h3><p>如果空间的存活对象多，那一次直接全盘复制一轮，垃圾没几个，就会导致效率过低。</p>
-<p>这个算法的应用场景最好是存活对象不太多的时候。垃圾多，复制的少，就会效率高。所以这就解释了为啥新生代采用类似这个算法来GC，原因就是新生代的对象大多数朝生暮死。</p>
-<h2 id="3-3-标记-压缩-整理-算法"><a href="#3-3-标记-压缩-整理-算法" class="headerlink" title="3.3 标记-压缩(整理) 算法"></a>3.3 标记-压缩(整理) 算法</h2><h3 id="3-3-1-背景"><a href="#3-3-1-背景" class="headerlink" title="3.3.1 背景"></a>3.3.1 背景</h3><p>复制算法适用于存活对象少，垃圾多的地方，比如新生代，所以新生代采用复制算法，但是老年代普遍对象比较大，岁数大，复制算法不再适用，所以基于老年代，就需要其他的垃圾收集算法。</p>
-<p>标记清除算法可以用在老年代，但是效率底下，会产生内存碎片，所以JVM在次基础上，退出了 标记压缩算法。</p>
-<h3 id="3-3-2-执行过程"><a href="#3-3-2-执行过程" class="headerlink" title="3.3.2 执行过程"></a>3.3.2 执行过程</h3><p>第一阶段和标记清除算法一样，也是需要进行遍历标记。</p>
-<p>然后，将所有存活对象按顺序压缩到内存的一端，然后这一端以外的对象全部清除。</p>
-<h3 id="3-3-3-优点"><a href="#3-3-3-优点" class="headerlink" title="3.3.3 优点"></a>3.3.3 优点</h3><ul>
-<li><p>解决了标记清除算法中 内存碎片的问题</p>
-</li>
-<li><p>解决了复制算法中内存双倍的问题</p>
-</li>
-</ul>
-<h3 id="3-3-4-缺点"><a href="#3-3-4-缺点" class="headerlink" title="3.3.4 缺点"></a>3.3.4 缺点</h3><ul>
-<li><p>效率低于复制算法</p>
-</li>
-<li><p>移动数据时，指针的指向需要修改</p>
-</li>
-<li><p>移动过程中 STW</p>
-</li>
-</ul>
-<h1 id="4-垃圾收集拓展"><a href="#4-垃圾收集拓展" class="headerlink" title="4. 垃圾收集拓展"></a>4. 垃圾收集拓展</h1><p>拓展两个东西：</p>
-<ul>
-<li><p>增量收集算法</p>
-</li>
-<li><p>分区算法</p>
-</li>
-</ul>
-<p>这两个算法都是为了提高垃圾收集效率，降低STW。</p>
-<h2 id="4-1-增量收集算法"><a href="#4-1-增量收集算法" class="headerlink" title="4.1 增量收集算法"></a>4.1 增量收集算法</h2><p>我们之前看三种垃圾收集算法，有个共同的特点，就是STW时间长，垃圾攒的太多了，一次收集有点费劲，所以出现了增量收集算法。</p>
-<p>思想如下：</p>
-<p>弄一个GC线程，一个用户线程，咱们也别等到他内存沾满了GC，咱们直接 用户线程和GC线程交替执行，这样就会节省GC时间，减短STW时间，特别好。</p>
-<p>然而问题就是：切换线程也很消耗资源。</p>
-<h2 id="4-2-分区算法"><a href="#4-2-分区算法" class="headerlink" title="4.2 分区算法"></a>4.2 分区算法</h2><p>众所周知，堆空间越大，收集的区域越大，收集就越费劲，所以我们干脆把堆分成n多不同小区域，分开收集，这样就可以降低消耗时间，降低STW。</p>
-<p>分代算法把对象分为了年轻代和老年代，分区算法就是把整个堆分成了若干小区域。</p>
-<p>每个区域独立分配，独立回收，好处就是可以控制一次收集多少个区域。</p>
-<p>缺点：可能会导致GC 频繁，线程切换频率提高，降低吞吐量。</p>
-<h1 id="5-垃圾回收的相关概念"><a href="#5-垃圾回收的相关概念" class="headerlink" title="5. 垃圾回收的相关概念"></a>5. 垃圾回收的相关概念</h1><ul>
-<li><p>System.gc() 的理解</p>
-</li>
-<li><p>内存溢出与泄露</p>
-</li>
-<li><p>Stop The World</p>
-</li>
-<li><p>垃圾回收的并行与并发</p>
-</li>
-<li><p>安全点与安全区域：只有在安全点才能停止用户线程</p>
-</li>
-</ul>
-<h2 id="5-1-System-gc"><a href="#5-1-System-gc" class="headerlink" title="5.1 System.gc()"></a>5.1 System.gc()</h2><blockquote>
-<p>本地方法，System.gc() 调用 Runtime.getRuntime().gc()</p>
-</blockquote>
-<p>我们可以通过 System.gc() 和 Runtime.getRuntime().gc() 来显式调用 FullGC(对整个堆进行回收)。</p>
-<p>但是同时，JVM附带一个免责声明，JVM不保证你调用gc() 就一定能执行GC。</p>
-<p>一般情况下，GC应该是自动进行的，不应该是我们手动进行，否则就太麻烦了，有一种应用场景是我们要写一个性能基准，我们手动调用gc。</p>
-<p>所以说，我们可以认为 System.gc() 是提醒JVM进行垃圾收集，至于JVM干不干活？不知道。</p>
-<p>详细请看：pri.TestSystemGC 和 pri.LocalVarGC</p>
-<h2 id="5-2-内存溢出-Out-Of-Memory"><a href="#5-2-内存溢出-Out-Of-Memory" class="headerlink" title="5.2 内存溢出(Out Of Memory)"></a>5.2 内存溢出(Out Of Memory)</h2><p>首先，什么叫内存溢出：java给的解释是，内存不够了，而且gc完了也不够，那就内存溢出</p>
-<p>为什么会内存溢出：</p>
-<ul>
-<li><p>堆空间大小设置的不够</p>
-</li>
-<li><p>大对象太多而且不能回收，最后就会沾满。jdk7中会抛出：java.lang.OutOfMemory: PermGen space; jdk8中则会抛出：java.lang.OutOfMemory: Metaspace</p>
-</li>
-</ul>
-<p>这里可以看出，再抛出 OOM 之前，肯定要触发一次GC，去尽可能腾出空间</p>
-<ul>
-<li>比如：他会尝试去回收软引用指向的对象</li>
-</ul>
-<p>但是，也并非任何情况下都会进行GC，如果我们要分配一个超大的对象，JVM判断整个堆压根就不够用，GC没有意义，就不会GC，直接抛出OOM。</p>
-<h2 id="5-3-内存泄露-Memory-Leak"><a href="#5-3-内存泄露-Memory-Leak" class="headerlink" title="5.3 内存泄露(Memory Leak)"></a>5.3 内存泄露(Memory Leak)</h2><p>总的来说，就是一个对象，程序不会再用到他了，但是GC又不能把它回收，这就很恶心，这就是内存泄露.</p>
-<p>实际情况是，我们的一些代码习惯不好，导致一些对象有了特别长的生命周期，最终导致 OOM，这个也可以理解成<strong>宽泛意义上的内存泄露。</strong></p>
-<p>尽管发生内存泄露不会立马导致程序崩溃，但是会逐步侵蚀内存，最终有可能导致内存溢出。</p>
+<li><p>Java虚拟机规范中规定，堆可以处于物理不连续的内存上，但是逻辑上应视为连续。</p>
 <blockquote>
-<p>注意：这里说的所有内存不是真实内存，而是虚拟机内存，虚拟机内存取决于物理内存。</p>
+<p>如何证明堆是进程唯一的？需要用到一个工具，在 java.bin 目录下，jvisualvm，这个东西可以看到目前的java进程信息，(需要安装一个插件，VisualGC，工具里面就能安装).然后进入 visualGC</p>
 </blockquote>
-<p>尤其注意：要举内存泄露的例子，不要举循环引用。循环引用是不是内存泄露？是，但是Java不会发生这种情况，因为Java没有采用引用计数算法。</p>
-<p>具体举几个例子：</p>
-<ul>
-<li><p>单例模式的某些对象，因为是单例，所以可能生命周期特别长，然后单例里面引用了外部的一些生命周期短的对象，用完了不释放</p>
 </li>
-<li><p>各种流，比如 socket，io 等东西，用完了不close</p>
+<li><p>即使整个线程共用一个堆，对内部还是有线程私有的缓冲区，最典型的就是 ThreadLocal，Buffer，TLAB Allocation，很好，目前我都不知道啥意思。</p>
 </li>
-<li><p>看弹幕说有ThreadLocal？</p>
+<li><p>几乎所有的对象实例都分配在堆上，注意是几乎，不是所有，随着 JVM 的更新，JVM会进行逃逸检测，栈上也可以村对象了。</p>
 </li>
-</ul>
-<h2 id="5-4-并发和并行"><a href="#5-4-并发和并行" class="headerlink" title="5.4 并发和并行"></a>5.4 并发和并行</h2><p>并发：就是单核CPU，来回切换时间片，来达到宏观并行，看似同时操作，实际频繁切换。同一个时间段上同时发生。</p>
-<p>并行：多核CPU，每个CPU都在干活，好多任务同时进行，就是并行。同一个时间点上同时发生</p>
-<h2 id="5-5-垃圾回收的并发与并行"><a href="#5-5-垃圾回收的并发与并行" class="headerlink" title="5.5 垃圾回收的并发与并行"></a>5.5 垃圾回收的并发与并行</h2><p>并行(Parallel)的垃圾回收器：</p>
-<p><strong>多条垃圾回收线程并行工作</strong>，但是用户线程仍然停止，比如：ParNew，Parallel Scavenge，Parallel Old</p>
-<p>串行(Serial) 的垃圾回收器：</p>
-<p>与并行的对应，只有一个垃圾回收线程工作，同样STW</p>
-<p>并发(Concurrent)的垃圾回收器：</p>
-<p>回收线程和用户线程同时进行，但是不一定是并行的。得看你CPU，单核CPU那就是靠线程切换来达到并发效果，多核那就是GC和用户在两个CPU上。这样看起来不会暂停用户线程(只要是GC，就必定需要暂停用户线程)。</p>
-<p>比如G1,CMS。</p>
-<h2 id="5-6-安全点-Safe-Point"><a href="#5-6-安全点-Safe-Point" class="headerlink" title="5.6 安全点 Safe Point"></a>5.6 安全点 Safe Point</h2><p>并非任何时间都可以停下来GC，只有在特定的时间点才会进行GC，STW，那么这个时间点就是 sp。</p>
-<p>sp的选择挺重要的，如果sp过少，那么gc次数少，如果sp多，那么经常gc就会导致性能下降。大多数指令的执行时间都比较短。那么选择sp的一个标准就是 “是否具有让程序长时间执行的特征”。选择一个执行时间长的指令作为sp，比如 方法调用 循环跳转 异常跳转。</p>
-<p>所以，如果保证所有线程都走到了安全点？两种办法：</p>
-<ul>
-<li><p>抢先式中断：先让所有线程停下来，然后让没有到达安全点的线程继续跑到安全点。然后这种方法已经不用了</p>
-</li>
-<li><p>主动式中断：设置一个中断标志，线程跑到安全点主动轮询这个标志，如果标志是true，说明JVM现在要GC，那么线程停止。</p>
-</li>
-</ul>
-<h2 id="5-7-安全区域-Safe-Region"><a href="#5-7-安全区域-Safe-Region" class="headerlink" title="5.7 安全区域 Safe Region"></a>5.7 安全区域 Safe Region</h2><p>安全点确保了正在执行的线程可以停止进行GC，如果一个线程sleep了，他没法运行，咋办，这时候引入安全区域。</p>
-<p>在一个区域内，引用不会发生改变，就说明在这个区域内任何地方都是安全的，那么就可以进行GC。这个区域就是sr。sr可以看作是sp的扩展。</p>
-<h1 id="6-四种引用"><a href="#6-四种引用" class="headerlink" title="6. 四种引用"></a>6. 四种引用</h1><p>我们希望有这么一类对象，当我们内存不够的时候，触发GC，然后GC完了还是不够，那么JVM就会根据引用的不同，自动抛弃一些对象来腾地方。那么这里就涉及到了四种引用：强 软 弱 虚。四种引用的强度依次递减。</p>
-<p>涉及到的对象：</p>
-<p>父类：java.lang.ref.Reference 这是个抽象类</p>
-<p>实现：WeakReference(弱), SoftReference(软), PhantomReference(虚)</p>
-<h2 id="6-1-概括的说一下四种引用："><a href="#6-1-概括的说一下四种引用：" class="headerlink" title="6.1 概括的说一下四种引用："></a>6.1 概括的说一下四种引用：</h2><ul>
-<li><p>强引用 StrongReference：最传统的引用方式，代码中最普遍存在的引用赋值，Object o &#x3D; new Object() 这种引用关系，只要引用关系还在，任何情况下GC都不能释放对象。</p>
-</li>
-<li><p>软引用 SoftReference：在系统要内存溢出之前，会把这些引用指向的对象进行二次回收，如果还是不够，才会抛出OOM</p>
-</li>
-<li><p>弱引用 WeakReference：被弱引用关联的对象只能活到下一次GC，下一次GC无论内存够不够，都会回收</p>
-</li>
-<li><p>虚引用 PhantomReference：一个对象是否存在虚引用，完全不会影响他的生存时间，我们也无法通过虚引用获取实例，设置虚引用的<strong>唯一目的就是他关联的对象被收集了以后得到一个系统通知</strong>。</p>
-</li>
-</ul>
-<h2 id="6-2-强引用"><a href="#6-2-强引用" class="headerlink" title="6.2 强引用"></a>6.2 强引用</h2><p>这种引用在程序中最常见，我们直接通过new直接创建一个对象，然后直接把这个对象赋值给一个变量，那么就构成了强引用。</p>
-<p>强引用是可触及的(还有指向的时候，我们手动置为null不算)，GC 永远不会回收他。</p>
-<p>对于一个普通的对象，只要对象超过了作用域，或者我们手动把变量变为null，则对象会被GC。</p>
-<p>相对的，我们把软 弱 虚 表示为：软可触及，弱可触及，虚可触及。他们都是在一定情景下可以被回收，只有强可达不可能被回收。</p>
-<p>所以强引用是造成内存泄漏的主要原因.</p>
-<h2 id="6-3-软引用-Soft-Reference"><a href="#6-3-软引用-Soft-Reference" class="headerlink" title="6.3 软引用 Soft Reference"></a>6.3 软引用 Soft Reference</h2><p>软引用用来描述一些虽然存活，但是不重要的对象，如果要发生内存泄漏，GC会先回收所有的软引用指向的对象，如果内存还是不够，则会抛出OOM异常。一句话概括：内存不足即回收。</p>
-<p>软引用使用场景：高速缓存，如果还有内存，则会使用缓存，提高速度，如果内存没了，就会清除缓存，免得因为缓存而导致内存溢出。</p>
-<p>虚拟机在某一时刻决定清理软可达的对象时，就会清理软引用。我们也可以把软引用放入一个队列，依次清理。</p>
-<p>类似弱引用，区别就是JVM迫不得已才会回收软科大对象，弱引用是直接就回收了。</p>
-<h2 id="6-4-弱引用-Weak-Reference"><a href="#6-4-弱引用-Weak-Reference" class="headerlink" title="6.4 弱引用 Weak Reference"></a>6.4 弱引用 Weak Reference</h2><p>只被弱引用关联的对象只能活到下一次GC，无论下一次GC是否有空间，弱引用关联的对象都会被回收。一句话概括：发现即回收。</p>
-<p>但是，由于GC线程的优先级比较低，所以可能不能马上发现弱引用，所以弱引用可能也能存活很长时间。</p>
-<p>这个东西同理和软引用一样，我们也可以弄一个队列，把弱引用放入队列中进行处理。</p>
-<p>弱引用和软引用适合做缓存，如果内存不够了就释放内存，内存够就放缓存。</p>
-<h2 id="6-5-虚引用-Phantom-Reference"><a href="#6-5-虚引用-Phantom-Reference" class="headerlink" title="6.5 虚引用 Phantom Reference"></a>6.5 虚引用 Phantom Reference</h2><p>这东西，完全不决定对象的生命周期，有跟没有一个样，甚至我们没法像前两种引用一样去get。</p>
-<p>这东西唯一的作用，就是对象被回收的时候我们会收到一个系统通知。</p>
-<p>同时这个引用在创建的时候必须传入一个回收队列。</p>
-<p>因为，系统回收一个对象如果发现这个对象有一个虚引用，就会回收后把这个虚引用放入引用队列，来进行通知。</p>
-<h2 id="6-6-代码"><a href="#6-6-代码" class="headerlink" title="6.6 代码"></a>6.6 代码</h2><p>上面说的十分抽象，这里给一段代码看看：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 对于强 软 弱 引用 代码如下：</span></span><br><span class="line"><span class="comment"> * 软和弱引用好歹可以通过get得到他们指向的对象，我们gc以后通过get去获取对象看看情况，</span></span><br><span class="line"><span class="comment"> * 但是对于虚引用那就是另外一种情况了。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">        <span class="comment">// 强引用，除非null才回收</span></span><br><span class="line">        <span class="type">User</span> <span class="variable">u1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 软引用，内存不足及回收</span></span><br><span class="line">        SoftReference&lt;User&gt; u2 = <span class="keyword">new</span> <span class="title class_">SoftReference</span>&lt;&gt;(<span class="keyword">new</span> <span class="title class_">User</span>());</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 弱引用，发现及回收</span></span><br><span class="line">        WeakReference&lt;User&gt; u3 = <span class="keyword">new</span> <span class="title class_">SoftReference</span>&lt;&gt;(<span class="keyword">new</span> <span class="title class_">User</span>());</span><br><span class="line"></span><br><span class="line">        System.gc();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// u1 还在，u2 看情况，如果内存满了就没了，u3 八成是没了</span></span><br><span class="line">        u1.get();</span><br><span class="line">        u2.get();</span><br><span class="line">        u3.get();</span><br><span class="line">    &#125;    </span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上面仅仅是强软弱引用的情况，对于虚引用，那得下面专门说了。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">//package pri;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.ref.PhantomReference;</span><br><span class="line"><span class="keyword">import</span> java.lang.ref.ReferenceQueue;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PhantomReferenceTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> PhantomReferenceTest obj;</span><br><span class="line">    <span class="keyword">static</span> ReferenceQueue&lt;PhantomReferenceTest&gt; queue;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 这个线程用于监听ReferenceQueue</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">CheckReferenceQueue</span> <span class="keyword">extends</span> <span class="title class_">Thread</span>&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span>&#123;</span><br><span class="line">            <span class="keyword">while</span>(<span class="literal">true</span>)&#123;</span><br><span class="line">                <span class="keyword">if</span>(queue != <span class="literal">null</span>)&#123;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 前面我们说到了第二次gc会把obj对象彻底清理掉，因为finlize已经执行过了</span></span><br><span class="line">                    <span class="comment">// 所以虚引用指向的对象被回收时，是怎么个流程？</span></span><br><span class="line">                    <span class="comment">// 我们创建虚引用的时候传入了一个队列，回收时，这个队列就会接收到这个虚引用，</span></span><br><span class="line">                    <span class="comment">// 但是注意，虚引用和软弱引用不一样，虚引用压根就没法get到他指向的那个对象</span></span><br><span class="line">                    <span class="comment">// 所以这里其实仅仅就是通知一下这个队列：ok，现在有一个虚引用指向的对象被我gc回收了，</span></span><br><span class="line">                    <span class="comment">// 虚引用就是充当一个信号的作用</span></span><br><span class="line"></span><br><span class="line">                    PhantomReference&lt;PhantomReferenceTest&gt; objt = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">try</span>&#123;</span><br><span class="line">                        <span class="comment">// 从引用队列中得到虚引用，如果得到了，说明gc的时候obj被回收了，</span></span><br><span class="line">                        <span class="comment">// 因为只有真正被回收，才会把虚引用传给队列。</span></span><br><span class="line">                        objt = (PhantomReference&lt;PhantomReferenceTest&gt;) queue.remove();</span><br><span class="line"></span><br><span class="line">                        System.out.println(<span class="string">&quot;objt=&quot;</span> + objt);</span><br><span class="line">                    &#125;<span class="keyword">catch</span>(Exception e)&#123;</span><br><span class="line">                        e.printStackTrace();</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="comment">// 最后判断一下，虚引用不为null，说明回收成功,然后回到108行</span></span><br><span class="line">                    <span class="keyword">if</span>(objt != <span class="literal">null</span>)&#123;</span><br><span class="line">                        System.out.println(<span class="string">&quot;objt != null,队列中可以得到虚引用，证明回收成功&quot;</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">finalize</span><span class="params">()</span> <span class="keyword">throws</span> Throwable&#123;</span><br><span class="line">        <span class="built_in">super</span>.finalize();</span><br><span class="line">        System.out.println(<span class="string">&quot;finlize start&quot;</span>);</span><br><span class="line">        obj = <span class="built_in">this</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;重新给obj赋值为this，finlize中把obj救活了&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 首先创建一个自己的强引用</span></span><br><span class="line">        obj = <span class="keyword">new</span> <span class="title class_">PhantomReferenceTest</span>();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建引用队列，这个玩意待会儿会接收gc信息</span></span><br><span class="line">        queue = <span class="keyword">new</span> <span class="title class_">ReferenceQueue</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 创建一个监听ReferenceQueue的线程，同时设置为守护线程，也就是这个线程不会随着main线程的结束而结束</span></span><br><span class="line">        <span class="type">CheckReferenceQueue</span> <span class="variable">checkReferenceQueue</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CheckReferenceQueue</span>();</span><br><span class="line">        checkReferenceQueue.setDaemon(<span class="literal">true</span>);</span><br><span class="line">        checkReferenceQueue.start();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 给obj添加虚引用，创建虚引用的同时需要指定引用队列</span></span><br><span class="line">        PhantomReference&lt;PhantomReferenceTest&gt; ref = <span class="keyword">new</span> <span class="title class_">PhantomReference</span>&lt;&gt;(obj, queue);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">// 很好，我们先试试虚引用能不能像软弱引用一样get，发现不行，也就是说虚引用仅仅就充当一个信号的作用</span></span><br><span class="line">            System.out.println(ref.get());</span><br><span class="line"></span><br><span class="line">            System.out.println(<span class="string">&quot;第一次GC&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 我们进行第一轮gc，我们给强引用置空，这个时候虚引用指向的这个对象就没有强引用，</span></span><br><span class="line">            <span class="comment">// 按理说会直接回收掉</span></span><br><span class="line">            obj = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">            System.gc();</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 但是我们发现这个时候obj居然不为空，居然还是this，这是为啥？</span></span><br><span class="line">            <span class="comment">// 因为我们上面重写了finlize方法，这个方法里面复活了obj，让obj重新回到了可触及的状态</span></span><br><span class="line">            <span class="comment">// 所以第一轮gc并没有清理掉obj</span></span><br><span class="line">            <span class="keyword">if</span>(obj == <span class="literal">null</span>)&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;obj == null&quot;</span>);</span><br><span class="line">            &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;obj != null, finlize生效使obj复活&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            System.out.println(<span class="string">&quot;第二次GC&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 很好，我们开始进行第二轮gc，再一次清除强引用指向并调用gc开始清理</span></span><br><span class="line">            obj = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">            System.gc();</span><br><span class="line"></span><br><span class="line">            Thread.sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// ok，这个时候先不要着急看这里，回到上面的第11行，我们从第十一行接着分析。</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">            <span class="comment">// 行了，上面的队列刘晨我们走完了，最后这里收个尾，最后判断一下obj是不是null</span></span><br><span class="line">            <span class="comment">// 是的话，ok，回收成功</span></span><br><span class="line">            System.out.println(<span class="string">&quot;obj == null?  &quot;</span> + (obj == <span class="literal">null</span>));</span><br><span class="line"></span><br><span class="line">        &#125;<span class="keyword">catch</span>(InterruptedException e)&#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>JVM</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>底层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>虚拟机栈</title>
-    <url>/2022/05/27/jvm-stack/</url>
-    <content><![CDATA[<p>虚拟机栈，JVM用于处理方法执行的地方，东西还挺多，而且还听重要.</p>
-<span id="more"></span>
-
-<h1 id="1-虚拟机栈概述"><a href="#1-虚拟机栈概述" class="headerlink" title="1. 虚拟机栈概述"></a>1. 虚拟机栈概述</h1><blockquote>
-<p>Java Virtual Machine Stack</p>
-</blockquote>
-<p>首先明确个概念，JVM是基于栈的存储模型(当然还有基于寄存器的)，一般来说java 中 栈里面存放运行时数据，堆 进行存储，比如创建对象，就会放到堆里面，当然这不代表栈不会存数据，一些局部变量也是存在栈里面的。</p>
-<h2 id="1-1-虚拟机栈是什么"><a href="#1-1-虚拟机栈是什么" class="headerlink" title="1.1 虚拟机栈是什么"></a>1.1 虚拟机栈是什么</h2><p>每个线程创建时都会创建一个虚拟机栈，里面存储着栈帧(Stack Frame) 对应方法调用，栈帧就是方法调用，方法开始调用栈帧入栈，方法调用结束栈帧出栈。</p>
-<p>生命周期和JVM一样。</p>
-<h2 id="1-2-作用"><a href="#1-2-作用" class="headerlink" title="1.2 作用"></a>1.2 作用</h2><p>主管程序的运行，保存方法的局部变量，部分结果，并参与方法的调用和返回</p>
+<li><p>数组和对象可能永远不会存在栈上，栈帧中保存引用，这个引用指向对象或者数组在堆中的位置。</p>
 <blockquote>
-<p>局部变量包括 8 中基本数据类型和 引用数据类型的引用，仅限引用地址，不包括实际的对象，对象在堆中。</p>
+<p>官网中JVM规范说的是所有，所以引出了下一条</p>
 </blockquote>
-<p>大致说一下，先不说那么细，看图： </p>
-<p><img src="/images/runtime/stackFrame.png" alt="stack_frame"></p>
-<p>这里定义两个方法，A 和 B，然后两个方法进行入栈操作，绿色的就是 B 方法，那么栈顶的方法就是当前方法，然后B执行完，A就是当前方法。</p>
-<p>那么目前，我们可以粗略的将方法，理解为栈帧，当然栈帧里面还细分一堆东西，我们现在先不说了。</p>
-<h2 id="1-4-栈的优点"><a href="#1-4-栈的优点" class="headerlink" title="1.4 栈的优点"></a>1.4 栈的优点</h2><ul>
-<li><p>有效的存储方式，访问速度仅次于程序计数器</p>
 </li>
-<li><p>JVM 对栈的操作只有两个</p>
-<ul>
-<li><p>方法执行，入栈</p>
-</li>
-<li><p>执行完，出栈</p>
-</li>
-</ul>
-</li>
-<li><p>不存在垃圾回收</p>
+<li><p>方法结束后，堆中的对象不会马上被删除，仅仅在垃圾收集的时候才会被删除。</p>
 <blockquote>
-<p>栈不存在 GC 但是存在 OOM (out of memory 内存溢出),PC寄存器俩都没有</p>
+<p>这里解释一下什么意思，一个方法，方法里面有引用，指向堆中的实例，当方法执行完成后，栈帧出栈，这时候引用就没了，就不在指向堆了，这个时候听不会马上GC，因为影响效率，他会在堆满了的时候去进行垃圾收集。</p>
 </blockquote>
-</li>
-</ul>
-<h2 id="1-5-栈可能出现的问题"><a href="#1-5-栈可能出现的问题" class="headerlink" title="1.5 栈可能出现的问题"></a>1.5 栈可能出现的问题</h2><p>Java 中，栈的大小可以是动态的或者固定不变的。如果栈的大小固定不变，那么入栈操作可能会因为栈满了而报错， 抛出 StackOverFlowError</p>
 <blockquote>
-<p>最常见的就是无限递归</p>
+<p>这里老师的原话是：出栈后引用为空，很好现在回来看，显然是栈帧出栈，局部变量表停止指向</p>
 </blockquote>
-<p>如果栈的大小动态，那么可能进行入栈操作是跟内存要空间，结果内存没了，导致异常 抛出 OutOfMemoryError</p>
-<h1 id="2-栈帧概述"><a href="#2-栈帧概述" class="headerlink" title="2. 栈帧概述"></a>2. 栈帧概述</h1><p>何为栈帧，我们上面说，把一个方法的调用理解成栈帧，一个方法在JVM中执行，就是虚拟机栈中压入了这个方法对应的栈帧，方法执行完成后，这个栈帧就会弹栈。同时为了保证方法执行的正确性以及其他的一些什么乱七八糟的东西，栈帧内部还有很多的其他组成部分，我们下面会详细说。</p>
-<h2 id="2-1-栈帧的注意事项"><a href="#2-1-栈帧的注意事项" class="headerlink" title="2.1 栈帧的注意事项"></a>2.1 栈帧的注意事项</h2><ul>
-<li><p>不同线程之间的栈帧不能相互引用</p>
 </li>
-<li><p>如果方法调用了其他返回，在方法返回时，当前栈帧会传给前一栈帧执行结果，当前栈帧出栈，让上一个栈帧变为当前。</p>
-</li>
-<li><p>java中有两个方式返回方法，return 和 throw(没有处理)，两种办法都会弹出栈帧。</p>
+<li><p>堆是GC作用的重点区域。</p>
 </li>
 </ul>
-<h2 id="2-2-栈帧的具体结构"><a href="#2-2-栈帧的具体结构" class="headerlink" title="2.2 栈帧的具体结构"></a>2.2 栈帧的具体结构</h2><p>分为5部分：</p>
+<h1 id="2-堆空间内存细分"><a href="#2-堆空间内存细分" class="headerlink" title="2. 堆空间内存细分"></a>2. 堆空间内存细分</h1><p>现代垃圾收集器大部分都是基于分带收集论涉及，对空间细分为：</p>
 <ul>
-<li><p>局部变量表</p>
-</li>
-<li><p>操作数栈&#x2F;表达式栈</p>
-</li>
-<li><p>动态链接&#x2F;指向运行时常量池的方法引用</p>
-</li>
-<li><p>方法返回地址</p>
-</li>
-<li><p>附加信息</p>
-</li>
-</ul>
-<p>下面我们就会进入这5个部分，详细说说栈帧里面都是些什么鬼。</p>
-<h1 id="3-局部变量表"><a href="#3-局部变量表" class="headerlink" title="3. 局部变量表"></a>3. 局部变量表</h1><h2 id="3-1-概述"><a href="#3-1-概述" class="headerlink" title="3.1 概述"></a>3.1 概述</h2><ul>
-<li><p>也叫本地变量表：</p>
-</li>
-<li><p>定义一个数字数组，用于存储方法参数，和定义在方法内的局部变量，这些数据类型包括 8种基本数据类型，引用，和返回值类型。</p>
-</li>
-<li><p>一个线程配套一个虚拟机栈，所以不存在线程安全问题。</p>
-</li>
-<li><p>这个表的长度一开始就已经固定，且不会发生改变，因为在编译的时候编译器就已经解析出来你这个方法需要多少个临时变量了，表长存在一个 maximum local variables 属性里面。 可以反编译一个class文件找找，code 里面的 locals 也记录了。</p>
-</li>
-<li><p>只在当前方法中有效，别人想用就得传参了，方法调用结束变量表随之销毁。</p>
-</li>
-<li><p>方法嵌套次数由虚拟机栈决定，一般来说，栈越大，嵌套越多，如果一个方法的本地数据过多， 会导致栈帧过大，进而占用虚拟机栈的空间变多，导致方法嵌套次数变少。</p>
-</li>
-</ul>
-<p>我们解析一个 class文件，就能在方法里面找到 LocalVariableTable， slot 代表了第几个本地变量，然后 length不解释，signature 就是数据类型， 同时，code 里面的 locals 也记录了 变量表的最大长度。</p>
-<h2 id="3-2-解析Class中的方法"><a href="#3-2-解析Class中的方法" class="headerlink" title="3.2 解析Class中的方法"></a>3.2 解析Class中的方法</h2><p>我们解析一个 class文件以后，不说 javap 解析了，就说 jclasslib 解析以后得到的东西。首先我们解析完成后，随便进入一个方法，这里我就以main方法为例：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">name: cp_info #30 &lt;main&gt;  </span><br><span class="line">descriptor: cp_info #31 &lt;([Ljava/lang/String:V)&gt;  </span><br><span class="line">Access flags: 0x0009 [public static]</span><br></pre></td></tr></table></figure>
-
-<p>name 就是方法名，告诉你是 main 方法，descriptor 描述，包括 参数类型：LJava…String,L 代表引用，V 代表void 无返回值。Access flags 访问表示，告诉你是 public static。</p>
-<p>然后，我们进入 code，byteCode 就是字节码指令, ExceptionTable 就是异常表，没有异常，空。misc 里面就是一些描述，比如 本地变量表的最大长度，还有指令长度，字节码指令0 - 最后那个号。</p>
-<p>然后code 里面还有一个 LineNumberTable,里面记录Java 代码和 字节码指令的行号映射关系，lineNumber 表示 Java 行数，startPC 代表字节码指令行数，两个上述一一对应。</p>
-<p>LineNumberTable如下：</p>
-<p><img src="/images/runtime/line_number_table.png" alt="line_number_table"></p>
-<p>然后重点看看本地变量表，局部变量表如下：</p>
-<p><img src="/images/runtime/local_var_table.png" alt="local_var_table"></p>
-<p>你方法里面有几个局部变量，他就有几行+1，几个字段+1(一般情况是，为啥？实例方法局部变量表中的第一位是 this)：</p>
+<li><p>java7 包括之前的JVM 堆内存逻辑上分为 3部分：新生区 + 养老区 + 永久区</p>
 <ul>
-<li><p>name名字： 想必是局部变量的名称</p>
+<li><p>Young Generation Space -&gt; 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>又被划分为 Eden 区 和 Survivor 区</p>
+</blockquote>
 </li>
-<li><p>descriptor 描述符： 就是类型，同理L是引用，</p>
+<li><p>Tenure Generation space -&gt; 养老区 Old&#x2F;Tenure</p>
 </li>
-<li><p>startPC起始PC： 是你这个局部变量的作用域的起始位置，是一个 字节码行号， 根据 lineNumber 表找到对应java 的行数，其实就是你java声明了这个局部变量的下一行。</p>
-</li>
-<li><p>index 序号： 就是索引</p>
-</li>
-<li><p>length长度： 不是说你这个变量多长，而是作用域长度，结合上面的 startPC， 比如 misc 里面记录的字节码长度是16，就代表你总共有16条指令， 然后已定义了一个变量，从 字节码的 第8行开始，然后到第15(0开始)失效， 那么你的这个 length 就是 8，从第8行开始，在往后的8行内生效。</p>
+<li><p>Permanent Space -&gt; 永久区 Perm</p>
 </li>
 </ul>
-<h2 id="3-3-槽-Slot"><a href="#3-3-槽-Slot" class="headerlink" title="3.3 槽 Slot"></a>3.3 槽 Slot</h2><p>本地变量表中，会将数据存放到 槽中。</p>
+</li>
+<li><p>java8 以后堆内存逻辑上分为3部分：新生区 + 养老区 + 元空间</p>
 <ul>
-<li><p>JVM 会给每一个 slot 分配一个索引，根据这个索引可以访问到局部变量表中的局部变量值。</p>
+<li><p>Young Generation Space 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>同理分为 Eden Survivor</p>
+</blockquote>
 </li>
-<li><p>当一个实例方法被调用时，他的方法参数和局部变量会按顺序复制到每一个 slot 上。</p>
+<li><p>Tenure Generation Space 养老区 Old&#x2F;Tenure</p>
 </li>
-<li><p>32 bit 的数据占用一个 slot，64bit 的占用两个，64的只有 long 和 double，包括引用都是 32bit的。</p>
-</li>
-<li><p>如果要访问一个 64bit的数据，只需要访问这个数据的第一个slot的索引即可。</p>
-</li>
-<li><p>如果当前栈帧被构造方法或者实例方法创建，则 对象 this 会被存到 index 位 0 的栈帧上，其余的按顺序。</p>
-</li>
-</ul>
-<h2 id="3-4-静态变量和局部变量的对比"><a href="#3-4-静态变量和局部变量的对比" class="headerlink" title="3.4 静态变量和局部变量的对比"></a>3.4 静态变量和局部变量的对比</h2><ul>
-<li><p>局部变量表初始化完以后，才会按顺序定义局部变量的空间</p>
-</li>
-<li><p>静态变量有两次机会赋值，第一次是链接阶段的准备阶段，讲静态变量初始化位零值，第二次是 初始化阶段，赋值为我们定义的值。</p>
-</li>
-<li><p>局部变量没有初始化，他必须我们自己定义初始值，否则不能用。</p>
+<li><p>Meta Space 元空间 Meta</p>
 </li>
 </ul>
-<h2 id="3-5-补充说明"><a href="#3-5-补充说明" class="headerlink" title="3.5 补充说明"></a>3.5 补充说明</h2><ul>
-<li><p>这部分和GC有很大联系的就是局部变量表，方法执行时，通过这东西完成参数传递。</p>
-</li>
-<li><p>局部变量表中的变量也是GC中重要的根节点，只要是被局部变量表中直接或间接引用的对象都不会被回收。</p>
 </li>
 </ul>
-<h1 id="4-操作数栈"><a href="#4-操作数栈" class="headerlink" title="4. 操作数栈"></a>4. 操作数栈</h1><h2 id="4-1-概述"><a href="#4-1-概述" class="headerlink" title="4.1 概述"></a>4.1 概述</h2><p>操作数栈，字面意思，就是用于方法内代码执行做运算的。细节如下：</p>
+<p>需要注意的是，永久代和元空间其实并不属于 堆，而是属于方法区，所以在这里不细说永久代。 如何证明堆包括元空间和养老代？还是昨天那个工具：Jvisualvm，里面的 visualGC， 里面 三块，enden survivor tenure 加起来 就是你设置的 堆的大小。</p>
+<p>在Java 中分别叫 PSYoungGen&#x3D;新生区 ParOldGen&#x3D;养老区 MetaGen&#x2F;PSPermGen&#x3D;元空间&#x2F;永久区</p>
+<h1 id="3-设置堆空间大小"><a href="#3-设置堆空间大小" class="headerlink" title="3. 设置堆空间大小"></a>3. 设置堆空间大小</h1><ul>
+<li><p>堆的大小在JVM启动的时候就已经设定好了，可以通过 -Xmx 和 -Xms 来设置</p>
 <ul>
-<li><p>每一个栈帧除了局部变量表外，还有操作数栈，后进先出。</p>
+<li><p>-Xms 用来表示堆区的初始内存，等价于： -XX:InitialHeapSize</p>
 </li>
-<li><p>根据指令的不同，进行 push 和 pop 的操作，也只能进行这两个操作</p>
+<li><p>-Xmx 用来表示堆区的最大内存，等价于：-XX:MaxHeapSize</p>
+<blockquote>
+<p>-X 是 JVM 参数，ms &#x3D; memory start</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>一旦堆区的内存大小超过 -Xmx，就会跑出 OutOfMemoryError异常。</p>
+</li>
+<li><p>通常会将-Xms 和 -Xmx配置相同的值，目的就是为了能够在Java垃圾回收机制清理完堆区后 不需要重新分割计算堆区的大小，从而提供性能。</p>
+</li>
+<li><p>默认情况下，初始内存大小：物理电脑内存大小 &#x2F; 64,最大内存：物理电脑内存大小 &#x2F; 4</p>
+</li>
+</ul>
+<h1 id="4-堆的年轻代和老年代"><a href="#4-堆的年轻代和老年代" class="headerlink" title="4. 堆的年轻代和老年代"></a>4. 堆的年轻代和老年代</h1><p>别说话，看图： </p>
+<p><img src="/../images/runtime/HeapOldGenAndYoungGen.png" alt="heap"></p>
+<p>存储在JVM中的Java对象可以分为两类：</p>
 <ul>
-<li><p>某些字节码指令让操作数入栈，然后其他的指令让操作数出栈求和，再重新入栈。</p>
+<li><p>生命周期比较短的瞬时对象，创建消亡都非常迅速</p>
 </li>
-<li><p>比如 赋值 求和 交换等操作。</p>
-</li>
-</ul>
-</li>
-<li><p>主要用于保存计算的中间结果，同时作为计算过程中变量临时的存储空间</p>
-</li>
-<li><p>操作数栈就是JVM执行引擎的一个工作区，随着方法执行被创建，刚创建时是空的(空 !&#x3D; 没创建)</p>
-</li>
-<li><p>每个操作数栈都有一个明确的深度来进行存储，也是在编译的时候就已经定义好的， 在code 里面的 max_stack 里面定义，或者 javap 里面 方法的stack 参数</p>
-</li>
-<li><p>栈里面的每一个元素都可以是任意java类型，32bit的数据占1个栈深度，64bit占2个站深度。</p>
-</li>
-<li><p>如果被调用的方法有返回值，那么返回值也会入栈，同时PC寄存器更新下一条指令。</p>
-</li>
-<li><p>栈里面的元素和字节码指令的数据类型必须严格匹配，编译器在编译期间会进行验证。</p>
-</li>
-<li><p>我们所说的 Java解释引擎是基于栈的，这里的栈 就是 操作数栈。</p>
+<li><p>生命周期比较长，极端情况下和JVM的声明周期一样长</p>
 </li>
 </ul>
-<h2 id="4-2-具体流程分析"><a href="#4-2-具体流程分析" class="headerlink" title="4.2 具体流程分析"></a>4.2 具体流程分析</h2><p>我们找一段代码来具体分析分析操作数栈到底是干啥的，直接看图：</p>
-<p><img src="/images/runtime/operateStack.png" alt="ops_stack"></p>
-<p>我们逐条看指令，</p>
-<ol>
-<li><p>首先进行了 bipush 操作，push 15，将 15 存入操作数栈</p>
+<p>创建出来的对象先放在 年轻代的Eden 区，进行一轮垃圾回收之后，如果是垃圾了，就直接回收了， 如果不是垃圾，说明对象幸存，则放到 survivor0 或者 survivor1 中。</p>
+<blockquote>
+<p>survivor 也叫 from &#x2F; to 区</p>
+</blockquote>
+<h2 id="内存占比"><a href="#内存占比" class="headerlink" title="内存占比"></a>内存占比</h2><p>默认情况下，年轻代和老年代占比 1:2，也就是年轻代占堆的1&#x2F;3，老年代占堆的 2&#x2F;3.能不能手动调整？可以，启动时添加JVM参数：<code>-XX:NewRatio=n</code> 设置年轻代和老年代占比 1:n。当然默认情况下是 <code>-XX:NewRatio=2</code>。但是这个数一般不建议改，除非你确定项目中有很多老对象。</p>
+<p>HotSpot虚拟机中，伊甸园区和幸存者区占比为 8:1:1。同理可以通过启动参数 <code>-XX:survivorRatio=n</code> 来调整。但是需要说一下，其实启动后占比是6:1:1，而不是8:1:1，你要是真想让他8:1:1符合规范，那你设置一下好了。</p>
+<p>几乎所有对象首先都是在Eden区创建，除非这个对象太大了直接放到OldGen，而且大部分对象的销毁都是放在Eden中，有研究表明 80%的对象都是朝生暮死，生命周期很短。如果我们嫌不够的话，可以使用参数 <code>-Xmn</code> 来调整新生代大小.</p>
+<h1 id="5-创建对象的大体流程"><a href="#5-创建对象的大体流程" class="headerlink" title="5. 创建对象的大体流程"></a>5. 创建对象的大体流程</h1><p>前文说道，创建对象一般发生在新生代，那么新生代具体发生了什么，让我们来详细说一说，注意，这里并没有提到类加载器，仅仅是在对重给对象分配内存流程。后面还会详细说一个对象创建具体的流程。</p>
+<h2 id="5-1-流程"><a href="#5-1-流程" class="headerlink" title="5.1 流程"></a>5.1 流程</h2><ol>
+<li><p>在Eden区分配空间，大部分情况都是吧对象分配在eden区，上文也说过，除非这个对象特别大</p>
 </li>
-<li><p>执行 istore_1 也就是弹栈得到15后存入局部变量表的1位置(复习一下，0位置存this)</p>
+<li><p>当Eden区满了的时候，出发年轻代的垃圾回收机制，叫 YGC(YoungGC) 或者叫 MinorGC，Eden中已经没有了引用的对象将会被回收，剩下的对象，将会进入 survivor0 或者 survivor1，这里我们先假设 survivor0 和 survivor1 都是空的，再假设 Eden中没有被回收的对象进入了 survivor0.这个时候 survivor0 就叫to区，同时进入 survivor0 的对象有一个年龄计数器，用来记录幸存次数，从 0 变成 1。</p>
 </li>
-<li><p>bipush 8，将8存入操作数栈</p>
+<li><p>继续创建对象，放在 Eden中，当Eden再一次满了，再次触发 YGC，这回Eden中的幸存对象将会进入空的那个 survivor，这里空的是 survivor1，年龄计数器变为1，同时 survivor0 中的对象也进行YGC，s0中的幸存者也会进入s1，那么这个时候，s1就叫to区，s0就叫from 区，s区的垃圾回收是 Eden 回收，他也顺带回收一下，如果 s区满了，再说。</p>
 </li>
-<li><p>执行 istore_2 弹栈得8 存入 局部变量表的 2位置</p>
+<li><p>一直进行这个 Eden + from &#x3D;&gt; to 的过程，同时对象的年龄计数器累加。</p>
 </li>
-<li><p>iload_1 这里读取 表中1位置的数据，放入 操作数栈 进行入栈操作</p>
-</li>
-<li><p>iload_2 读取 表中2位置的数据，入栈</p>
-</li>
-<li><p>iadd 将两个操作数弹栈，相加，得到结果重新入栈</p>
-</li>
-<li><p>istore_3 将得到的数据 存储到 局部变量表 3 位置</p>
-</li>
-<li><p>返回</p>
+<li><p>当一个对象的年龄计数器值达到临界的时候，默认是15，那么就会认为这个对象的生命周期很长，就会把它放入 老年代。这个过程叫提升 ：Promotion</p>
 </li>
 </ol>
-<p>在这个过程中，这个栈只需要 2 深度，所以可以看到，code 里面的 stack &#x3D;&#x3D; 2.</p>
-<p>顺带说一句，这里我们可以看到什么 bipush，sipush，意思就是：b(yte) -&gt; i(nt) 和 s(hort) -&gt; i(nt)</p>
-<p>有一种特殊的情况，方法 A return int，然后 方法B 里面调用 A 并用i接收返回值。</p>
-<p>首先在方法A里面最后会进行 ireturn，也就是把返回值结果返回，然后在B方法里面，在 调用A方法接受参数的位置，会进行 aload_0他会得到返回值并入栈。</p>
-<h1 id="5-动态链接"><a href="#5-动态链接" class="headerlink" title="5. 动态链接"></a>5. 动态链接</h1><blockquote>
-<p>或者叫 指向运行时常量池的方法引用</p>
-</blockquote>
-<p>先说一下符号链接</p>
+<h2 id="5-2-总结"><a href="#5-2-总结" class="headerlink" title="5.2 总结"></a>5.2 总结</h2><ul>
+<li><p>针对 s区，复制之后有交换，谁空谁是to</p>
+</li>
+<li><p>关于垃圾回收，频繁在 新生代回收，很少在老年代回收，几乎不再永生代(Meta) 回收。</p>
+</li>
+<li><p>再出发 YGC 的时候，Eden区肯定是被清空了</p>
+</li>
+</ul>
+<h2 id="5-3-特殊情况"><a href="#5-3-特殊情况" class="headerlink" title="5.3 特殊情况"></a>5.3 特殊情况</h2><p>看图：</p>
+<p><img src="/../images/runtime/MemoryHandleSpecialCase.png" alt="heap_memory"></p>
+<p>解释一下： 正常流程肯定能看懂，说一点特殊情况：</p>
 <ul>
-<li>java源文件被编译到class文件里面的时候，所有的变量和方法引用都作为符号引用保存在class常量池中</li>
+<li><p>Eden 放不下了，可能是 Eden 满了，触发 YGC，然后Eden 还是放不下，这个时候Eden肯定是 空了，说明 对象大小超过了 Eden大小，则直接放入 老年代。</p>
+</li>
+<li><p>上面这种情况，如果 老年代也放不下，触发 FGC，还放不下，那完了，抛出 OOM错误。</p>
+</li>
+<li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
+</li>
 </ul>
-<p>这话简直不是人话，我来给翻译一下：</p>
-<p>我们先解析一个class文件，这个原本的Java文件里面有个a方法和b方法，b方法里面调用了a，所以字节码里面方法B有这么一句：</p>
-<p><code>1: invokevirtual #6 // Method methodA:()V</code></p>
-<p>这就意思是调用了 方法#6，当然注释告诉我其实就是 methodA，然后我们去常量池 里面找 #6 是个啥，然后找半天，不停地指向别的符号，最后指向了 methodA 和 ()V，methodA 就是方法名，()V 就是无参，返回 void 磨磨唧唧不停地指向别的东西。</p>
-<p>同时，体现出，所有的东西，都存在常量池中，比如我们输出的 String，也存在 常量池中。</p>
-<p>所以：</p>
-<p>运行时，将常量池加载到方法区内形成运行时常量池，然后每个栈帧都包含一个 指向运行时常量池中 该栈帧所属方法的引用，那么这个引用，就是动态链接，可以支持该方法实现动态链接。</p>
-<p>下面解释一下啥是常量池：</p>
-<blockquote>
-<p>说的还是不是人话，我这里再解释一下：我们解析一个Class文件会发现里面有个constant pool常量池，这里面包含什么？字符串字面值，各种需要用到的类等等等等。然后下面的代码比如 String st &#x3D; “123”，这个123就会存到常量池中，并不会直接在代码中体现。</p>
-<p>JVM读取class的时候，就会去读这个常量池，也就是可以提前知道这个类里面要用到哪些其他的类，以及有用到哪些常量值，然后JVM就会把这个常量池读到运行时数据区，比如常量池中有 System.out 这个类，JVM就会提前把这个类加载到方法区中。总而言之，JVM会读取常量池从而形成运行时常量池。</p>
-<p>然后，class文件中，代码会指向常量池中的某些元素，比如 invokevirtual #6，就是指向了#6常量，但是JVM读了以后你不能还指向#6了，因为已经有了运行时常量池，常量池中的元素已经有了具体的内存体现了，那你还指向#6干啥，这时就会让代码直接指向运行时常量池。这一步，也就对应了类加载中的 链接-解析 阶段。</p>
-</blockquote>
-<p>既然知道了啥是常量池，那么我们再看看这个动态链接，其实就很好理解了，字节码文件中，方法名，方法返回值，方法入参类型，这些都是存在常量池中的东西。那么栈帧应该知道自己这个方法对应到运行时常量池中的是哪个，动态链接就是干这个的。</p>
-<h2 id="为何需要常量池"><a href="#为何需要常量池" class="headerlink" title="为何需要常量池"></a>为何需要常量池</h2><p>我们加载一个类，比如我们就写一个类里面有一个主方法，就一个输出，他加载到内存里面就需要加载 比如 父类Object，各种数据类型，System对象，PrintWriter对象，等等。</p>
-<p>如果这些东西全都存在 class里面，就很浪费，所以弄一个常量池，把常用的东西放进去，需要的时候直接引用过来就行了。</p>
-<h1 id="6-方法调用"><a href="#6-方法调用" class="headerlink" title="6. 方法调用"></a>6. 方法调用</h1><blockquote>
-<p>从 JVM 角度看java 方法如何被调用</p>
-</blockquote>
-<p>上面刚说过，在类加载的时候，会把符号引用转化为直接引用，而这个转化过程是在编译期间完成的还是在运行期间完成的，这个还是有区别的。</p>
-<h2 id="6-1-静态链接"><a href="#6-1-静态链接" class="headerlink" title="6.1 静态链接"></a>6.1 静态链接</h2><p>一个字节码文件被加载到 JVM 内部时，如果被调用的目标方法在编译期间可知，且运行期间保持不变，那么这个时候 符号 -&gt; 直接 的转化，就叫静态链接。</p>
-<blockquote>
-<p>简单说，编译期间转化，就叫静态链接</p>
-</blockquote>
-<h2 id="6-2-动态链接"><a href="#6-2-动态链接" class="headerlink" title="6.2 动态链接"></a>6.2 动态链接</h2><p>对应的，如果在编译期间无法确定，比如接口回调，需要在运行时转换，则成为动态链接。</p>
-<blockquote>
-<p>同理，运行期间绑定，动态链接</p>
-</blockquote>
-<h2 id="6-3-绑定"><a href="#6-3-绑定" class="headerlink" title="6.3 绑定"></a>6.3 绑定</h2><p>什么叫绑定？一个字段，方法，类的符号引用替换成直接引用的过程，只发生一次。同时这里还区分早期绑定和晚期绑定：</p>
+<h1 id="6-堆垃圾回收"><a href="#6-堆垃圾回收" class="headerlink" title="6. 堆垃圾回收"></a>6. 堆垃圾回收</h1><p>大体来看，Heap 中的 GC 分为 3种：</p>
 <ul>
-<li><p>早期绑定：对应静态链接，目标方法在编译期间可知且运行时不变，可以明确被调用的方法是哪一个，使用静态链接的方式进行符号到直接的转化，叫早期绑定</p>
+<li><p>Young GC &#x2F; MinorGC</p>
 </li>
-<li><p>晚期绑定：不确定目标方法，使用动态链接进行转换，就叫晚期绑定</p>
+<li><p>Full GC</p>
+</li>
+<li><p>Old GC &#x2F; Major GC</p>
 </li>
 </ul>
-<h2 id="6-4-虚方法和非虚方法"><a href="#6-4-虚方法和非虚方法" class="headerlink" title="6.4 虚方法和非虚方法"></a>6.4 虚方法和非虚方法</h2><p>非虚方法对应 静态链接和早期绑定，在编译期间就确定方法的具体版本。如下都属于非虚方法：</p>
+<p>根据 HotSpot 虚拟机，按照收集区域又分为两种：部分收集和整堆收集</p>
 <ul>
-<li><p>静态方法</p>
-</li>
-<li><p>私有方法</p>
-</li>
-<li><p>final 修饰的方法</p>
-</li>
-<li><p>实例构造器</p>
-</li>
-<li><p>父类方法</p>
-</li>
-</ul>
-<p>其他的都属于虚方法。</p>
-<h2 id="6-5-虚拟机中调用方法的指令"><a href="#6-5-虚拟机中调用方法的指令" class="headerlink" title="6.5 虚拟机中调用方法的指令"></a>6.5 虚拟机中调用方法的指令</h2><h3 id="6-5-1-调用指令"><a href="#6-5-1-调用指令" class="headerlink" title="6.5.1 调用指令"></a>6.5.1 调用指令</h3><ul>
-<li><p>invokeStatic 调用非虚方法</p>
-</li>
-<li><p>invokeSpecial 调用 <init> 构造方法，私有方法，父类方法</p>
-</li>
-</ul>
-<p>前面两个都属于调用非虚方法</p>
+<li><p>部分收集：不是完整收集整个Java 堆的收集，其中又分为：</p>
 <ul>
-<li><p>invokeVirtual 调用虚方法</p>
-<blockquote>
-<p>但是不代表 invokeVirtual 调用的都是虚方法，特别的，调用final方法，也是 invokeVirtual</p>
-</blockquote>
+<li><p>新生代收集 MinorGC&#x2F;YoungGC: 只收集年轻代的垃圾收集</p>
 </li>
-<li><p>invokeInterface 调用接口方法</p>
-</li>
-</ul>
-<p>还有一个特殊的，调用Lambda 的指令</p>
+<li><p>老年代收集 MajorGC&#x2F;OldGC： 只收集老年代</p>
 <ul>
-<li>invokeDynamic</li>
-</ul>
-<p>java7 开始才引入了 invokeDynamic 这个东西，为了体现 java 的 动态类型语言特性。但是 java7 没法直接生成 invokeDynamic 指令，知道 java8 出现了 lambda 表达式，java8 才能直接生成 invokeDynamic 指令。</p>
-<h3 id="6-5-2-动态类型语言-和-静态类型语言"><a href="#6-5-2-动态类型语言-和-静态类型语言" class="headerlink" title="6.5.2 动态类型语言 和 静态类型语言"></a>6.5.2 动态类型语言 和 静态类型语言</h3><p>简单说，静态类型语言在编译期间会对数据类型进行检查，动态类型语言会在运行时进行类型检查，变量本身没有类型，变量值才有类型。</p>
-<h1 id="7-方法返回值地址"><a href="#7-方法返回值地址" class="headerlink" title="7. 方法返回值地址"></a>7. 方法返回值地址</h1><p>所谓 方法返回值地址，这里我给举个例子：</p>
-<p>我们调用 方法 A，方法 A 里面我们有调用了 方法 B，在虚拟机栈的角度，A 入栈，然后B入栈，现在，方法 B 执行完成，那么就需要回到 方法 A 中 调用 B 的那个地方，继续往下执行，方法 B 的返回值，需要给到 方法 A 调用 B 的那一行代码，这就需要方法返回值地址</p>
-<p>方法返回值地址里面存储了 PC寄存器中的值，也就是记录了调用方法的位置的下一行代码，然后方法执行完成，将返回值放入操作数栈，然后根据方法返回值地址，回到方法调用的位置，继续执行。</p>
-<h2 id="7-1-方法退出的两种情况"><a href="#7-1-方法退出的两种情况" class="headerlink" title="7.1 方法退出的两种情况"></a>7.1 方法退出的两种情况</h2><ul>
-<li><p>正常退出，调用者 PC寄存器的值作为返回地址，调用该方法指令的下一条指令地址。</p>
+<li><p>目前只有CMS GC会有单独收集老年代的行为</p>
 </li>
-<li><p>出现未处理异常，非正常退出，返回地址需要异常表来确定，栈帧不保存这部分信息</p>
+<li><p>很多时候 MajorGC 会和 FullGC 混合使用，需要具体分辨是老年代回收还是整堆回收</p>
 </li>
 </ul>
-<p>所以，方法返回值地址仅针对方法正常推退出的情况。</p>
-<h2 id="7-2-返回指令："><a href="#7-2-返回指令：" class="headerlink" title="7.2 返回指令："></a>7.2 返回指令：</h2><p>函数返回指令如下：</p>
+</li>
+<li><p>混合回收器 Mixed GC：收集整个新生代和部分老年代的垃圾</p>
 <ul>
-<li><p>ireturn -&gt; intReturn 返回 byte short int boolean char</p>
-</li>
-<li><p>lreturn -&gt; longReturn 返回 long</p>
-</li>
-<li><p>freturn -&gt; floatReturn 返回 float</p>
-</li>
-<li><p>dreturn -&gt; doubleReturn 返回 double</p>
-</li>
-<li><p>areturn -&gt; 不知道 返回 引用</p>
-</li>
-<li><p>return -&gt; void 方法无返回值</p>
+<li>只有G1 GC 有这种行为</li>
+</ul>
 </li>
 </ul>
-<h2 id="7-3-异常表"><a href="#7-3-异常表" class="headerlink" title="7.3 异常表"></a>7.3 异常表</h2><p>如果方法存在异常，则会有一个异常表进行处理，在方法里面，需要 javap</p>
-<p>结构如下：</p>
-<table>
-<thead>
-<tr>
-<th>from</th>
-<th>to</th>
-<th>target</th>
-<th>type</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>6</td>
-<td>8</td>
-<td>11</td>
-<td>java&#x2F;io&#x2F;IOException</td>
-</tr>
-</tbody></table>
-<p>意思如下：</p>
-<p>从 6 到 8 行 如果出现异常IOException，交给 11 处理，其实也就是 try catch 代码块里面的东西。</p>
-<h1 id="8-总结"><a href="#8-总结" class="headerlink" title="8. 总结"></a>8. 总结</h1><p>很好，栈总算是说完了。下面就是牛逼的堆了。</p>
+</li>
+<li><p>整堆收集：收集整个 Java 堆 和 方法区 的垃圾，注意，还包括方法区。</p>
+</li>
+</ul>
+<p>下面说一下各个内存部分的垃圾回收触发机制：</p>
+<h2 id="6-1-年轻代触发机制"><a href="#6-1-年轻代触发机制" class="headerlink" title="6.1 年轻代触发机制"></a>6.1 年轻代触发机制</h2><ul>
+<li><p>年轻代空间不足，就会触发minor gc,这里说的空间不足指的是eden空间不足，survivor 满了不会触发 minor gc，只会发生提升。每次回收都会清空年轻代内存。</p>
+</li>
+<li><p>Java 对象大多数申明周期很短，所以minor gc 发生的特别频繁。</p>
+</li>
+<li><p>minor gc 会触发STW，也就是暂停用户线程，等垃圾回收结束，才会恢复用户线程</p>
+</li>
+</ul>
+<h2 id="6-2-老年代回收："><a href="#6-2-老年代回收：" class="headerlink" title="6.2 老年代回收："></a>6.2 老年代回收：</h2><ul>
+<li><p>发生在老年代的垃圾回收，当对象从老年代消失了，我们就认为 major gc 或者 full gc 发生了，</p>
+</li>
+<li><p>发生一次 major gc，一般来说，伴随着至少一次的minor gc，不是绝对的，以后再说。</p>
+<ul>
+<li>也就是当老年代空间不足时，西安出发一次 minor gc，如果空间还不足，触发 major gc</li>
+</ul>
+</li>
+<li><p>major gc 一般比 minor gc 慢10倍以上，stw 时间更长。</p>
+</li>
+<li><p>如果major gc后空间还是不够，抛出 OOM 异常。</p>
+</li>
+</ul>
+<h2 id="6-3-FullGC-触发机制："><a href="#6-3-FullGC-触发机制：" class="headerlink" title="6.3 FullGC 触发机制："></a>6.3 FullGC 触发机制：</h2><ul>
+<li><p>调用 System.gc() 时</p>
+</li>
+<li><p>老年代空间不足</p>
+</li>
+<li><p>方法区空间不足</p>
+</li>
+<li><p>通过 minor gc 后进入老年代的平均大小大于老年代的可用内存</p>
+</li>
+<li><p>eden from 的对象往 to 区复制，to区空间不够，提升到老年代，老年代空间也不够，触发 full gc</p>
+</li>
+<li><p>开发中尽量避免 full gc</p>
+</li>
+</ul>
+<h1 id="7-TLAB"><a href="#7-TLAB" class="headerlink" title="7. TLAB"></a>7. TLAB</h1><p>前文说过TLAB，说是 堆里面有每个线程的私有缓冲区，有 TLAB，ThreadLocal，Buffer，Allocation，其实后面的三个词全都在说 TLAB。</p>
+<h2 id="7-1-TLAB是啥"><a href="#7-1-TLAB是啥" class="headerlink" title="7.1 TLAB是啥"></a>7.1 TLAB是啥</h2><p>ThreadLocal Buffer Allocation： 线程私有缓冲区，用于结局线程安全问题。</p>
+<h2 id="7-2-为什么要设置TLAB"><a href="#7-2-为什么要设置TLAB" class="headerlink" title="7.2 为什么要设置TLAB"></a>7.2 为什么要设置TLAB</h2><p>堆是整个进程共享的一块区域，如果一大堆线程同事访问堆，会造成县城不安全，如果给数据加锁，那效率就太慢了，所以为了提高效率，加入了线程缓冲区。</p>
+<p>JVM给每个线程在 Eden 划分出来一块 TLAB，这种方式解决了线程安全问题，提高了内存分配吞吐量，我们就管这种方式叫“快速分配策略”.</p>
+<p>虽然说不是所有对象都可以分配在 TLAB上，但是TLAB确实是JVM分配对象的首选。TLAB非常小，仅仅占到了 Eden的 1%。</p>
+<p>如果对象在TLAB分配失败，JVM就会考虑给对象加锁，直接把对象放在Eden中。</p>
+<h2 id="7-3-一些参数"><a href="#7-3-一些参数" class="headerlink" title="7.3 一些参数"></a>7.3 一些参数</h2><ul>
+<li><p>-XX:useTLAB 是否开启TLAB，默认开启</p>
+</li>
+<li><p>-XX:TLABWasteTargetPercent 设置TLAB占Eden的百分比。</p>
+</li>
+</ul>
+<h2 id="7-4-对象创建过程"><a href="#7-4-对象创建过程" class="headerlink" title="7.4 对象创建过程"></a>7.4 对象创建过程</h2><p>有了TLAB以后，对象创建流程如下：</p>
+<p><img src="/../images/runtime/TLAB.png" alt="tlab"></p>
+<h2 id="7-5-剩下的"><a href="#7-5-剩下的" class="headerlink" title="7.5 剩下的"></a>7.5 剩下的</h2><p>p81 没好好看，以后可以补一补。</p>
+<h1 id="8-逃逸分析"><a href="#8-逃逸分析" class="headerlink" title="8. 逃逸分析"></a>8. 逃逸分析</h1><p>随着 JIT(编译器) 的发展，逃逸分析技术逐渐成熟，栈上分配，标量替换优化技术 导致技术上有了一点区别，那就是 堆上分配对象不再那么绝对了。</p>
+<p>大部分情况下，一个对象在堆上分配空间，但是在某些特殊情况下，这个对象经过了逃逸分析，发现这个方法并没有逃离方法，那么这个对象就有可能在栈上分配空间。</p>
+<p>但是提一句，HotSpot虚拟机可是没有逃逸分析里面的部分功能的，比如栈上分配这个，HotSpot就没有。</p>
+<h2 id="8-1-逃逸分析概述"><a href="#8-1-逃逸分析概述" class="headerlink" title="8.1 逃逸分析概述"></a>8.1 逃逸分析概述</h2><p>逃逸分析干嘛的？就是用来优化内存分配的，我们前面说对象都要分配到堆上，但是堆上涉及到GC，而栈却不涉及GC，所以可不可以把对象存到栈上，然后方法执行完成直接弹栈，省的GC了。所以这个就是逃逸分析要干的事，分配一个对象，就要看这个对象有没有发生逃逸，如果发生逃逸，也就是这个对象跑出了当前方法作用域，那么发生逃逸，该咋办咋办，如果没有，则可以进行优化。就可以把这个对象放到栈上。</p>
+<ul>
+<li><p>通过逃逸分析，Java Hotspot 编译器能够分析一个对象的引用从而决定这个对象是否分配到栈上。</p>
+</li>
+<li><p>逃逸分析的基本行为就是分析对象的作用域：</p>
+<ul>
+<li><p>一个对象被定义后，如果只在方法中调用，那么没有发生逃逸。</p>
+</li>
+<li><p>对象被定义后，方法外也引用了它，则发生了逃逸。比如方法中创建的对象最后被return了。</p>
+</li>
+</ul>
+</li>
+<li><p>没有发生逃逸，则对象可以分配到栈上，毕竟别的地方不用，方法执行完，栈帧出栈，对象也跟着出栈。</p>
+</li>
+<li><p>发生逃逸，那就老老实实往堆上分配。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这种情况下，user 对象仅仅在方法内部被调用，则没有逃逸，往栈上分配就行了  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    user = <span class="literal">null</span>;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 这种情况，StringBuffer 最终被return，发生了逃逸。  </span></span><br><span class="line"><span class="keyword">public</span> StringBuffer <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">buffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    buffer.append(a);  </span><br><span class="line">    buffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> buffer;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面的 StringBuffer 改成这种，就不会发生逃逸  </span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">stringBuffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    stringBuffer.append(a);  </span><br><span class="line">    stringBuffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> stringBuffer.toString();  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数如下：</strong></p>
+<ul>
+<li><p>-XX:-DoEscapeAnalysis 关闭逃逸分析</p>
+</li>
+<li><p>-XX:+DoEscapeAnalysis 开启逃逸分析</p>
+</li>
+</ul>
+<h2 id="8-2-逃逸分析：代码优化"><a href="#8-2-逃逸分析：代码优化" class="headerlink" title="8.2 逃逸分析：代码优化"></a>8.2 逃逸分析：代码优化</h2><p>总的来说，可以通过逃逸分析干好多事，上面那个，仅仅是一个 栈上分配。</p>
+<p>逃逸检测的优化：</p>
+<ul>
+<li><p>栈上分配</p>
+</li>
+<li><p>同步省略</p>
+</li>
+<li><p>分离对象&#x2F;标量替换</p>
+</li>
+</ul>
+<h3 id="8-2-1-栈上分配"><a href="#8-2-1-栈上分配" class="headerlink" title="8.2.1 栈上分配"></a>8.2.1 栈上分配</h3><p>就是前面说的，站上分配对象，如果实体仅仅在方法内部使用没有进入外部，则对象会被分配到栈上。</p>
+<h3 id="8-2-2-同步省略"><a href="#8-2-2-同步省略" class="headerlink" title="8.2.2 同步省略"></a>8.2.2 同步省略</h3><p>如果一个对象仅在一个线程中使用，或者说，一个对象只能从一个线程中被访问，那么对于这个对象的操作就不考虑同步。</p>
+<ul>
+<li><p>线程同步的代价是很高的。</p>
+</li>
+<li><p>在动态编译同步代码块的时候，如果JIT 检测到一个对象仅仅在一个线程中被访问，而没有发布到其他线程，则运行时 JVM 就会取消对这个对象进行上锁，大大的提高效率，这就叫 锁消除。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    <span class="keyword">synchronized</span>(user)&#123;  </span><br><span class="line">        System.out.println(user);  </span><br><span class="line">   &#125;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面这种情况，user 对象仅仅在一个线程中被访问，并没有多个线程共享，所以几遍你给他加了锁，  </span></span><br><span class="line"><span class="comment">// JVM也不会执行，但是废话，这种情况，本来我们就不应该加锁。</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-2-3分离对象或标量替换"><a href="#8-2-3分离对象或标量替换" class="headerlink" title="8.2.3分离对象或标量替换"></a>8.2.3分离对象或标量替换</h3><p>有的对象可能不需要作为一个连续的内存结构存入到内存中，而且也可以被访问到。那么这部分对象的部分(甚至全部) 就可以存到 CPU的寄存器中。</p>
+<p>用Java 说，就是这个对象不用存在 堆中，那就可以放到 栈 中。这里还需要解释几个概念：</p>
+<p><strong>标量</strong></p>
+<p>无法被分解成更小的数据，比如基本数据类型。</p>
+<p><strong>对应聚合量</strong></p>
+<p>还可以被分解的对象就是聚合量，比如我们自己写的类的实例。</p>
+<p><strong>标量替换</strong></p>
+<p>如果经过逃逸分析，发现你目前的对象没有在方法外面使用，他就会把你的聚合量，分解为几个标量，这个过程就叫标量替换。</p>
+<p>说白了，就是吧对象打散了，分配到栈上。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">Point</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>();  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + p.x + <span class="string">&quot; Point.y=&quot;</span> + p.y);  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 最终这个东西会被优化成  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">1</span>;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">y</span> <span class="operator">=</span> <span class="number">2</span>;  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + x + <span class="string">&quot; Point.y=&quot;</span> + y);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>-XX:+EliminateAllocation 开启标量替换，默认就是开启的。</p>
+<h2 id="8-3-总结"><a href="#8-3-总结" class="headerlink" title="8.3 总结"></a>8.3 总结</h2><p>大体说几点：</p>
+<ul>
+<li><p>逃逸分析并不成熟</p>
+</li>
+<li><p>逃逸分析本身也消耗性能，如果分析了半天，结果发现都逃逸了，那完犊子了</p>
+</li>
+<li><p>Oracle HotSpot 并没有栈上分配，所以肯定对象都在堆上</p>
+</li>
+</ul>
 ]]></content>
       <categories>
         <category>JVM</category>
@@ -2555,6 +3116,323 @@
 <p><img src="/images/runtime/NIOProcess.png"></p>
 <p>额，咱也不懂这玩意有啥用，反正先写在这里。</p>
 <h1 id="10-总结"><a href="#10-总结" class="headerlink" title="10. 总结"></a>10. 总结</h1><p>啊，总算是整理完了，这一章东西可谓是奇多，不光是讲方法区，同时还讲了堆和方法区之间是如何配合的，这两部分如何协同才能创建出一个对象来。需要慢慢消化。</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>虚拟机栈</title>
+    <url>/2022/05/27/jvm-stack/</url>
+    <content><![CDATA[<p>虚拟机栈，JVM用于处理方法执行的地方，东西还挺多，而且还听重要.</p>
+<span id="more"></span>
+
+<h1 id="1-虚拟机栈概述"><a href="#1-虚拟机栈概述" class="headerlink" title="1. 虚拟机栈概述"></a>1. 虚拟机栈概述</h1><blockquote>
+<p>Java Virtual Machine Stack</p>
+</blockquote>
+<p>首先明确个概念，JVM是基于栈的存储模型(当然还有基于寄存器的)，一般来说java 中 栈里面存放运行时数据，堆 进行存储，比如创建对象，就会放到堆里面，当然这不代表栈不会存数据，一些局部变量也是存在栈里面的。</p>
+<h2 id="1-1-虚拟机栈是什么"><a href="#1-1-虚拟机栈是什么" class="headerlink" title="1.1 虚拟机栈是什么"></a>1.1 虚拟机栈是什么</h2><p>每个线程创建时都会创建一个虚拟机栈，里面存储着栈帧(Stack Frame) 对应方法调用，栈帧就是方法调用，方法开始调用栈帧入栈，方法调用结束栈帧出栈。</p>
+<p>生命周期和JVM一样。</p>
+<h2 id="1-2-作用"><a href="#1-2-作用" class="headerlink" title="1.2 作用"></a>1.2 作用</h2><p>主管程序的运行，保存方法的局部变量，部分结果，并参与方法的调用和返回</p>
+<blockquote>
+<p>局部变量包括 8 中基本数据类型和 引用数据类型的引用，仅限引用地址，不包括实际的对象，对象在堆中。</p>
+</blockquote>
+<p>大致说一下，先不说那么细，看图： </p>
+<p><img src="/images/runtime/stackFrame.png" alt="stack_frame"></p>
+<p>这里定义两个方法，A 和 B，然后两个方法进行入栈操作，绿色的就是 B 方法，那么栈顶的方法就是当前方法，然后B执行完，A就是当前方法。</p>
+<p>那么目前，我们可以粗略的将方法，理解为栈帧，当然栈帧里面还细分一堆东西，我们现在先不说了。</p>
+<h2 id="1-4-栈的优点"><a href="#1-4-栈的优点" class="headerlink" title="1.4 栈的优点"></a>1.4 栈的优点</h2><ul>
+<li><p>有效的存储方式，访问速度仅次于程序计数器</p>
+</li>
+<li><p>JVM 对栈的操作只有两个</p>
+<ul>
+<li><p>方法执行，入栈</p>
+</li>
+<li><p>执行完，出栈</p>
+</li>
+</ul>
+</li>
+<li><p>不存在垃圾回收</p>
+<blockquote>
+<p>栈不存在 GC 但是存在 OOM (out of memory 内存溢出),PC寄存器俩都没有</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="1-5-栈可能出现的问题"><a href="#1-5-栈可能出现的问题" class="headerlink" title="1.5 栈可能出现的问题"></a>1.5 栈可能出现的问题</h2><p>Java 中，栈的大小可以是动态的或者固定不变的。如果栈的大小固定不变，那么入栈操作可能会因为栈满了而报错， 抛出 StackOverFlowError</p>
+<blockquote>
+<p>最常见的就是无限递归</p>
+</blockquote>
+<p>如果栈的大小动态，那么可能进行入栈操作是跟内存要空间，结果内存没了，导致异常 抛出 OutOfMemoryError</p>
+<h1 id="2-栈帧概述"><a href="#2-栈帧概述" class="headerlink" title="2. 栈帧概述"></a>2. 栈帧概述</h1><p>何为栈帧，我们上面说，把一个方法的调用理解成栈帧，一个方法在JVM中执行，就是虚拟机栈中压入了这个方法对应的栈帧，方法执行完成后，这个栈帧就会弹栈。同时为了保证方法执行的正确性以及其他的一些什么乱七八糟的东西，栈帧内部还有很多的其他组成部分，我们下面会详细说。</p>
+<h2 id="2-1-栈帧的注意事项"><a href="#2-1-栈帧的注意事项" class="headerlink" title="2.1 栈帧的注意事项"></a>2.1 栈帧的注意事项</h2><ul>
+<li><p>不同线程之间的栈帧不能相互引用</p>
+</li>
+<li><p>如果方法调用了其他返回，在方法返回时，当前栈帧会传给前一栈帧执行结果，当前栈帧出栈，让上一个栈帧变为当前。</p>
+</li>
+<li><p>java中有两个方式返回方法，return 和 throw(没有处理)，两种办法都会弹出栈帧。</p>
+</li>
+</ul>
+<h2 id="2-2-栈帧的具体结构"><a href="#2-2-栈帧的具体结构" class="headerlink" title="2.2 栈帧的具体结构"></a>2.2 栈帧的具体结构</h2><p>分为5部分：</p>
+<ul>
+<li><p>局部变量表</p>
+</li>
+<li><p>操作数栈&#x2F;表达式栈</p>
+</li>
+<li><p>动态链接&#x2F;指向运行时常量池的方法引用</p>
+</li>
+<li><p>方法返回地址</p>
+</li>
+<li><p>附加信息</p>
+</li>
+</ul>
+<p>下面我们就会进入这5个部分，详细说说栈帧里面都是些什么鬼。</p>
+<h1 id="3-局部变量表"><a href="#3-局部变量表" class="headerlink" title="3. 局部变量表"></a>3. 局部变量表</h1><h2 id="3-1-概述"><a href="#3-1-概述" class="headerlink" title="3.1 概述"></a>3.1 概述</h2><ul>
+<li><p>也叫本地变量表：</p>
+</li>
+<li><p>定义一个数字数组，用于存储方法参数，和定义在方法内的局部变量，这些数据类型包括 8种基本数据类型，引用，和返回值类型。</p>
+</li>
+<li><p>一个线程配套一个虚拟机栈，所以不存在线程安全问题。</p>
+</li>
+<li><p>这个表的长度一开始就已经固定，且不会发生改变，因为在编译的时候编译器就已经解析出来你这个方法需要多少个临时变量了，表长存在一个 maximum local variables 属性里面。 可以反编译一个class文件找找，code 里面的 locals 也记录了。</p>
+</li>
+<li><p>只在当前方法中有效，别人想用就得传参了，方法调用结束变量表随之销毁。</p>
+</li>
+<li><p>方法嵌套次数由虚拟机栈决定，一般来说，栈越大，嵌套越多，如果一个方法的本地数据过多， 会导致栈帧过大，进而占用虚拟机栈的空间变多，导致方法嵌套次数变少。</p>
+</li>
+</ul>
+<p>我们解析一个 class文件，就能在方法里面找到 LocalVariableTable， slot 代表了第几个本地变量，然后 length不解释，signature 就是数据类型， 同时，code 里面的 locals 也记录了 变量表的最大长度。</p>
+<h2 id="3-2-解析Class中的方法"><a href="#3-2-解析Class中的方法" class="headerlink" title="3.2 解析Class中的方法"></a>3.2 解析Class中的方法</h2><p>我们解析一个 class文件以后，不说 javap 解析了，就说 jclasslib 解析以后得到的东西。首先我们解析完成后，随便进入一个方法，这里我就以main方法为例：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">name: cp_info #30 &lt;main&gt;  </span><br><span class="line">descriptor: cp_info #31 &lt;([Ljava/lang/String:V)&gt;  </span><br><span class="line">Access flags: 0x0009 [public static]</span><br></pre></td></tr></table></figure>
+
+<p>name 就是方法名，告诉你是 main 方法，descriptor 描述，包括 参数类型：LJava…String,L 代表引用，V 代表void 无返回值。Access flags 访问表示，告诉你是 public static。</p>
+<p>然后，我们进入 code，byteCode 就是字节码指令, ExceptionTable 就是异常表，没有异常，空。misc 里面就是一些描述，比如 本地变量表的最大长度，还有指令长度，字节码指令0 - 最后那个号。</p>
+<p>然后code 里面还有一个 LineNumberTable,里面记录Java 代码和 字节码指令的行号映射关系，lineNumber 表示 Java 行数，startPC 代表字节码指令行数，两个上述一一对应。</p>
+<p>LineNumberTable如下：</p>
+<p><img src="/images/runtime/line_number_table.png" alt="line_number_table"></p>
+<p>然后重点看看本地变量表，局部变量表如下：</p>
+<p><img src="/images/runtime/local_var_table.png" alt="local_var_table"></p>
+<p>你方法里面有几个局部变量，他就有几行+1，几个字段+1(一般情况是，为啥？实例方法局部变量表中的第一位是 this)：</p>
+<ul>
+<li><p>name名字： 想必是局部变量的名称</p>
+</li>
+<li><p>descriptor 描述符： 就是类型，同理L是引用，</p>
+</li>
+<li><p>startPC起始PC： 是你这个局部变量的作用域的起始位置，是一个 字节码行号， 根据 lineNumber 表找到对应java 的行数，其实就是你java声明了这个局部变量的下一行。</p>
+</li>
+<li><p>index 序号： 就是索引</p>
+</li>
+<li><p>length长度： 不是说你这个变量多长，而是作用域长度，结合上面的 startPC， 比如 misc 里面记录的字节码长度是16，就代表你总共有16条指令， 然后已定义了一个变量，从 字节码的 第8行开始，然后到第15(0开始)失效， 那么你的这个 length 就是 8，从第8行开始，在往后的8行内生效。</p>
+</li>
+</ul>
+<h2 id="3-3-槽-Slot"><a href="#3-3-槽-Slot" class="headerlink" title="3.3 槽 Slot"></a>3.3 槽 Slot</h2><p>本地变量表中，会将数据存放到 槽中。</p>
+<ul>
+<li><p>JVM 会给每一个 slot 分配一个索引，根据这个索引可以访问到局部变量表中的局部变量值。</p>
+</li>
+<li><p>当一个实例方法被调用时，他的方法参数和局部变量会按顺序复制到每一个 slot 上。</p>
+</li>
+<li><p>32 bit 的数据占用一个 slot，64bit 的占用两个，64的只有 long 和 double，包括引用都是 32bit的。</p>
+</li>
+<li><p>如果要访问一个 64bit的数据，只需要访问这个数据的第一个slot的索引即可。</p>
+</li>
+<li><p>如果当前栈帧被构造方法或者实例方法创建，则 对象 this 会被存到 index 位 0 的栈帧上，其余的按顺序。</p>
+</li>
+</ul>
+<h2 id="3-4-静态变量和局部变量的对比"><a href="#3-4-静态变量和局部变量的对比" class="headerlink" title="3.4 静态变量和局部变量的对比"></a>3.4 静态变量和局部变量的对比</h2><ul>
+<li><p>局部变量表初始化完以后，才会按顺序定义局部变量的空间</p>
+</li>
+<li><p>静态变量有两次机会赋值，第一次是链接阶段的准备阶段，讲静态变量初始化位零值，第二次是 初始化阶段，赋值为我们定义的值。</p>
+</li>
+<li><p>局部变量没有初始化，他必须我们自己定义初始值，否则不能用。</p>
+</li>
+</ul>
+<h2 id="3-5-补充说明"><a href="#3-5-补充说明" class="headerlink" title="3.5 补充说明"></a>3.5 补充说明</h2><ul>
+<li><p>这部分和GC有很大联系的就是局部变量表，方法执行时，通过这东西完成参数传递。</p>
+</li>
+<li><p>局部变量表中的变量也是GC中重要的根节点，只要是被局部变量表中直接或间接引用的对象都不会被回收。</p>
+</li>
+</ul>
+<h1 id="4-操作数栈"><a href="#4-操作数栈" class="headerlink" title="4. 操作数栈"></a>4. 操作数栈</h1><h2 id="4-1-概述"><a href="#4-1-概述" class="headerlink" title="4.1 概述"></a>4.1 概述</h2><p>操作数栈，字面意思，就是用于方法内代码执行做运算的。细节如下：</p>
+<ul>
+<li><p>每一个栈帧除了局部变量表外，还有操作数栈，后进先出。</p>
+</li>
+<li><p>根据指令的不同，进行 push 和 pop 的操作，也只能进行这两个操作</p>
+<ul>
+<li><p>某些字节码指令让操作数入栈，然后其他的指令让操作数出栈求和，再重新入栈。</p>
+</li>
+<li><p>比如 赋值 求和 交换等操作。</p>
+</li>
+</ul>
+</li>
+<li><p>主要用于保存计算的中间结果，同时作为计算过程中变量临时的存储空间</p>
+</li>
+<li><p>操作数栈就是JVM执行引擎的一个工作区，随着方法执行被创建，刚创建时是空的(空 !&#x3D; 没创建)</p>
+</li>
+<li><p>每个操作数栈都有一个明确的深度来进行存储，也是在编译的时候就已经定义好的， 在code 里面的 max_stack 里面定义，或者 javap 里面 方法的stack 参数</p>
+</li>
+<li><p>栈里面的每一个元素都可以是任意java类型，32bit的数据占1个栈深度，64bit占2个站深度。</p>
+</li>
+<li><p>如果被调用的方法有返回值，那么返回值也会入栈，同时PC寄存器更新下一条指令。</p>
+</li>
+<li><p>栈里面的元素和字节码指令的数据类型必须严格匹配，编译器在编译期间会进行验证。</p>
+</li>
+<li><p>我们所说的 Java解释引擎是基于栈的，这里的栈 就是 操作数栈。</p>
+</li>
+</ul>
+<h2 id="4-2-具体流程分析"><a href="#4-2-具体流程分析" class="headerlink" title="4.2 具体流程分析"></a>4.2 具体流程分析</h2><p>我们找一段代码来具体分析分析操作数栈到底是干啥的，直接看图：</p>
+<p><img src="/images/runtime/operateStack.png" alt="ops_stack"></p>
+<p>我们逐条看指令，</p>
+<ol>
+<li><p>首先进行了 bipush 操作，push 15，将 15 存入操作数栈</p>
+</li>
+<li><p>执行 istore_1 也就是弹栈得到15后存入局部变量表的1位置(复习一下，0位置存this)</p>
+</li>
+<li><p>bipush 8，将8存入操作数栈</p>
+</li>
+<li><p>执行 istore_2 弹栈得8 存入 局部变量表的 2位置</p>
+</li>
+<li><p>iload_1 这里读取 表中1位置的数据，放入 操作数栈 进行入栈操作</p>
+</li>
+<li><p>iload_2 读取 表中2位置的数据，入栈</p>
+</li>
+<li><p>iadd 将两个操作数弹栈，相加，得到结果重新入栈</p>
+</li>
+<li><p>istore_3 将得到的数据 存储到 局部变量表 3 位置</p>
+</li>
+<li><p>返回</p>
+</li>
+</ol>
+<p>在这个过程中，这个栈只需要 2 深度，所以可以看到，code 里面的 stack &#x3D;&#x3D; 2.</p>
+<p>顺带说一句，这里我们可以看到什么 bipush，sipush，意思就是：b(yte) -&gt; i(nt) 和 s(hort) -&gt; i(nt)</p>
+<p>有一种特殊的情况，方法 A return int，然后 方法B 里面调用 A 并用i接收返回值。</p>
+<p>首先在方法A里面最后会进行 ireturn，也就是把返回值结果返回，然后在B方法里面，在 调用A方法接受参数的位置，会进行 aload_0他会得到返回值并入栈。</p>
+<h1 id="5-动态链接"><a href="#5-动态链接" class="headerlink" title="5. 动态链接"></a>5. 动态链接</h1><blockquote>
+<p>或者叫 指向运行时常量池的方法引用</p>
+</blockquote>
+<p>先说一下符号链接</p>
+<ul>
+<li>java源文件被编译到class文件里面的时候，所有的变量和方法引用都作为符号引用保存在class常量池中</li>
+</ul>
+<p>这话简直不是人话，我来给翻译一下：</p>
+<p>我们先解析一个class文件，这个原本的Java文件里面有个a方法和b方法，b方法里面调用了a，所以字节码里面方法B有这么一句：</p>
+<p><code>1: invokevirtual #6 // Method methodA:()V</code></p>
+<p>这就意思是调用了 方法#6，当然注释告诉我其实就是 methodA，然后我们去常量池 里面找 #6 是个啥，然后找半天，不停地指向别的符号，最后指向了 methodA 和 ()V，methodA 就是方法名，()V 就是无参，返回 void 磨磨唧唧不停地指向别的东西。</p>
+<p>同时，体现出，所有的东西，都存在常量池中，比如我们输出的 String，也存在 常量池中。</p>
+<p>所以：</p>
+<p>运行时，将常量池加载到方法区内形成运行时常量池，然后每个栈帧都包含一个 指向运行时常量池中 该栈帧所属方法的引用，那么这个引用，就是动态链接，可以支持该方法实现动态链接。</p>
+<p>下面解释一下啥是常量池：</p>
+<blockquote>
+<p>说的还是不是人话，我这里再解释一下：我们解析一个Class文件会发现里面有个constant pool常量池，这里面包含什么？字符串字面值，各种需要用到的类等等等等。然后下面的代码比如 String st &#x3D; “123”，这个123就会存到常量池中，并不会直接在代码中体现。</p>
+<p>JVM读取class的时候，就会去读这个常量池，也就是可以提前知道这个类里面要用到哪些其他的类，以及有用到哪些常量值，然后JVM就会把这个常量池读到运行时数据区，比如常量池中有 System.out 这个类，JVM就会提前把这个类加载到方法区中。总而言之，JVM会读取常量池从而形成运行时常量池。</p>
+<p>然后，class文件中，代码会指向常量池中的某些元素，比如 invokevirtual #6，就是指向了#6常量，但是JVM读了以后你不能还指向#6了，因为已经有了运行时常量池，常量池中的元素已经有了具体的内存体现了，那你还指向#6干啥，这时就会让代码直接指向运行时常量池。这一步，也就对应了类加载中的 链接-解析 阶段。</p>
+</blockquote>
+<p>既然知道了啥是常量池，那么我们再看看这个动态链接，其实就很好理解了，字节码文件中，方法名，方法返回值，方法入参类型，这些都是存在常量池中的东西。那么栈帧应该知道自己这个方法对应到运行时常量池中的是哪个，动态链接就是干这个的。</p>
+<h2 id="为何需要常量池"><a href="#为何需要常量池" class="headerlink" title="为何需要常量池"></a>为何需要常量池</h2><p>我们加载一个类，比如我们就写一个类里面有一个主方法，就一个输出，他加载到内存里面就需要加载 比如 父类Object，各种数据类型，System对象，PrintWriter对象，等等。</p>
+<p>如果这些东西全都存在 class里面，就很浪费，所以弄一个常量池，把常用的东西放进去，需要的时候直接引用过来就行了。</p>
+<h1 id="6-方法调用"><a href="#6-方法调用" class="headerlink" title="6. 方法调用"></a>6. 方法调用</h1><blockquote>
+<p>从 JVM 角度看java 方法如何被调用</p>
+</blockquote>
+<p>上面刚说过，在类加载的时候，会把符号引用转化为直接引用，而这个转化过程是在编译期间完成的还是在运行期间完成的，这个还是有区别的。</p>
+<h2 id="6-1-静态链接"><a href="#6-1-静态链接" class="headerlink" title="6.1 静态链接"></a>6.1 静态链接</h2><p>一个字节码文件被加载到 JVM 内部时，如果被调用的目标方法在编译期间可知，且运行期间保持不变，那么这个时候 符号 -&gt; 直接 的转化，就叫静态链接。</p>
+<blockquote>
+<p>简单说，编译期间转化，就叫静态链接</p>
+</blockquote>
+<h2 id="6-2-动态链接"><a href="#6-2-动态链接" class="headerlink" title="6.2 动态链接"></a>6.2 动态链接</h2><p>对应的，如果在编译期间无法确定，比如接口回调，需要在运行时转换，则成为动态链接。</p>
+<blockquote>
+<p>同理，运行期间绑定，动态链接</p>
+</blockquote>
+<h2 id="6-3-绑定"><a href="#6-3-绑定" class="headerlink" title="6.3 绑定"></a>6.3 绑定</h2><p>什么叫绑定？一个字段，方法，类的符号引用替换成直接引用的过程，只发生一次。同时这里还区分早期绑定和晚期绑定：</p>
+<ul>
+<li><p>早期绑定：对应静态链接，目标方法在编译期间可知且运行时不变，可以明确被调用的方法是哪一个，使用静态链接的方式进行符号到直接的转化，叫早期绑定</p>
+</li>
+<li><p>晚期绑定：不确定目标方法，使用动态链接进行转换，就叫晚期绑定</p>
+</li>
+</ul>
+<h2 id="6-4-虚方法和非虚方法"><a href="#6-4-虚方法和非虚方法" class="headerlink" title="6.4 虚方法和非虚方法"></a>6.4 虚方法和非虚方法</h2><p>非虚方法对应 静态链接和早期绑定，在编译期间就确定方法的具体版本。如下都属于非虚方法：</p>
+<ul>
+<li><p>静态方法</p>
+</li>
+<li><p>私有方法</p>
+</li>
+<li><p>final 修饰的方法</p>
+</li>
+<li><p>实例构造器</p>
+</li>
+<li><p>父类方法</p>
+</li>
+</ul>
+<p>其他的都属于虚方法。</p>
+<h2 id="6-5-虚拟机中调用方法的指令"><a href="#6-5-虚拟机中调用方法的指令" class="headerlink" title="6.5 虚拟机中调用方法的指令"></a>6.5 虚拟机中调用方法的指令</h2><h3 id="6-5-1-调用指令"><a href="#6-5-1-调用指令" class="headerlink" title="6.5.1 调用指令"></a>6.5.1 调用指令</h3><ul>
+<li><p>invokeStatic 调用非虚方法</p>
+</li>
+<li><p>invokeSpecial 调用 <init> 构造方法，私有方法，父类方法</p>
+</li>
+</ul>
+<p>前面两个都属于调用非虚方法</p>
+<ul>
+<li><p>invokeVirtual 调用虚方法</p>
+<blockquote>
+<p>但是不代表 invokeVirtual 调用的都是虚方法，特别的，调用final方法，也是 invokeVirtual</p>
+</blockquote>
+</li>
+<li><p>invokeInterface 调用接口方法</p>
+</li>
+</ul>
+<p>还有一个特殊的，调用Lambda 的指令</p>
+<ul>
+<li>invokeDynamic</li>
+</ul>
+<p>java7 开始才引入了 invokeDynamic 这个东西，为了体现 java 的 动态类型语言特性。但是 java7 没法直接生成 invokeDynamic 指令，知道 java8 出现了 lambda 表达式，java8 才能直接生成 invokeDynamic 指令。</p>
+<h3 id="6-5-2-动态类型语言-和-静态类型语言"><a href="#6-5-2-动态类型语言-和-静态类型语言" class="headerlink" title="6.5.2 动态类型语言 和 静态类型语言"></a>6.5.2 动态类型语言 和 静态类型语言</h3><p>简单说，静态类型语言在编译期间会对数据类型进行检查，动态类型语言会在运行时进行类型检查，变量本身没有类型，变量值才有类型。</p>
+<h1 id="7-方法返回值地址"><a href="#7-方法返回值地址" class="headerlink" title="7. 方法返回值地址"></a>7. 方法返回值地址</h1><p>所谓 方法返回值地址，这里我给举个例子：</p>
+<p>我们调用 方法 A，方法 A 里面我们有调用了 方法 B，在虚拟机栈的角度，A 入栈，然后B入栈，现在，方法 B 执行完成，那么就需要回到 方法 A 中 调用 B 的那个地方，继续往下执行，方法 B 的返回值，需要给到 方法 A 调用 B 的那一行代码，这就需要方法返回值地址</p>
+<p>方法返回值地址里面存储了 PC寄存器中的值，也就是记录了调用方法的位置的下一行代码，然后方法执行完成，将返回值放入操作数栈，然后根据方法返回值地址，回到方法调用的位置，继续执行。</p>
+<h2 id="7-1-方法退出的两种情况"><a href="#7-1-方法退出的两种情况" class="headerlink" title="7.1 方法退出的两种情况"></a>7.1 方法退出的两种情况</h2><ul>
+<li><p>正常退出，调用者 PC寄存器的值作为返回地址，调用该方法指令的下一条指令地址。</p>
+</li>
+<li><p>出现未处理异常，非正常退出，返回地址需要异常表来确定，栈帧不保存这部分信息</p>
+</li>
+</ul>
+<p>所以，方法返回值地址仅针对方法正常推退出的情况。</p>
+<h2 id="7-2-返回指令："><a href="#7-2-返回指令：" class="headerlink" title="7.2 返回指令："></a>7.2 返回指令：</h2><p>函数返回指令如下：</p>
+<ul>
+<li><p>ireturn -&gt; intReturn 返回 byte short int boolean char</p>
+</li>
+<li><p>lreturn -&gt; longReturn 返回 long</p>
+</li>
+<li><p>freturn -&gt; floatReturn 返回 float</p>
+</li>
+<li><p>dreturn -&gt; doubleReturn 返回 double</p>
+</li>
+<li><p>areturn -&gt; 不知道 返回 引用</p>
+</li>
+<li><p>return -&gt; void 方法无返回值</p>
+</li>
+</ul>
+<h2 id="7-3-异常表"><a href="#7-3-异常表" class="headerlink" title="7.3 异常表"></a>7.3 异常表</h2><p>如果方法存在异常，则会有一个异常表进行处理，在方法里面，需要 javap</p>
+<p>结构如下：</p>
+<table>
+<thead>
+<tr>
+<th>from</th>
+<th>to</th>
+<th>target</th>
+<th>type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>6</td>
+<td>8</td>
+<td>11</td>
+<td>java&#x2F;io&#x2F;IOException</td>
+</tr>
+</tbody></table>
+<p>意思如下：</p>
+<p>从 6 到 8 行 如果出现异常IOException，交给 11 处理，其实也就是 try catch 代码块里面的东西。</p>
+<h1 id="8-总结"><a href="#8-总结" class="headerlink" title="8. 总结"></a>8. 总结</h1><p>很好，栈总算是说完了。下面就是牛逼的堆了。</p>
 ]]></content>
       <categories>
         <category>JVM</category>
