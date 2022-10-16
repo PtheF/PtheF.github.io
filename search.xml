@@ -1,6 +1,176 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>JIT即时编译器</title>
+    <url>/2022/06/02/JIT/</url>
+    <content><![CDATA[<p>最早我们说运行时数据区的时候有一张图，就是runtime的构造，里面有PC，堆，栈，方法区，本地方法栈啥的，还有一个东西，叫JIT编译产物 CodeCache，这时啥玩意？我们这里就来介绍一下JIT是啥东西。</p>
+<span id="more"></span>
+
+<h1 id="1-JIT-即时编译器"><a href="#1-JIT-即时编译器" class="headerlink" title="1. JIT 即时编译器"></a>1. JIT 即时编译器</h1><p>首先明确几个概念：</p>
+<ul>
+<li><p>Java 运行在 JVM上，JVM 类似 物理机，二者都有指令，比如物理机有 汇编 机器码 JVM 就有JVM指令。</p>
+</li>
+<li><p>Java 是半解释半编译语言</p>
+</li>
+<li><p>这个编译，分为两部分：</p>
+<ul>
+<li><p>前端编译：javac 编译代码变成 class 文件</p>
+</li>
+<li><p>后端编译: JIT 编译代码为 计算机认识的指令</p>
+</li>
+</ul>
+</li>
+<li><p>翻译，指的是 JVM 通过 PC寄存器，逐条执行class文件里面的指令</p>
+</li>
+<li><p>JIT 是即时编译器，也就是在程序运行时编译，是否编译取决于热点探测，这个后面会说到。</p>
+</li>
+</ul>
+<h1 id="2-Java代码的执行分类"><a href="#2-Java代码的执行分类" class="headerlink" title="2. Java代码的执行分类"></a>2. Java代码的执行分类</h1><p>如下图：</p>
+<p><img src="/images/runtime/JIT.png"></p>
+<p><img src="/images/runtime/JIT2.png" alt="jit2"></p>
+<p>上图两个就是Java编译的方式。</p>
+<p>途中，黄色的路线：程序源码一直到抽象语法树，都是javac 给我们处理， 目的是生成线性的指令集合，然后 要么是 JVM直接翻译运行，要么就是 JIT 编译成机器码 运行。</p>
+<p>即时编译：</p>
+<p>就是JIT编译完以后，机器码存起来了，如果再次调用这个方法，他就会直接去找机器码运行。</p>
+<h1 id="3-HotSpot-采用的方式"><a href="#3-HotSpot-采用的方式" class="headerlink" title="3. HotSpot 采用的方式"></a>3. HotSpot 采用的方式</h1><p>HotSpot 是两种方式都在使用，在运行时 即时编译和翻译是同步进行，二者协调进行。</p>
+<p>即时编译的好处就是一次编译，以后运行速度快，但是编译也耗费时间。</p>
+<p>翻译的好处就是不需要翻译，直接运行。</p>
+<p>当虚拟机启动时，翻译器会首先工作，省去编译的时间，然后随着时间的推移， 即时编译器开始起作用，将一些有价值的代码编译成机器指令，提高速度。</p>
+<h2 id="案例"><a href="#案例" class="headerlink" title="案例"></a>案例</h2><p>生产环境中，热机能承受的负载大于冷机，如果项目体量大，流量大，那么吧一个项目部署到一个JVM刚刚启动的机器上，可能导致宕机。</p>
+<h1 id="4-细说JIT"><a href="#4-细说JIT" class="headerlink" title="4. 细说JIT"></a>4. 细说JIT</h1><ul>
+<li><p>java 语言的 “编译期” 其实是一段不确定的操作过程，因为他有三种情况：</p>
+</li>
+<li><p>既可能指的是前端编译 也就是 javac 编译，把java文件转化为class文件</p>
+</li>
+<li><p>也可能是后端编译，将JVM指令转化为机器码</p>
+</li>
+<li><p>还有可能是静态提前编译器(AOT 编辑器， Ahead Of Time Compiler) 直接吧 Java 编译成机器码</p>
+</li>
+</ul>
+<p>问题来了，前面提到，Hotspot 虚拟机是 编译和翻译同时进行的，</p>
+<p>那么jvm如何选择哪些编译哪些翻译？就用到了下面的东西</p>
+<h1 id="5-热点代码及探测方法"><a href="#5-热点代码及探测方法" class="headerlink" title="5. 热点代码及探测方法"></a>5. 热点代码及探测方法</h1><p>是否需要启动JIT去编译代码取决于这个代码的执行频率，如果执行频率高，则启动JIT进行编译，同时JIT对其进行 <em>深度优化</em> ，然后编译成机器码，那么这部分执行频率高的代码，也叫做 <em>热点代码</em> 。</p>
+<ul>
+<li><p>一个被多起的方法，或者是一个方法题内循环册数比较大多的循环体，都可以称为 <em>热点代码</em> 。因为这个过程发生在方法执行过程中，所以这个方法也成为 <em>栈上替换</em> 简称 OSR(On Stack Replacement)</p>
+</li>
+<li><p>那么一个代码被执行多少次就算是热点代码了？这主要依赖<em>热点探测功能</em>。</p>
+</li>
+<li><p>Hotspot 的热点探测方式是基于计数器的热点探测</p>
+</li>
+<li><p>采用计数器，Hotspot VM 将给每一个方法都建立2个不同的计数器，分别是：</p>
+<ul>
+<li><p>方法调用计数器：统计方法调用次数</p>
+</li>
+<li><p>回边计数器：统计循环体执行的循环次数</p>
+</li>
+</ul>
+</li>
+<li><p>阈值：VM 的client模式下是 1500次，server 模式下 10000 次</p>
+<blockquote>
+<p>即便我们的是PC，个人电脑，但是VM也是server 模式，</p>
+<p>可以 <code>java --version</code> 看一看.</p>
+</blockquote>
+</li>
+<li><p>这个阈值可以通过 <code>-XX:CompileThreshold</code> 来人为设定。</p>
+</li>
+<li><p>超过阈值，就会提交编译请求，然后JIT编译，最后的编译结果，也就是机器指令，他会存在方法区里面，我们之前也说过 方法区里面有JIT的代码缓存 <em>CodeCache</em> 。</p>
+</li>
+</ul>
+<p>具体流程如下图：</p>
+<p><img src="/images/runtime/JIT3.png" alt="jit3"></p>
+<hr>
+<h2 id="热度衰减"><a href="#热度衰减" class="headerlink" title="热度衰减"></a>热度衰减</h2><ul>
+<li><p>如果不做任何设置，方法调用计数器记录的并不是一个绝对的次数，而是一个相对的频率，也就是一段时间内的调用次数，如果超过了这个一段时间，方法的调用次数还不足以提交便已请求，那么调用计数器的值就会减半，这个过程称为程序计数器的<strong>热度衰减</strong>，这段时间叫<strong>半衰期</strong>。</p>
+</li>
+<li><p>热度衰减是 JVM在垃圾回收的时候顺便进行的行为，可以通过参数 <code>-XX:-UseCounterDecay</code> 来关闭热度衰减，这个时候，调用计数器记录的就是一个绝对的调用次数，只要运行时间够长，绝大多数的方法都可以被编译。</p>
+</li>
+<li><p>可以通过 <code>-XX:CounterHalfLifeTime</code>来设置半衰期时间，单位是秒。</p>
+</li>
+</ul>
+<h1 id="6-JVM-关于JIT的参数"><a href="#6-JVM-关于JIT的参数" class="headerlink" title="6. JVM 关于JIT的参数"></a>6. JVM 关于JIT的参数</h1><ul>
+<li><p><code>-Xint</code> 代码全部解释执行，也可以 java -Xint –version 我们会看到 interpreted mod，也就是解释执行</p>
+</li>
+<li><p><code>-Xcomp</code> 代码全部编译执行，同理上面，看到 compile mode 编译执行</p>
+</li>
+<li><p><code>-Xmixed</code> 代码混合执行，一边翻译一边编译。</p>
+</li>
+</ul>
+<h1 id="7-JVM模式"><a href="#7-JVM模式" class="headerlink" title="7. JVM模式"></a>7. JVM模式</h1><p>我们之前说过，JVM分为两种模式：client 模式 和 server 模式，client 模式里面调用计数器阈值是1500 次 server 是 10000次，同事JIT也分为两种，一个 Client Compiler(简称C1)，一个 Server Compiler (简称C2)如何修改这两种模式：</p>
+<ul>
+<li><p><code>-client</code> 开启 client 模式，使用C1，优化比较简单，耗时短，达到最快的编译速度。</p>
+</li>
+<li><p><code>-server</code> 开启 server模式，使用C2，64位电脑是支持server模式的，同时默认开启，server模式优化的更深一点，所以得到的机器码比client 更快，但是编译时间更长。</p>
+</li>
+</ul>
+<h1 id="8-扩展：AOT提前编译器"><a href="#8-扩展：AOT提前编译器" class="headerlink" title="8. 扩展：AOT提前编译器"></a>8. 扩展：AOT提前编译器</h1><p>AOT 提前编译器，不同于即时编译器是运行时编译，他是在运行之前编译。</p>
+<p>jdk9 引入了实验性的 aot编译工具 jaotc，将java 类文件直接编译成机器码，存放到生成的代码共享库中。</p>
+<p>具体流程：.java -&gt; .class — jaotc —&gt; .os</p>
+<p>好处就是第一次运行快了，坏处就是降低了 Java 链接过程的动态性，破坏了 java 一次编译到处运行的原则。</p>
+<h1 id="9-总结"><a href="#9-总结" class="headerlink" title="9. 总结"></a>9. 总结</h1><p>可以看出这一章东西倒不是很多，比较简单，就是一些简单的概念，了解我觉得就行了。</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JS-this指向问题</title>
+    <url>/2022/10/16/JS-this%E6%8C%87%E5%90%91%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p>之前的JS一直就学了个皮毛，this问题倒是也不咋碰到所以不咋重视，结果这次做项目发现this我是一点也不懂，所以就百度了好久，总结了一下 JS 里面的this到底是个啥。</p>
+<span id="more"></span>
+
+<blockquote>
+<p>create by P-F on 2022&#x2F;10&#x2F;16</p>
+</blockquote>
+<h1 id="1-function-作为对象"><a href="#1-function-作为对象" class="headerlink" title="1. function 作为对象"></a>1. function 作为对象</h1><p>JS 里面的 function 与其说是函数，不如说是我们理解的方法，Java 里面的方法中的 this 就是指向的当前类的实例化对象，JS 的 function 也一样，在 function 作为普通方法调用的时候，function 内的 this 指向的就是当前 function 所在的对象。</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&quot;jack&quot;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">20</span>,</span><br><span class="line">    <span class="attr">hello</span>: <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`hello, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.age&#125;</span> years old`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面这个例子中，this 就指向的是当前 hello 方法的所属对象 user，所以就可以使用 <code>this.name</code> 这种的来访问对象的成员。</p>
+<h1 id="2-function-作为函数"><a href="#2-function-作为函数" class="headerlink" title="2. function 作为函数"></a>2. function 作为函数</h1><p>如果说 function 没有在对象内，而是直接放在了上下文中，比如直接放在了 script 标签内，那么 function 的 this 其实也同理指向了 function 的所属对象，但是这个时候 function 的所属对象就变成了 function 的上下文。</p>
+<p>举个例子：如果 function 直接放在了 script 标签内，那么就可以理解成这个对象是当前页面 window 对象的方法，所以 function 的 this 就会指向 window，那如果在 nodejs 环境中，function 直接写在文件内，那么 this 就指向了 nodejs 中的上下文对象 <code>global</code>。</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">a</span>(<span class="params"></span>) &#123;<span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>)&#125;</span><br><span class="line">    <span class="title function_">a</span>()</span><br><span class="line"></span><br><span class="line">    &lt;!-- <span class="variable language_">window</span>&#123;...&#125; --&gt;</span><br><span class="line">&lt;/script&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment">// nodejs:</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">a</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">a</span>()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Object [global]...</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="3-this-不可继承"><a href="#3-this-不可继承" class="headerlink" title="3. this 不可继承"></a>3. this 不可继承</h1><p>如果出现了嵌套函数，那内层函数的 this 又变成谁了？</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;</span><br><span class="line">    <span class="attr">a</span>: <span class="number">10</span>,</span><br><span class="line">    <span class="attr">b</span>: <span class="number">20</span>,</span><br><span class="line"></span><br><span class="line">    <span class="attr">foo</span>: <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">let</span> c = <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">            <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title function_">c</span>()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">obj.<span class="title function_">foo</span>()</span><br></pre></td></tr></table></figure>
+
+<p>这里分析一下：外层的 foo 方法是 obj 对象的方法，所以 foo 方法内的 this 肯定是指向了 obj，这个没毛病，但是里面的 c 函数也是指向了 obj 么？结果显示并非，内层函数的 this 仍然是 window，似乎也好理解，因为 c 函数虽然在obj 对象的方法内部，但是本身并不属于某个对象，所以 this 还是 window。</p>
+<p>那怎么改才能让内层的函数可以访问 obj？</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;</span><br><span class="line">    <span class="attr">self</span>: <span class="variable language_">this</span>,</span><br><span class="line"></span><br><span class="line">    <span class="attr">foo</span>: <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        (<span class="keyword">function</span>(<span class="params"></span>)&#123;</span><br><span class="line">            <span class="variable language_">console</span>.<span class="title function_">log</span>(self)</span><br><span class="line">        &#125;)()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">obj.<span class="title function_">foo</span>()</span><br></pre></td></tr></table></figure>
+
+<p>这样就可以了。</p>
+<h1 id="4-function-作为构造函数"><a href="#4-function-作为构造函数" class="headerlink" title="4. function 作为构造函数"></a>4. function 作为构造函数</h1><p>这里就涉及到了 JS 面向对象的内容了，面向对象还涉及到 JS 的原型和原型链，以后会详细看的，目前还不会。只是大致说一下：function 可以作为构造函数，使用 new 关键字可以创建对象，看下面的例子：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">Person</span>(<span class="params">name, age</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="attr">name</span>: name, <span class="attr">age</span>: age&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> p = <span class="title class_">Person</span>(<span class="string">&#x27;jack&#x27;</span>, <span class="number">20</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">User</span>(<span class="params">name, age</span>) &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里的 this 不代表 window 了，而是代表当前要构造的对象 &#123;  &#125;</span></span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">name</span> = name</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">age</span> = age</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">hello</span> = <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`hello, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.age&#125;</span> years old`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> u = <span class="keyword">new</span> <span class="title class_">User</span>(<span class="string">&#x27;jack&#x27;</span>, <span class="number">20</span>)</span><br><span class="line">u.<span class="title function_">hello</span>()</span><br></pre></td></tr></table></figure>
+
+<p>上面的例子里面，第一个 Person 方法，也可以创建一个对象，但是略有点麻烦，那么就可以使用下面这种办法：使用 new 关键字来创建对象。</p>
+<p>new 后面跟一个函数，然后函数会被当做构造函数执行，作为构造函数时，函数内的 this 就代表我要构造出来的这个对象。</p>
+<h1 id="5-箭头函数的this"><a href="#5-箭头函数的this" class="headerlink" title="5. 箭头函数的this"></a>5. 箭头函数的this</h1><p>而箭头函数中，this 又是另一番镜像。箭头函数中的 this 只是一个普通的变量，没错，就是一个普通的变量。根据函数作用域，当函数内访问变量时，会在函数声明的地方找这个变量，如果找不到，就会从声明位置往上找，比如：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> a = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">a</span>(<span class="params"></span>)&#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(a)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">b</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> a = <span class="number">20</span></span><br><span class="line">    <span class="title function_">a</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">b</span>()</span><br></pre></td></tr></table></figure>
+
+<p>这里会打印 10，为啥？因为 b 函数内调用 a 函数，a 函数要找 a 变量，从 a 的声明位置开始找，a 函数内没有，则往外找，也就找到了全局里面的 <code>let a = 10</code>。</p>
+<p>同理，调用一个箭头函数，对于箭头函数来说 this 就是一个普通变量，他会根据上面的原则去找这个 this 到底是个啥，比如：</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>)</span></span><br><span class="line"><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">let</span> a = <span class="keyword">function</span>(<span class="params"></span>) &#123; <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>) &#125;</span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">let</span> <span class="title function_">b</span> = (<span class="params"></span>) =&gt; &#123; <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>) &#125;</span></span><br><span class="line"><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="title function_">a</span>()</span></span><br><span class="line"><span class="language-javascript">    <span class="title function_">b</span>()</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这俩输出的 this 全是 window，为啥？因为在 script 标签内，this 就是 window，a 函数看作是 window 的方法，所以 a 的 this 是 window，但是 b 不一样，b 函数里面找 this，没找到，就去 b 的上层作用域里面找，也就是 script 标签内，结果发现了 script 标签内有 this，还是 window，所以 b 打印 this 也是 window。</p>
+<p>这里虽然俩 this 都是 window，但意义是不一样的，在 nodejs 环境：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">let</span> a = <span class="keyword">function</span>(<span class="params"></span>) &#123; <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>) &#125;</span><br><span class="line"><span class="keyword">let</span> <span class="title function_">b</span> = (<span class="params"></span>) =&gt; &#123; <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>) &#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">a</span>()</span><br><span class="line"><span class="title function_">b</span>()</span><br></pre></td></tr></table></figure>
+
+<p>这回就不一样了，a 出来的 this 是 global，而 b 的 this 就是 { }，因为 nodejs 中，函数的看做是 global 的方法，但是这个 global 可不是这个 js 文件的作用域，一个 js 文件里面默认就有一个对象 this &#x3D; {}，所以调用 b 函数找 this 就找到了 { }。</p>
+<p>一句这个特性，我们就可以优化上面提到的 this 继承问题：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> obj = &#123;</span><br><span class="line">    <span class="attr">a</span>: <span class="number">10</span>,</span><br><span class="line">    <span class="title function_">foo</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">let</span> <span class="title function_">c</span> = (<span class="params"></span>) =&gt; &#123;</span><br><span class="line">            <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">this</span>.<span class="property">a</span>)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title function_">c</span>()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">obj.<span class="title function_">foo</span>()</span><br></pre></td></tr></table></figure>
+
+<p>这次就可以正常让内层函数正确的访问到外层方法的 this 对象，原因也很简单，c 函数调用时，碰到了 this，但是不知道这个 this 是啥声明里面也没有，就跑到 c 的上层作用域也就是 foo 方法内去找 this，结果在 foo 里面找到了 this 也就是 obj 对象，所以就可以正确访问 obj 了。</p>
+]]></content>
+      <categories>
+        <category>JS</category>
+      </categories>
+      <tags>
+        <tag>js</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JVM-类加载子系统</title>
     <url>/2022/05/22/JVM-%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%AD%90%E7%B3%BB%E7%BB%9F/</url>
     <content><![CDATA[<p>从这里开始正式开始JVM，首先我们要对类加载有一个大致的认识。类加载子系统 就是将 类 从磁盘中读取到 内存中的一个东西，包括 加载 链接 初始化 三个阶段。</p>
@@ -148,119 +318,64 @@
       </tags>
   </entry>
   <entry>
-    <title>JIT即时编译器</title>
-    <url>/2022/06/02/JIT/</url>
-    <content><![CDATA[<p>最早我们说运行时数据区的时候有一张图，就是runtime的构造，里面有PC，堆，栈，方法区，本地方法栈啥的，还有一个东西，叫JIT编译产物 CodeCache，这时啥玩意？我们这里就来介绍一下JIT是啥东西。</p>
+    <title>OPTIONS请求BUG</title>
+    <url>/2022/08/12/OPTIONS%E8%AF%B7%E6%B1%82BUG/</url>
+    <content><![CDATA[<p>第一次做 Go 的项目，结果写 vue 前端的时候用的是 axios ，报错，一添加 header 就报错，这是为啥呢？</p>
 <span id="more"></span>
 
-<h1 id="1-JIT-即时编译器"><a href="#1-JIT-即时编译器" class="headerlink" title="1. JIT 即时编译器"></a>1. JIT 即时编译器</h1><p>首先明确几个概念：</p>
+<h1 id="1-症状"><a href="#1-症状" class="headerlink" title="1. 症状"></a>1. 症状</h1><p>什么个情况呢？我们 axios 设置了个请求拦截器，然后在拦截器里面设置请求头，把 token 放到 Authorization 请求头上：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">axios.<span class="property">interceptors</span>.<span class="property">request</span>.<span class="title function_">use</span>(<span class="function"><span class="params">config</span> =&gt;</span> &#123;</span><br><span class="line">    config.<span class="property">headers</span>[<span class="string">&quot;Authorization&quot;</span>] = <span class="title function_">getToken</span>()</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>结果，这个请求就死活发不出去了，依次会发两个请求，第一次是 OPTIONS 第二次是 POST，但是无一例外报错，而且 chrome 浏览器贼傻逼，不告诉原因，就告诉我 NET:ERR。</p>
+<p>一开始我以为是我拦截器的问题，然后今天没有使用拦截器，使用原始axios发了个请求，嘿，您猜怎么着，照样发不出去，然后定位错误，发现是 headers 的问题，只要我的 headers 带上 Authorization，那这请求铁定发布出去。都给我整麻了。</p>
+<p>这次事故持续了近3个小时，期间崩溃了10次嚎啕大哭了9次晕厥了8次。</p>
+<h1 id="2-定位"><a href="#2-定位" class="headerlink" title="2. 定位"></a>2. 定位</h1><p>发了两个请求，第一次是 OPTIONS，第二次才是 POST，所以初步认为这个 BUG 应该和 OPTIONS 这个请求有关系，所以我在服务端自己写了一个 OPTIONS 请求的处理器，直接给他返回字符串，嘿，您猜怎么着，即便如此，这个 OPTIONS 还是报错。</p>
+<p>然后我打开了 firefox 浏览器，嘿，firefox 还是厚道，告诉我这么一串：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">CORS 预检响应的 &#x27;Access-Control-Allow-Headers&#x27;，不允许使用头 &#x27;contenttype&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>WTF? 火狐告诉我我这个请求头不允许？虽然这个请求头不是 Authorization 而是我写错的 contentType，但是还是给我提供了思路，很可能这个 Authorization 请求头是因为某种原因被 Ban 了。那么是出于什么原因？很可能就和这个 OPTIONS 有关。</p>
+<p>所以我再次推测，可能是第一次 OPTIONS 请求询问了服务器，我下次的 POST 可以带哪些请求头啊？结果服务器告诉我：反正不能是 Authorization，结果下次 POST 请求，我带上 Authorization 就挂了。</p>
+<h1 id="3-解决"><a href="#3-解决" class="headerlink" title="3. 解决"></a>3. 解决</h1><p>既然推测是这么回事，就得解决一下，因为我的服务器是 Beego 写的，所以我就查了一下 beego 解决 OPTIONS 请求的办法，真就查到了：</p>
+<p><a href="https://cloud.tencent.com/developer/article/1719610">beego 解决 options</a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> success = []<span class="type">byte</span>(<span class="string">&quot;SUPPORT OPTIONS&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> corsFunc = <span class="function"><span class="keyword">func</span><span class="params">(ctx *context.Context)</span></span> &#123;</span><br><span class="line">    origin := ctx.Input.Header(<span class="string">&quot;Origin&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Methods&quot;</span>, <span class="string">&quot;OPTIONS,DELETE,POST,GET,PUT,PATCH&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Max-Age&quot;</span>, <span class="string">&quot;3600&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Headers&quot;</span>, <span class="string">&quot;X-Custom-Header,accept,Content-Type,Authorization&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Credentials&quot;</span>, <span class="string">&quot;true&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Origin&quot;</span>, origin)</span><br><span class="line">    <span class="keyword">if</span> ctx.Input.Method() == http.MethodOptions &#123;</span><br><span class="line">        <span class="comment">// options请求，返回200</span></span><br><span class="line">        ctx.Output.SetStatus(http.StatusOK)</span><br><span class="line">        _ = ctx.Output.Body(success)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    beego.InsertFilter(<span class="string">&quot;/*&quot;</span>, beego.BeforeRouter, corsFunc)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我把这一段扔到了项目里，再试，嘿，真就行了。然后我再做了个测试，我把里面 Access-Control-Allow-Headers 里面的 Authorization 去掉了，然后再请求，果然，出现了以前的问题。</p>
+<h1 id="4-小结"><a href="#4-小结" class="headerlink" title="4. 小结"></a>4. 小结</h1><p>很好，这么个恶心我好几个小时的 BUG 就这么被解决了，但是有这么个问题，为什么 axios 会发送一个 options 请求？我又去网上查了一下，查到个博客，这里直接复制：</p>
+<p><a href="https://www.jianshu.com/p/9e52ca6b8818">axios 的 options请求</a></p>
+<p><strong>简单请求</strong></p>
+<p>满足下面两个条件的请求是简单请求：</p>
+<p><strong>请求方式是以下三种之一：</strong> </p>
 <ul>
-<li><p>Java 运行在 JVM上，JVM 类似 物理机，二者都有指令，比如物理机有 汇编 机器码 JVM 就有JVM指令。</p>
-</li>
-<li><p>Java 是半解释半编译语言</p>
-</li>
-<li><p>这个编译，分为两部分：</p>
+<li>HEAD </li>
+<li>GET </li>
+<li>POST</li>
+</ul>
+<p><strong>HTTP的头信息不超出以下几种字段：</strong></p>
 <ul>
-<li><p>前端编译：javac 编译代码变成 class 文件</p>
-</li>
-<li><p>后端编译: JIT 编译代码为 计算机认识的指令</p>
-</li>
+<li>Accept </li>
+<li>Accept-Language </li>
+<li>Content-Language </li>
+<li>Last-Event-ID </li>
+<li>Content-Type</li>
 </ul>
-</li>
-<li><p>翻译，指的是 JVM 通过 PC寄存器，逐条执行class文件里面的指令</p>
-</li>
-<li><p>JIT 是即时编译器，也就是在程序运行时编译，是否编译取决于热点探测，这个后面会说到。</p>
-</li>
-</ul>
-<h1 id="2-Java代码的执行分类"><a href="#2-Java代码的执行分类" class="headerlink" title="2. Java代码的执行分类"></a>2. Java代码的执行分类</h1><p>如下图：</p>
-<p><img src="/images/runtime/JIT.png"></p>
-<p><img src="/images/runtime/JIT2.png" alt="jit2"></p>
-<p>上图两个就是Java编译的方式。</p>
-<p>途中，黄色的路线：程序源码一直到抽象语法树，都是javac 给我们处理， 目的是生成线性的指令集合，然后 要么是 JVM直接翻译运行，要么就是 JIT 编译成机器码 运行。</p>
-<p>即时编译：</p>
-<p>就是JIT编译完以后，机器码存起来了，如果再次调用这个方法，他就会直接去找机器码运行。</p>
-<h1 id="3-HotSpot-采用的方式"><a href="#3-HotSpot-采用的方式" class="headerlink" title="3. HotSpot 采用的方式"></a>3. HotSpot 采用的方式</h1><p>HotSpot 是两种方式都在使用，在运行时 即时编译和翻译是同步进行，二者协调进行。</p>
-<p>即时编译的好处就是一次编译，以后运行速度快，但是编译也耗费时间。</p>
-<p>翻译的好处就是不需要翻译，直接运行。</p>
-<p>当虚拟机启动时，翻译器会首先工作，省去编译的时间，然后随着时间的推移， 即时编译器开始起作用，将一些有价值的代码编译成机器指令，提高速度。</p>
-<h2 id="案例"><a href="#案例" class="headerlink" title="案例"></a>案例</h2><p>生产环境中，热机能承受的负载大于冷机，如果项目体量大，流量大，那么吧一个项目部署到一个JVM刚刚启动的机器上，可能导致宕机。</p>
-<h1 id="4-细说JIT"><a href="#4-细说JIT" class="headerlink" title="4. 细说JIT"></a>4. 细说JIT</h1><ul>
-<li><p>java 语言的 “编译期” 其实是一段不确定的操作过程，因为他有三种情况：</p>
-</li>
-<li><p>既可能指的是前端编译 也就是 javac 编译，把java文件转化为class文件</p>
-</li>
-<li><p>也可能是后端编译，将JVM指令转化为机器码</p>
-</li>
-<li><p>还有可能是静态提前编译器(AOT 编辑器， Ahead Of Time Compiler) 直接吧 Java 编译成机器码</p>
-</li>
-</ul>
-<p>问题来了，前面提到，Hotspot 虚拟机是 编译和翻译同时进行的，</p>
-<p>那么jvm如何选择哪些编译哪些翻译？就用到了下面的东西</p>
-<h1 id="5-热点代码及探测方法"><a href="#5-热点代码及探测方法" class="headerlink" title="5. 热点代码及探测方法"></a>5. 热点代码及探测方法</h1><p>是否需要启动JIT去编译代码取决于这个代码的执行频率，如果执行频率高，则启动JIT进行编译，同时JIT对其进行 <em>深度优化</em> ，然后编译成机器码，那么这部分执行频率高的代码，也叫做 <em>热点代码</em> 。</p>
+<p><strong>但是Content-Type的值，只限于三个值：</strong></p>
 <ul>
-<li><p>一个被多起的方法，或者是一个方法题内循环册数比较大多的循环体，都可以称为 <em>热点代码</em> 。因为这个过程发生在方法执行过程中，所以这个方法也成为 <em>栈上替换</em> 简称 OSR(On Stack Replacement)</p>
-</li>
-<li><p>那么一个代码被执行多少次就算是热点代码了？这主要依赖<em>热点探测功能</em>。</p>
-</li>
-<li><p>Hotspot 的热点探测方式是基于计数器的热点探测</p>
-</li>
-<li><p>采用计数器，Hotspot VM 将给每一个方法都建立2个不同的计数器，分别是：</p>
-<ul>
-<li><p>方法调用计数器：统计方法调用次数</p>
-</li>
-<li><p>回边计数器：统计循环体执行的循环次数</p>
-</li>
+<li>application&#x2F;x-www-form-urlencoded</li>
+<li>multipart&#x2F;form-data</li>
+<li>text&#x2F;plain</li>
 </ul>
-</li>
-<li><p>阈值：VM 的client模式下是 1500次，server 模式下 10000 次</p>
-<blockquote>
-<p>即便我们的是PC，个人电脑，但是VM也是server 模式，</p>
-<p>可以 <code>java --version</code> 看一看.</p>
-</blockquote>
-</li>
-<li><p>这个阈值可以通过 <code>-XX:CompileThreshold</code> 来人为设定。</p>
-</li>
-<li><p>超过阈值，就会提交编译请求，然后JIT编译，最后的编译结果，也就是机器指令，他会存在方法区里面，我们之前也说过 方法区里面有JIT的代码缓存 <em>CodeCache</em> 。</p>
-</li>
-</ul>
-<p>具体流程如下图：</p>
-<p><img src="/images/runtime/JIT3.png" alt="jit3"></p>
-<hr>
-<h2 id="热度衰减"><a href="#热度衰减" class="headerlink" title="热度衰减"></a>热度衰减</h2><ul>
-<li><p>如果不做任何设置，方法调用计数器记录的并不是一个绝对的次数，而是一个相对的频率，也就是一段时间内的调用次数，如果超过了这个一段时间，方法的调用次数还不足以提交便已请求，那么调用计数器的值就会减半，这个过程称为程序计数器的<strong>热度衰减</strong>，这段时间叫<strong>半衰期</strong>。</p>
-</li>
-<li><p>热度衰减是 JVM在垃圾回收的时候顺便进行的行为，可以通过参数 <code>-XX:-UseCounterDecay</code> 来关闭热度衰减，这个时候，调用计数器记录的就是一个绝对的调用次数，只要运行时间够长，绝大多数的方法都可以被编译。</p>
-</li>
-<li><p>可以通过 <code>-XX:CounterHalfLifeTime</code>来设置半衰期时间，单位是秒。</p>
-</li>
-</ul>
-<h1 id="6-JVM-关于JIT的参数"><a href="#6-JVM-关于JIT的参数" class="headerlink" title="6. JVM 关于JIT的参数"></a>6. JVM 关于JIT的参数</h1><ul>
-<li><p><code>-Xint</code> 代码全部解释执行，也可以 java -Xint –version 我们会看到 interpreted mod，也就是解释执行</p>
-</li>
-<li><p><code>-Xcomp</code> 代码全部编译执行，同理上面，看到 compile mode 编译执行</p>
-</li>
-<li><p><code>-Xmixed</code> 代码混合执行，一边翻译一边编译。</p>
-</li>
-</ul>
-<h1 id="7-JVM模式"><a href="#7-JVM模式" class="headerlink" title="7. JVM模式"></a>7. JVM模式</h1><p>我们之前说过，JVM分为两种模式：client 模式 和 server 模式，client 模式里面调用计数器阈值是1500 次 server 是 10000次，同事JIT也分为两种，一个 Client Compiler(简称C1)，一个 Server Compiler (简称C2)如何修改这两种模式：</p>
-<ul>
-<li><p><code>-client</code> 开启 client 模式，使用C1，优化比较简单，耗时短，达到最快的编译速度。</p>
-</li>
-<li><p><code>-server</code> 开启 server模式，使用C2，64位电脑是支持server模式的，同时默认开启，server模式优化的更深一点，所以得到的机器码比client 更快，但是编译时间更长。</p>
-</li>
-</ul>
-<h1 id="8-扩展：AOT提前编译器"><a href="#8-扩展：AOT提前编译器" class="headerlink" title="8. 扩展：AOT提前编译器"></a>8. 扩展：AOT提前编译器</h1><p>AOT 提前编译器，不同于即时编译器是运行时编译，他是在运行之前编译。</p>
-<p>jdk9 引入了实验性的 aot编译工具 jaotc，将java 类文件直接编译成机器码，存放到生成的代码共享库中。</p>
-<p>具体流程：.java -&gt; .class — jaotc —&gt; .os</p>
-<p>好处就是第一次运行快了，坏处就是降低了 Java 链接过程的动态性，破坏了 java 一次编译到处运行的原则。</p>
-<h1 id="9-总结"><a href="#9-总结" class="headerlink" title="9. 总结"></a>9. 总结</h1><p>可以看出这一章东西倒不是很多，比较简单，就是一些简单的概念，了解我觉得就行了。</p>
+<p><strong>复杂请求</strong></p>
+<p>非简单请求就是复杂请求。</p>
+<p>复杂请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为“预检”请求（preflight）。预检请求为OPTIONS请求，用于向服务器请求权限信息。预检请求被成功响应后，才会发出真实请求，携带真实数据。</p>
+<p>axios默认请求就是application&#x2F;json,所以不需要自己加上头部（不需要在config中加headers），所以总是会发出options请求的，看看是不是配置的时候加了不必要的headers配置项。<br>另外，如果真的需要预检，后台也需要进行设置，允许options请求。</p>
+<p>作者：LinkLiKang<br>链接：<a href="https://www.jianshu.com/p/9e52ca6b8818">https://www.jianshu.com/p/9e52ca6b8818</a><br>来源：简书<br>著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。</p>
+<p>嗯哼，就这么回事，这个 BUG 就算过去了。</p>
 ]]></content>
       <categories>
-        <category>JVM</category>
+        <category>bug</category>
       </categories>
       <tags>
-        <tag>java</tag>
-        <tag>底层</tag>
+        <tag>bug</tag>
       </tags>
   </entry>
   <entry>
@@ -395,67 +510,6 @@
       <tags>
         <tag>java</tag>
         <tag>底层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>OPTIONS请求BUG</title>
-    <url>/2022/08/12/OPTIONS%E8%AF%B7%E6%B1%82BUG/</url>
-    <content><![CDATA[<p>第一次做 Go 的项目，结果写 vue 前端的时候用的是 axios ，报错，一添加 header 就报错，这是为啥呢？</p>
-<span id="more"></span>
-
-<h1 id="1-症状"><a href="#1-症状" class="headerlink" title="1. 症状"></a>1. 症状</h1><p>什么个情况呢？我们 axios 设置了个请求拦截器，然后在拦截器里面设置请求头，把 token 放到 Authorization 请求头上：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">axios.<span class="property">interceptors</span>.<span class="property">request</span>.<span class="title function_">use</span>(<span class="function"><span class="params">config</span> =&gt;</span> &#123;</span><br><span class="line">    config.<span class="property">headers</span>[<span class="string">&quot;Authorization&quot;</span>] = <span class="title function_">getToken</span>()</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
-
-<p>结果，这个请求就死活发不出去了，依次会发两个请求，第一次是 OPTIONS 第二次是 POST，但是无一例外报错，而且 chrome 浏览器贼傻逼，不告诉原因，就告诉我 NET:ERR。</p>
-<p>一开始我以为是我拦截器的问题，然后今天没有使用拦截器，使用原始axios发了个请求，嘿，您猜怎么着，照样发不出去，然后定位错误，发现是 headers 的问题，只要我的 headers 带上 Authorization，那这请求铁定发布出去。都给我整麻了。</p>
-<p>这次事故持续了近3个小时，期间崩溃了10次嚎啕大哭了9次晕厥了8次。</p>
-<h1 id="2-定位"><a href="#2-定位" class="headerlink" title="2. 定位"></a>2. 定位</h1><p>发了两个请求，第一次是 OPTIONS，第二次才是 POST，所以初步认为这个 BUG 应该和 OPTIONS 这个请求有关系，所以我在服务端自己写了一个 OPTIONS 请求的处理器，直接给他返回字符串，嘿，您猜怎么着，即便如此，这个 OPTIONS 还是报错。</p>
-<p>然后我打开了 firefox 浏览器，嘿，firefox 还是厚道，告诉我这么一串：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">CORS 预检响应的 &#x27;Access-Control-Allow-Headers&#x27;，不允许使用头 &#x27;contenttype&#x27;</span><br></pre></td></tr></table></figure>
-
-<p>WTF? 火狐告诉我我这个请求头不允许？虽然这个请求头不是 Authorization 而是我写错的 contentType，但是还是给我提供了思路，很可能这个 Authorization 请求头是因为某种原因被 Ban 了。那么是出于什么原因？很可能就和这个 OPTIONS 有关。</p>
-<p>所以我再次推测，可能是第一次 OPTIONS 请求询问了服务器，我下次的 POST 可以带哪些请求头啊？结果服务器告诉我：反正不能是 Authorization，结果下次 POST 请求，我带上 Authorization 就挂了。</p>
-<h1 id="3-解决"><a href="#3-解决" class="headerlink" title="3. 解决"></a>3. 解决</h1><p>既然推测是这么回事，就得解决一下，因为我的服务器是 Beego 写的，所以我就查了一下 beego 解决 OPTIONS 请求的办法，真就查到了：</p>
-<p><a href="https://cloud.tencent.com/developer/article/1719610">beego 解决 options</a></p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> success = []<span class="type">byte</span>(<span class="string">&quot;SUPPORT OPTIONS&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> corsFunc = <span class="function"><span class="keyword">func</span><span class="params">(ctx *context.Context)</span></span> &#123;</span><br><span class="line">    origin := ctx.Input.Header(<span class="string">&quot;Origin&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Methods&quot;</span>, <span class="string">&quot;OPTIONS,DELETE,POST,GET,PUT,PATCH&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Max-Age&quot;</span>, <span class="string">&quot;3600&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Headers&quot;</span>, <span class="string">&quot;X-Custom-Header,accept,Content-Type,Authorization&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Credentials&quot;</span>, <span class="string">&quot;true&quot;</span>)</span><br><span class="line">    ctx.Output.Header(<span class="string">&quot;Access-Control-Allow-Origin&quot;</span>, origin)</span><br><span class="line">    <span class="keyword">if</span> ctx.Input.Method() == http.MethodOptions &#123;</span><br><span class="line">        <span class="comment">// options请求，返回200</span></span><br><span class="line">        ctx.Output.SetStatus(http.StatusOK)</span><br><span class="line">        _ = ctx.Output.Body(success)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    beego.InsertFilter(<span class="string">&quot;/*&quot;</span>, beego.BeforeRouter, corsFunc)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>然后我把这一段扔到了项目里，再试，嘿，真就行了。然后我再做了个测试，我把里面 Access-Control-Allow-Headers 里面的 Authorization 去掉了，然后再请求，果然，出现了以前的问题。</p>
-<h1 id="4-小结"><a href="#4-小结" class="headerlink" title="4. 小结"></a>4. 小结</h1><p>很好，这么个恶心我好几个小时的 BUG 就这么被解决了，但是有这么个问题，为什么 axios 会发送一个 options 请求？我又去网上查了一下，查到个博客，这里直接复制：</p>
-<p><a href="https://www.jianshu.com/p/9e52ca6b8818">axios 的 options请求</a></p>
-<p><strong>简单请求</strong></p>
-<p>满足下面两个条件的请求是简单请求：</p>
-<p><strong>请求方式是以下三种之一：</strong> </p>
-<ul>
-<li>HEAD </li>
-<li>GET </li>
-<li>POST</li>
-</ul>
-<p><strong>HTTP的头信息不超出以下几种字段：</strong></p>
-<ul>
-<li>Accept </li>
-<li>Accept-Language </li>
-<li>Content-Language </li>
-<li>Last-Event-ID </li>
-<li>Content-Type</li>
-</ul>
-<p><strong>但是Content-Type的值，只限于三个值：</strong></p>
-<ul>
-<li>application&#x2F;x-www-form-urlencoded</li>
-<li>multipart&#x2F;form-data</li>
-<li>text&#x2F;plain</li>
-</ul>
-<p><strong>复杂请求</strong></p>
-<p>非简单请求就是复杂请求。</p>
-<p>复杂请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为“预检”请求（preflight）。预检请求为OPTIONS请求，用于向服务器请求权限信息。预检请求被成功响应后，才会发出真实请求，携带真实数据。</p>
-<p>axios默认请求就是application&#x2F;json,所以不需要自己加上头部（不需要在config中加headers），所以总是会发出options请求的，看看是不是配置的时候加了不必要的headers配置项。<br>另外，如果真的需要预检，后台也需要进行设置，允许options请求。</p>
-<p>作者：LinkLiKang<br>链接：<a href="https://www.jianshu.com/p/9e52ca6b8818">https://www.jianshu.com/p/9e52ca6b8818</a><br>来源：简书<br>著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。</p>
-<p>嗯哼，就这么回事，这个 BUG 就算过去了。</p>
-]]></content>
-      <categories>
-        <category>bug</category>
-      </categories>
-      <tags>
-        <tag>bug</tag>
       </tags>
   </entry>
   <entry>
@@ -974,6 +1028,331 @@
       </tags>
   </entry>
   <entry>
+    <title>字节码指令</title>
+    <url>/2022/06/13/bytecode-command/</url>
+    <content><![CDATA[<p>这章就是具体的各种字节码指令，深入的说一下每个指令都是干嘛的。</p>
+<span id="more"></span>
+
+<h1 id="1-加载与存储指令"><a href="#1-加载与存储指令" class="headerlink" title="1. 加载与存储指令"></a>1. 加载与存储指令</h1><p>因为我们之前说过了，数据的来源可以是局部变量表，常量池，方法调用，所以这里还得区分。</p>
+<h2 id="1-1-局部变量压栈指令"><a href="#1-1-局部变量压栈指令" class="headerlink" title="1.1 局部变量压栈指令"></a>1.1 局部变量压栈指令</h2><p>从局部变量表中的取得相应的数据，压入操作数栈，大体可以分为两类：</p>
+<ul>
+<li><p>xload (x 可以是 i l f d a)</p>
+</li>
+<li><p>xload&lt;_n&gt; (n 从 0 - 3)</p>
+</li>
+</ul>
+<p>为啥要分出两个，_n 有啥用？很简单，根据概率来说，xload 0 1 2 3 用的最多，所以封装成了 xload_0 1 2 3.在字节码文件中，一个指令只有一个字节，而操作数2个字节，用 xload_n可以省地方。</p>
+<p>然后这里面涉及到了局部变量表，这里复习一下：局部变量表里面有槽位，一个槽slot是4个字节，然后如果我们把long放进去，那long就是占两个slot，比如 0 位是this，1位是long，那3位就是int，没有2了，1 2 都被long占用了。</p>
+<p>然后具体说说后面的操作数，现在有一个指令: xload 5，那他就是把局部变量表中index&#x3D;5的东西，压入栈。注意，是index&#x3D;5，索引为5的局表数据，看好了，可不是局表里面第一列那个数字，那是个数。</p>
+<h2 id="1-2-常量入栈指令"><a href="#1-2-常量入栈指令" class="headerlink" title="1.2 常量入栈指令"></a>1.2 常量入栈指令</h2><p>指令const系列：这个命令用于特定常量压操作数栈，注意是特定常量，这个常量直接写在指令中，且后面没有操作数，注意这个很重要，const指令没有操作数，而且这个常量得注意，不是说非得是 final 修饰的常量，字面量也算是这里的常量，我们定义一个字面量 int i &#x3D; 10 那这里也会用这些指令进行压栈操作。具体指令如下：</p>
+<ul>
+<li><p>iconst_i (i -&gt; -1(m1) 到 5)</p>
+</li>
+<li><p>lconst_l (l -&gt; 0到1)</p>
+</li>
+<li><p>fconst_f (f -&gt; 0 到 2)</p>
+</li>
+<li><p>dconst_d (d -&gt; 0 到 1)</p>
+</li>
+<li><p>aconst_null (压null)</p>
+</li>
+</ul>
+<p>是的，这些数据范围没有任何规律，别问为啥，反正就是这样。</p>
+<p>比如，将常量 2 压入栈，那就是 iconst_2，那压6呢？iconst 6么，我们之前说了，const系列指令没有操作数，所以显然不行。这里得用另外一个系列指令：push系列指令。</p>
+<p>指令 push 系列：主要就是 bipush 和 sipush，主要就是接收数据类型不同，bipush接收8位整数压栈，sipush接收16位整数压栈。(128就已经是16位了)，具体范围就是 bipush：-128 - 127. sipush：-32768 - 32767</p>
+<p>如果还是不行，那就可以使用 ldc 指令，这个指令是干嘛的呢，他接受一个8位参数，这个参数指向常量池中 int float String 索引，然后将常量池中的指定内容压入栈。如果索引比较大，可以使用 ldc_w指令，接受两个8位参数，仅仅是索引范围变大了而已。如果压入 long double，那就是用 ldc2_w，怎么理解呢，粗略的理解成double 和 long 占两个槽位吧。</p>
+<p>三个的区别就是 const -&gt; push -&gt; ldc 范围依次增大。</p>
+<h2 id="1-3-出栈装入局部变量表指令"><a href="#1-3-出栈装入局部变量表指令" class="headerlink" title="1.3 出栈装入局部变量表指令"></a>1.3 出栈装入局部变量表指令</h2><p>首先我先猜测一下，一般来说数据不会直接装入局表，除非是方法的形参已经实例方法的this。一般来说局部变量都是先进入操作数栈，再从栈出来进入局表，大致应该是啊。</p>
+<p>装入局表指令 store 系列：</p>
+<ul>
+<li><p>xstore&lt;_n&gt; 同理x可以是 i l f d a. n可以是 0 - 3</p>
+</li>
+<li><p>xstore</p>
+</li>
+</ul>
+<p>这个命令的意思是，把操作数栈 栈顶的元素，弹出，然后放入局部变量表index 为 n 的地方。注意，始终弹得是栈顶元素。</p>
+<p>当然了，有特殊的东西，比如存入数组这种的，去看尚硅谷的手册，我这里不提供了。</p>
+<h1 id="2-算数指令"><a href="#2-算数指令" class="headerlink" title="2. 算数指令"></a>2. 算数指令</h1><p>加法指令：iadd，ladd，fadd，dadd</p>
+<p>减法指令：isub，lsub，fsub，dsub</p>
+<p>乘法指令：imul，lmul，fmul，dmul</p>
+<p>除法指令：idiv，ldiv，fdiv，ddiv</p>
+<p>取余指令：irem，lrem，frem，drem # remainder</p>
+<p>取反指令：ineg，lneg，fneg，dneg # negation</p>
+<p>自增指令：iinc xx(局表index) by xx(增加的具体数值)</p>
+<p>需要注意的是，前面的很多指令，比如 add，div这种，其实是把操作数栈中的栈顶两个数，弹出，运算，再压栈，所以没有操作数。但是比较特殊的就是 iinc，比如我们 <code>int i = 0; int j = i + 10;</code> 这里就会用到自增，int j &#x3D; i + 10的指令就是 <code>iinc i在局表的位置 by 10</code>.</p>
+<h1 id="3-数据类型转化"><a href="#3-数据类型转化" class="headerlink" title="3. 数据类型转化"></a>3. 数据类型转化</h1><p>基本格式很简单，就是 x2y，x y 分别代表俩类型呗，然后 to 呗，很简单，然后我们细分一下。</p>
+<p>首先，根据转化的类型，分为两种：宽化数据类型转换，窄化数据类型转换，其实很简单，就是 小范围到大范围 和 大范围到小范围，我们先说宽化：</p>
+<h2 id="3-1-宽化数据类型转换"><a href="#3-1-宽化数据类型转换" class="headerlink" title="3.1 宽化数据类型转换"></a>3.1 宽化数据类型转换</h2><ul>
+<li><p>int 到大范围：i2l, i2f, i2d</p>
+</li>
+<li><p>long 到大范围：l2f, l2d</p>
+</li>
+<li><p>float 到大范围：f2d</p>
+</li>
+</ul>
+<p>说白了就是： int –&gt; long –&gt; float –&gt; double，这个也就是自动类型转换，虽然你的代码没有体现任何的类型转换，但是字节码会给你加上这部分的。</p>
+<h2 id="3-2-精度问题"><a href="#3-2-精度问题" class="headerlink" title="3.2 精度问题"></a>3.2 精度问题</h2><p>既然这里宽数据类型转换，那就肯定要涉及到精度问题：</p>
+<ul>
+<li><p>首先 int 转换为 long，double 不会发生精度丢失。</p>
+</li>
+<li><p>int 或者 long 转换为 float，或者 long 转化成 double，都有可能造成精度丢失，可能会丢失最低有效位上的某些值，转化后的浮点数值是根据 IEEE754最接近舍入模式所得到的正确整数值。</p>
+</li>
+</ul>
+<p>这里举个例子，有如下代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">123123123</span>;</span><br><span class="line"><span class="type">float</span> <span class="variable">j</span> <span class="operator">=</span> i;</span><br><span class="line">System.out.println(j);</span><br></pre></td></tr></table></figure>
+
+<p>这里的 j 就是 1.2312312E8，也就是 123123120。</p>
+<h2 id="3-3-关于-byte-short-char-的问题"><a href="#3-3-关于-byte-short-char-的问题" class="headerlink" title="3.3 关于 byte short char 的问题"></a>3.3 关于 byte short char 的问题</h2><p>是的，你没有看到任何关于 byte short char 的转换指令，为啥？因为压根就没有，比如 byte -&gt; long，其实jvm底层是用的 i2l 来实现的，JVM 肯定会把 byte short long 当做int处理。</p>
+<p>至于为什么这么设计，因为在局部变量表中一个slot就是4个字节的，或者说32bit，那你这个 byte short long 存进去，那不还是用int的slot来存么，那在底层就完全没有必要区分byte short char了，而且，如果再设计这些指令，指令集可就不够了，毕竟一个指令就是一个字节，所以最多只有256 个指令。</p>
+<h2 id="3-4-窄化类型转换"><a href="#3-4-窄化类型转换" class="headerlink" title="3.4 窄化类型转换"></a>3.4 窄化类型转换</h2><p>说的好高级啊，其实就是强制类型转化，把大范围数据类型强制转化为小范围</p>
+<ul>
+<li><p>int 转化为 byte short char：i2b, i2s, i2c</p>
+</li>
+<li><p>long转化为 int：l2i</p>
+</li>
+<li><p>float 转化为 int 或者 long：f2i, f2l</p>
+</li>
+<li><p>double 转化为 int, long, float：d2i, d2l, d2f</p>
+</li>
+<li><p>如果是 float 或者 long 转化为 byte 这种，没有直接的指令支持，那就只好两步走：f2i + i2b</p>
+</li>
+<li><p>如果是 double -&gt; byte，肯定不会 d2f, f2i, i2b, 直接就是 d2i, i2b。一般来说转化最多就是两步</p>
+</li>
+</ul>
+<p>这个也会有精度损失问题，而且很有可能出现精度损失，但是不管精度损失成啥样，都不会抛出异常，特殊的，如果是 byte 转化为 short，直接就是 i2s，没有b2i这一说啊记着。</p>
+<h2 id="3-5-窄化的特殊情况："><a href="#3-5-窄化的特殊情况：" class="headerlink" title="3.5 窄化的特殊情况："></a>3.5 窄化的特殊情况：</h2><p>当一个浮点数转化为整数时，遵循以下规则：</p>
+<ul>
+<li><p>浮点数是 NaN，转化结果就是 int 或者 long 的0</p>
+</li>
+<li><p>如果浮点数不是无穷大，那没啥好说的，直接取舍就行了</p>
+</li>
+</ul>
+<p>当一个double转化为 float的时候：</p>
+<ul>
+<li><p>double如果特别接近0，接近到float都没法表示了，转化结果就为正负0</p>
+</li>
+<li><p>如果double是无穷大，float没法表示，结果就是 float的正负无穷大 Infinity</p>
+</li>
+<li><p>如果double是NaN，那float转化完也是NaN</p>
+</li>
+</ul>
+<p>那当double转化为 long 或者 int 呢，如果double大到int long 没法表示，那int 和long 就会被转化为他们所能表示的最大值。</p>
+<h1 id="4-对象创建与访问指令"><a href="#4-对象创建与访问指令" class="headerlink" title="4. 对象创建与访问指令"></a>4. 对象创建与访问指令</h1><p>因为 Java是面向对象的语言，所以在字节码层面就对对象做了非常好的支持，有很多指令都是用于对象的。同时对象又分出两类，一类就是类的实例，另一类就是数组，各种各样的数组。</p>
+<h2 id="4-1-对象创建指令"><a href="#4-1-对象创建指令" class="headerlink" title="4.1 对象创建指令"></a>4.1 对象创建指令</h2><p>分为两种，创建类实例和创建数组。</p>
+<ul>
+<li><p>创建类实例：new，操作码就是new，操作数是一个指向常量池的索引，这个索引就是具体的类全限定名</p>
+</li>
+<li><p>创建数组：newarray 创建基本数据类型数组，anewarray 创建引用数据类型数组，multianewarray 创建多维数组，如果是基本数据类型数组，后面的操作数就是数组长度，如果是引用数据类型，操作数就是指向常量池的索引，具体就是你引用的类型的全限定命名。</p>
+</li>
+</ul>
+<p>创建完成后，自动把创建好的对象压入操作数栈。</p>
+<p>关于数组的创建这里，有点坑，就是 关于 multianewarray这个指令，什么时候会用这个指令呢？就是你多维数组的维数完全确定，才会用这个指令，比如：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">String[][] s1 = <span class="keyword">new</span> <span class="title class_">String</span>[<span class="number">10</span>][<span class="number">5</span>];</span><br><span class="line"><span class="comment">// 这里的指令是 multianewarray</span></span><br><span class="line"></span><br><span class="line">String[][] s2 = <span class="keyword">new</span> <span class="title class_">String</span>[<span class="number">10</span>][];</span><br><span class="line"><span class="comment">// 这里的指令是 anewarray</span></span><br></pre></td></tr></table></figure>
+
+<p>至于为啥，如果你的维数不确定，那JVM只能知道你创建了一个一维数组，但是一维数组里面的数组长度是多少JVM不知道，所以JVM不确定你里面的是不是数组，只有维数确定的情况下，JVM才能肯定你是要创建一个多维数组，才给你用 multianewarray 这个指令</p>
+<h2 id="4-2-类成员-字段-的访问指令"><a href="#4-2-类成员-字段-的访问指令" class="headerlink" title="4.2 类成员(字段)的访问指令"></a>4.2 类成员(字段)的访问指令</h2><p>这里只针对类里面的字段，对于数组的还有专门的指令。</p>
+<ul>
+<li><p>访问类字段：getstatic，putstatic。分别代表 把类字段压入操作数栈，和 给类字段赋值。</p>
+</li>
+<li><p>访问类实例字段：getfield，putfield。代表的东西和上面一样。</p>
+</li>
+</ul>
+<p>get 这个指令没啥好说的其实，就是后面跟这个常量池索引，把响应的内容（也就是字段信息，fieldref）压入操作数栈。</p>
+<p>put 这个还真得说说，看下面的例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Order</span>&#123; id = <span class="number">10</span>; &#125;</span><br><span class="line"></span><br><span class="line"><span class="type">Order</span> <span class="variable">order</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Order</span>();</span><br><span class="line">order.id = <span class="number">20</span>;</span><br><span class="line"><span class="comment">// new #x &lt;....Order&gt;</span></span><br><span class="line"><span class="comment">// dup</span></span><br><span class="line"><span class="comment">// invokespecial #x &lt;....Order.&lt;init&gt;</span></span><br><span class="line"><span class="comment">// astore_1</span></span><br><span class="line"><span class="comment">// aload_1</span></span><br><span class="line"><span class="comment">// bipush 20</span></span><br><span class="line"><span class="comment">// putfield #x &lt;...Order.id&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>最后就是 putfield #x，所以这个putfield到底是怎么运作的？</p>
+<p>我们在给 id 赋值的之前，操作数栈栈顶就是order对象的地址（为了省事，以后直接说对象），然后赋值的时候又压入操作数栈 20，然后putfield，putfield这个时候就会把栈里面的前两个东西弹出来，根据后面的操作数（一个fieldref_info）确定要给对象的哪个字段赋值，然后就会给弹出来的第二个对象的相应字段赋上第一个弹出来的值。</p>
+<p>说人话，就是现在操作数栈里有一个对象和一个待赋的值，然后putfield给他俩弹出来，根据接收的操作数，就给对象的响应字段赋上那个值。</p>
+<p>注意，这两种指令：getstatic 和 putstatic 指令，他们的操作数都是一个 fieldref_info，表示要给哪个字段赋值或者取出，但是具体执行这个操作的对象，以及要被赋的值，都是从操作数栈中弹出来的。</p>
+<h2 id="4-3-数组元素操作指令"><a href="#4-3-数组元素操作指令" class="headerlink" title="4.3 数组元素操作指令"></a>4.3 数组元素操作指令</h2><ul>
+<li>把数组元素压入操作数栈指令：baload, saload, caload, iaload, laload, faload, daload, aaload，首先 aload 代表 arrayLoad，然后这些首字母分别代表：byte short char int long float double 引用。</li>
+</ul>
+<p>xaload系列的指令需要从操作数栈中弹出2个值，分别是：数组元素索引（int），数组引用，然后他就会把指定数组里面的指定索引的元素对应的值重新压回操作数栈。</p>
+<ul>
+<li>把操作数栈的值赋值给数组元素：bastore, castore, sastore, iastore, lastore, fastore, dastore, aastore，和上面差不多，不多解释。</li>
+</ul>
+<p>这个xastore系列指令需要从操作数栈弹出3个值，分别是（按顺序）：待赋的值，数组元素的引用（int），数组引用。astore指令就会给对应的数组的指定索引的元素赋上对应的值。</p>
+<ul>
+<li>获取数组长度：arraylength，也没有操作数，从操作数栈栈顶弹出数组引用，获取长度，然后把长度（int）重新压回操作数栈。</li>
+</ul>
+<p>这两类指令可都没有操作数，只有一个操作码，操作数全都是从操作数里弹出来的。</p>
+<p>还有就是上面的那些数据类型没有boolean，很简单，boolean数组用的指令也是 baload和bastore。</p>
+<h2 id="4-4-类型检查指令"><a href="#4-4-类型检查指令" class="headerlink" title="4.4 类型检查指令"></a>4.4 类型检查指令</h2><p>Java语法层面有instanceof 关键字，就是判断一个对象是不是一个类的实例，如果是，那就可以强制类型转换，那么强制转换在JVM层面怎么执行的？</p>
+<ul>
+<li><p>instanceof 指令：跟着一个操作数，这个操作数是一个常量索引，一个类名，他会从操作数栈中弹出栈顶的实例引用，然后把弹出的引用和操作数的类型作对比。如果满足，把true压入操作数栈，如果不满足，压入false。（其实我也不知道他到底最后压回栈的是啥，姑且说是true&#x2F;false）。</p>
+</li>
+<li><p>checkcast 指令：类型进行强制转换的时候会有，他会判断能否进行转换，和 instanceof 差不多，他有一个操作数也是指向常量池的，一个类，然后也会从操作数栈弹出栈顶的实例引用，如果可以强制转换，那就转换就行了，如果不行，抛出 ClassCastException。</p>
+</li>
+</ul>
+<h1 id="5-方法指令"><a href="#5-方法指令" class="headerlink" title="5. 方法指令"></a>5. 方法指令</h1><h2 id="5-1-方法调用"><a href="#5-1-方法调用" class="headerlink" title="5.1 方法调用"></a>5.1 方法调用</h2><p>方法调用总共就几个指令，分别是：</p>
+<ul>
+<li><p>invokevirtual：用于调用对象的实例方法，根据对象的实际类型进行分派（虚方法分派），支持多态，是Java中最常见的调用指令。这个具体说说，就是说JVM在执行你的方法的时候，并不知道你这个方法是谁的，还真不一定是当前类型的，因为很可能你这里用到了类的上转型（可不是接口的啊，接口引用调用方法可就是invokeinterface了），比如 <code>Thread t = new XXXThread(); t.run(); </code>，你这个run，已经被你XXXThread重写了，所以JVM搞不清楚了，这个得具体情况具体分析，得运行以后根据你具体的实现类，去调用方法，这就叫虚方法分派。</p>
+</li>
+<li><p>invokeinterface：这个就是调用接口回调的方法，比如 <code>XXXInterface xx = new XXXInterfaceImpl(); xx.func();</code>，这个情况下就是 invokeinterface指令。</p>
+</li>
+<li><p>invokespecial：调用 构造器，私有方法，父类方法的时候的指令，这三种方法比较特殊，因为都不能重写，构造器和私有方法那是废话，子类是铁定不能重写的，那调用父类方法？这个调用父类方法就是 super.xxx() 这种形式，这个就算你子类重写了，你super也是调用的父类的方法，和你当前子类没半毛钱关系。</p>
+</li>
+<li><p>invokestatic：调用静态方法，这个好理解。</p>
+</li>
+<li><p>invokedynamic：这个比较复杂，不说了。</p>
+</li>
+</ul>
+<p>特别的，如果一个方法是 private static 的，那优先考虑 static，指令那就是 invokestatic。</p>
+<p>如果是接口中的已经实现的方法呢？众所周知（我还真不知道JDK8的接口可以有静态方法），jdk8的接口可以有default 方法和 static 方法（都可以实现），那么我们调用这两种方法，指令是啥？看例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">interface</span> <span class="title class_">AA</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="title function_">method1</span><span class="params">()</span>&#123; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">default</span> <span class="title function_">method2</span><span class="params">()</span>&#123; &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BB</span> <span class="keyword">implements</span> <span class="title class_">AA</span>&#123; &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">    <span class="type">AA</span> <span class="variable">aa</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BB</span>();</span><br><span class="line">    aa.method2(); <span class="comment">// invokeinterface</span></span><br><span class="line">    AA.method1(); <span class="comment">// invokestatic</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，即便是方法在接口中已经实现了，指令仍旧是 invokeinterface，但是接口中的静态方法可不是invokeinterface，即便他是在接口中定义的，调用接口中的静态方法指令是 invokestatic，可以看得出来static的优先级比interface高。</p>
+<h2 id="5-2-方法返回："><a href="#5-2-方法返回：" class="headerlink" title="5.2 方法返回："></a>5.2 方法返回：</h2><p>这个倒是很简单，分为有返回值和无返回值：</p>
+<ul>
+<li><p>有返回值：ireturn（返回 boolean byte char short int），lreturn，freturn，dreturn，areturn。这个返回值类型啊，主要看的是你定义方法的时候写的方法返回值，就算你是 <code>public float f()&#123;int i = 10; return i;&#125;</code> 最后返回也是freturn，和你具体返回的啥没太大关系。</p>
+</li>
+<li><p>无返回值：return</p>
+</li>
+</ul>
+<p>如果有返回值，那他具体会干啥？他会把当前栈帧的操作数栈的栈顶元素弹出，然后结束方法，方法一结束栈帧出栈，操作数栈也没了，然后把这个栈顶元素，压入调用这个方法的方法的操作数栈。</p>
+<h1 id="6-操作数栈管理指令："><a href="#6-操作数栈管理指令：" class="headerlink" title="6. 操作数栈管理指令："></a>6. 操作数栈管理指令：</h1><p>这里的管理，指的是不需要借助任何的东西，操作数栈自己进行操作。</p>
+<ul>
+<li><p>直接废弃栈顶元素，直接弹出：pop，pop2。区别就是 pop 弹出一个slot的元素，pop2弹出两个slot的元素。</p>
+</li>
+<li><p>复制操作：dup，dup2，dup_x1，dup2_x1，dup_x2，dup2_x2。</p>
+</li>
+<li><p>交换：swap，交换栈顶的两个 1slot元素，注意，只能是两个 1slot的元素交换，JVM没有提供两个 2slot的元素的交换指令。</p>
+</li>
+<li><p>nop：啥也不干，对应的16进制是0x00，就是用来站位。</p>
+</li>
+</ul>
+<p>dup需要特别说一下，这个复制是复制栈顶的一个或者两个元素，注意，可以一次复制两个的。然后 dup 和 dup2的区别就是 dup复制1slot的元素，dup2复制占2slot的对应元素，注意我说的可以占2slot的东西，还真不一定是仅仅复制一个2slot的单个元素。比如dup2可以复制栈顶的long，double，也可以复制栈顶的两个元素，一个是int，另一个是float。</p>
+<p>然后，dup指令如果后面带有_x，那就不是单纯的复制，而是复制完了以后把复制品插入到另外的位置。那么具体插入到哪呢？有个技巧：</p>
+<p>dup[n]_xm，对吧，n 如果没有那就是 1，有了那就是2。这条指令的具体意思是，先复制，然后把复制结果往下挪 n + m 个slot。</p>
+<p>首先举例子：什么情况下会pop，看下面的代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">Object</span> <span class="variable">obj1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line">    <span class="type">Object</span> <span class="variable">obj2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 上面的指令省略，不用想，肯定是 new dup invokespecial astore，着重看下面两行：</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">hash</span> <span class="operator">=</span> obj1.toString();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokevirtual &lt;...Object.toString&gt;</span></span><br><span class="line">    <span class="comment">// astore_2</span></span><br><span class="line">    <span class="comment">// 这里因为我们把他赋值给了局部变量，所以存入局部变量表，那么说明这个 toString 的返回值有用</span></span><br><span class="line">    obj2.toString();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokevirtual &lt;...Object.toString&gt;</span></span><br><span class="line">    <span class="comment">// pop</span></span><br><span class="line">    <span class="comment">// return</span></span><br><span class="line">    <span class="comment">// 这里为啥就pop了？因为我们就是调用了一下 toString 方法，返回值并没有保存，所以没用，没用操作数栈就把结果直接弹出</span></span><br><span class="line">    <span class="comment">// 又因为是个 String，引用类型，所以弹出一个slot的值就行了</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="type">long</span> <span class="title function_">bar</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test2</span><span class="params">()</span>&#123;</span><br><span class="line">    bar();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokespecial &lt;...bar&gt;</span></span><br><span class="line">    <span class="comment">// pop2</span></span><br><span class="line">    <span class="comment">// return</span></span><br><span class="line">    <span class="comment">// 这里为啥就是 pop2？因为返回值没用，所以需要弹栈，然后因为返回值是long，占用了操作数栈两个slot，索引pop2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="7-比较指令："><a href="#7-比较指令：" class="headerlink" title="7. 比较指令："></a>7. 比较指令：</h1><p>比较指令，说白了就是比较大小的呗，从栈中弹出俩数比较大小。</p>
+<p>这里我先规定：现在操作数栈中有俩数，按顺序是 v2 和 v1，注意是按顺序，也就是v2 压在 v1上面，是栈顶（其实也很好理解，v1 &gt; v2，肯定是先压入v1，再压入 v2，所以v2 在 v1上面）。然后有下面指令：</p>
+<ul>
+<li><p>fcmpl, fcmpg</p>
+</li>
+<li><p>dcmpl, dcmpg</p>
+</li>
+<li><p>lcmp</p>
+</li>
+</ul>
+<p>第一个字母代表类型（float，double，long），cmp不说，最后一个字母 l 和 g 代表 lower 和 greater。其实没啥区分，正常情况下，这些指令都是弹出v2 和 v1 进行比较，如果 v1 &gt; v2，操作数栈压入1，如果 v1 &#x3D;&#x3D; v2，操作数栈压入0，如果 v1 &lt; v2，压-1。唯一的区别就是：如果v1 或者 v2有一个出现NaN，那么 lower 压入 -1，greater 压入 1.仅此而已。</p>
+<p>所以为啥 lcmp 没有lg，因为long没有 NaN。</p>
+<h1 id="8-控制转移指令："><a href="#8-控制转移指令：" class="headerlink" title="8. 控制转移指令："></a>8. 控制转移指令：</h1><h2 id="8-1-条件跳转指令："><a href="#8-1-条件跳转指令：" class="headerlink" title="8.1 条件跳转指令："></a>8.1 条件跳转指令：</h2><p>条件跳转指令一般是用栈顶元素和0或者null去进行跳转，和比较指令关联很大，一般情况下都是比较指令先把比较结果压入栈顶，然后判断指令从栈顶获取结果进行跳转。</p>
+<p>必须要注意的是，这些跳转指令 后面都有一个操作数，代表如果判断位真则跳转到第几行指令。</p>
+<ul>
+<li><p>ifeq（if_equals），ifne（if_nonequals）如果栈顶元素 &#x3D;&#x3D; 0 &#x2F; !&#x3D; 0 ，则跳转。</p>
+</li>
+<li><p>iflt，ifle，ifgt，ifge。当栈顶元素 &gt; &gt;&#x3D; &lt; &lt;&#x3D; 0 时跳转。</p>
+</li>
+<li><p>ifnull，ifnonnull。如果栈顶元素是null&#x2F;不是null 时跳转。</p>
+</li>
+</ul>
+<p>特别需要注意一个地方，看下面代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">test</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">0</span>; <span class="comment">// iconst_0, istore_1</span></span><br><span class="line">    <span class="keyword">if</span>(a == <span class="number">0</span>) <span class="comment">// iload_1, ifne xx &lt;a = 20&gt;</span></span><br><span class="line">        a = <span class="number">10</span>; <span class="comment">// bipush 10, istore_1, goto xx &lt;return&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        a = <span class="number">20</span>; <span class="comment">// bipush 20, istore_1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> a; <span class="comment">// iload_1, ireturn</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>是的，我知道很简单，我们仔细看一看，如果if判断的结果为真，那他会接着if后面的按顺序执行，也就是走if路线的话根本没有跳转，只有在 if 判断不通过的情况下，走到else，这个时候才发生了指令跳转。但是这些判断指令后面又必须跟一个跳转地址，所以说这里我们判断得是 a&#x3D;&#x3D;0，如果等于则干啥，但是指令其实是反过来的，指令中判断 如果 a !&#x3D; 0，则跳转到else的地方。</p>
+<p>总结一下，就是条件跳转指令会给我们写的if判断的条件取反，我们让他判断 a 是否等于0，指令则会判断 a 是否不等于0，如果是，则直接跳转到 else，如果不是，则不跳转，接着按顺序执行if后面的指令。</p>
+<p>还有啊，这个条件跳转指令，针对的是 一个 int 和 一个常数比较，比如你直接 a &#x3D;&#x3D; 0，就会用条件跳转，如果是连个float，那就是两个float先 cmp，往操作数栈中压入比较结果，然后再条件跳转。</p>
+<h2 id="8-2-比较条件跳转指令"><a href="#8-2-比较条件跳转指令" class="headerlink" title="8.2 比较条件跳转指令"></a>8.2 比较条件跳转指令</h2><p>这个东西就是把条件跳转和比较 结合在一起了，仅此而已。主要针对两个int（或者说JVM给你转换以后是int，害，其实就是 byte short）或者两个引用的比较，当然这里的比较引用肯定是比较的hashcode。</p>
+<ul>
+<li><p>if_icmpeq，if_icmpne，if_icmplt，if_icmple，if_icmpgt，if_icmpge：从栈顶弹出v2 和 v1 两个int，如果 &#x3D;&#x3D; !&#x3D; &lt; &lt;&#x3D; &gt; &gt;&#x3D; 的话，就跳转</p>
+</li>
+<li><p>if_acmpeq，ifacmpne：从栈顶弹出两个引用，判断 &#x3D;&#x3D; !&#x3D;</p>
+</li>
+</ul>
+<h2 id="8-3-多条件跳转指令"><a href="#8-3-多条件跳转指令" class="headerlink" title="8.3 多条件跳转指令"></a>8.3 多条件跳转指令</h2><p>这个多条件不是else if 啊，指的是 switch case 结构。</p>
+<p>具体分为两个：tableswitch 和 lookupswitch，这两个都是规定了如何跳转。区别就是 如果case 的后面的东西连续，那就是tableswitch，可以直接定位。如果不连续，那就需要用到 lookupswitch。</p>
+<p>lookupswitch 优化为题：</p>
+<p>因为lookupswitch不连续，所以他的效率可能慢一点，但是这个指令自己会优化，他会把你所有的case 条件，按顺序排序，比如你是 case 100, 500, 200，那他最后优化就会变成：100, 200, 500.但是这是不是说明，如果你不break，那他就不按从上到下的顺序一溜往下走了？不是的，具体为啥，你可以去看字节码。</p>
+<p>还有jdk7支持的 case 字符串。这个东西更玄学，不细说了，挺多的，可以看：cn.chl.SwitchCase.java 这个文件。</p>
+<h2 id="8-4-无条件跳转指令"><a href="#8-4-无条件跳转指令" class="headerlink" title="8.4 无条件跳转指令"></a>8.4 无条件跳转指令</h2><p>goto 指令，后面跟着一个2字节的操作数，代表往哪里跳转，如果两个字节（65535，无符号的2字节数）不够，那就是用 goto_w 这个指令，和goto一样，区别就是goto_w 接受一个4字节的操作数。</p>
+<p>这里还可以涉及到循环，JVM中可没有任何的循环指令，其实循环都是 条件跳转指令 + 无条件跳转指令实现的。</p>
+<h1 id="9-异常与异常处理"><a href="#9-异常与异常处理" class="headerlink" title="9. 异常与异常处理"></a>9. 异常与异常处理</h1><p>很好，我们都很讨厌异常</p>
+<h2 id="9-1-异常的生成"><a href="#9-1-异常的生成" class="headerlink" title="9.1 异常的生成"></a>9.1 异常的生成</h2><p>众所周知，Java中的异常，其实就是 Exception对象，说的再准确点，就是 Throwable 实现类，所以异常，首先也要创建，然后使用关键字throw出来。</p>
+<p>JVM层面，throw 的指令：athrow。但是这个指令仅限于我们手动抛出异常，如果是自动抛出的异常，比如除以0的异常，会在执行指令idiv和ldiv时自动抛出，那么这里自动抛出的异常就不会涉及athrow指令。</p>
+<p>一旦抛出异常，直接清空方法的操作数栈（不光是清空操作数栈，整个栈帧都会直接弹出），然后把异常对象，压入方法调用者的操作数栈上。</p>
+<h2 id="9-2-异常的捕获"><a href="#9-2-异常的捕获" class="headerlink" title="9.2 异常的捕获"></a>9.2 异常的捕获</h2><p>早期的JVM采用了 jsr ret 等指令来对异常进行处理，但是是早期，现在JVM已经把这些指令废弃了，取而代之的是异常表。</p>
+<p>异常表其实很简单，就是一张表，规定了如果发生哪类异常，则跳转到哪条指令。一般来说只要你存在try catch 或者 try finally 则会出现这个东西。当</p>
+<p>异常表有有你catch的所有异常，如果发生异常，就会去和你异常表匹配，匹配到哪个异常，跳转到哪个异常的处理位置，如果没有匹配，则弹出当前栈帧。</p>
+<p>异常表结构如下：</p>
+<table>
+<thead>
+<tr>
+<th>Nr.</th>
+<th>Start PC</th>
+<th>End Pc</th>
+<th>Handler PC</th>
+<th>Catch Type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第几个，毛用没有</td>
+<td>try的起始位置</td>
+<td>try的结束位置</td>
+<td>抛出异常后的处理位置</td>
+<td>处理的异常类型</td>
+</tr>
+</tbody></table>
+<p>这个举个例子，看 cn.chl.ExceptionByteCode，里面的test5 方法，他的异常表如下：</p>
+<table>
+<thead>
+<tr>
+<th>Nr.</th>
+<th>Start PC</th>
+<th>End PC</th>
+<th>Handler PC</th>
+<th>Catch Type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+<td>9</td>
+<td>java.lang.ClassNotFoundException</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>6</td>
+<td>21</td>
+<td>java.lang.RuntimeException</td>
+</tr>
+</tbody></table>
+<p>所以具体什么意思呢？很简单，第一个，如果在 0 - 6 行字节码出现ClassNotFoundException，则跳转到 9 行进行处理，第二个，如果在 0 - 6 行出现RuntimeException，则跳转到 21行进行处理。就是这么简单。</p>
+<h1 id="10-同步控制指令"><a href="#10-同步控制指令" class="headerlink" title="10. 同步控制指令"></a>10. 同步控制指令</h1><p>说白了，就是同步代码块。</p>
+<p>首先，同步，有两种办法：</p>
+<ul>
+<li><p>直接给方法加上 synchronized 关键字，然后这个方法就是一个同步方法，一次只允许一个线程调用。这种办法在字节码指令角度看不到任何东西，是的，任何，一个方法你加不加同步，字节码都是那样。唯一的区别就是，方法的访问标识符会变。加上的话，方法的访问标识就会变成 public synchronzied。</p>
+</li>
+<li><p>使用同步代码块：synchronized(临界资源)。这个比较牛逼了，下面主要说这个东西。</p>
+</li>
+</ul>
+<p>如果方法内想要进入同步代码块，使用 monitorenter指令，这个指令从操作数栈中弹出这个临界资源（一般是一个对象），我们之前讲对象头结构的时候说过，对象头中存储着线程的信息，比如当前对象是否有锁，这个锁是谁拿着的。那么现在 monitorenter指令得到这个临界资源后，会去对象头中找这俩属性：</p>
+<ul>
+<li><p>看当前对象有没有被加锁，如果没有，ok，我给加上，然后我进入同步代码块</p>
+</li>
+<li><p>如果有锁，看看这个锁是谁拿着的，如果是我拿着的，行，我也可以进入这个代码块</p>
+</li>
+<li><p>如果这个锁不是我拿着，那很遗憾，我就得等着了。</p>
+</li>
+</ul>
+<p>所以我进入了同步代码块，怎么出来？monitorexit指令，这个指令也会从操作数栈得到临界资源，然后修改他的对象头，释放锁。</p>
+<p>需要注意的是，即便我们在同步代码块中没有使用try catch，JVM也会给我们生成异常表，为啥？如果出现异常，难道说当前线程就不释放锁了？不能吧。只要出现异常，则马上跳出同步代码块来释放锁。</p>
+<p>细说一下：上面我们提到，对象头中有一个东西记录这个对象是否有锁，这个东西叫 “监视器计数器”，如果计数器&#x3D;0，说明没有锁，线程可以进入，如果为1，那说明有锁，你得等着了。</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JVM-字节码</title>
     <url>/2022/06/13/bytecode/</url>
     <content><![CDATA[<p>前面几经讲完了JVM的一些底层原理，从这章开始，我们会深入字节码文件，说一说字节码的各种指令，从指令层面了解Java代码。</p>
@@ -1347,331 +1726,6 @@
 <p>注意：</p>
 <p>一个指令，可以从局部变量表，常量池，堆中对象，方法调用，系统调用中获取数据，这些数据会压入操作数栈</p>
 <p>一个指令，也可以从操作数栈获取多个数据，也就是pop多次，然后可以进行各种操作，然后结果还可以存入操作数栈</p>
-]]></content>
-      <categories>
-        <category>JVM</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>底层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>字节码指令</title>
-    <url>/2022/06/13/bytecode-command/</url>
-    <content><![CDATA[<p>这章就是具体的各种字节码指令，深入的说一下每个指令都是干嘛的。</p>
-<span id="more"></span>
-
-<h1 id="1-加载与存储指令"><a href="#1-加载与存储指令" class="headerlink" title="1. 加载与存储指令"></a>1. 加载与存储指令</h1><p>因为我们之前说过了，数据的来源可以是局部变量表，常量池，方法调用，所以这里还得区分。</p>
-<h2 id="1-1-局部变量压栈指令"><a href="#1-1-局部变量压栈指令" class="headerlink" title="1.1 局部变量压栈指令"></a>1.1 局部变量压栈指令</h2><p>从局部变量表中的取得相应的数据，压入操作数栈，大体可以分为两类：</p>
-<ul>
-<li><p>xload (x 可以是 i l f d a)</p>
-</li>
-<li><p>xload&lt;_n&gt; (n 从 0 - 3)</p>
-</li>
-</ul>
-<p>为啥要分出两个，_n 有啥用？很简单，根据概率来说，xload 0 1 2 3 用的最多，所以封装成了 xload_0 1 2 3.在字节码文件中，一个指令只有一个字节，而操作数2个字节，用 xload_n可以省地方。</p>
-<p>然后这里面涉及到了局部变量表，这里复习一下：局部变量表里面有槽位，一个槽slot是4个字节，然后如果我们把long放进去，那long就是占两个slot，比如 0 位是this，1位是long，那3位就是int，没有2了，1 2 都被long占用了。</p>
-<p>然后具体说说后面的操作数，现在有一个指令: xload 5，那他就是把局部变量表中index&#x3D;5的东西，压入栈。注意，是index&#x3D;5，索引为5的局表数据，看好了，可不是局表里面第一列那个数字，那是个数。</p>
-<h2 id="1-2-常量入栈指令"><a href="#1-2-常量入栈指令" class="headerlink" title="1.2 常量入栈指令"></a>1.2 常量入栈指令</h2><p>指令const系列：这个命令用于特定常量压操作数栈，注意是特定常量，这个常量直接写在指令中，且后面没有操作数，注意这个很重要，const指令没有操作数，而且这个常量得注意，不是说非得是 final 修饰的常量，字面量也算是这里的常量，我们定义一个字面量 int i &#x3D; 10 那这里也会用这些指令进行压栈操作。具体指令如下：</p>
-<ul>
-<li><p>iconst_i (i -&gt; -1(m1) 到 5)</p>
-</li>
-<li><p>lconst_l (l -&gt; 0到1)</p>
-</li>
-<li><p>fconst_f (f -&gt; 0 到 2)</p>
-</li>
-<li><p>dconst_d (d -&gt; 0 到 1)</p>
-</li>
-<li><p>aconst_null (压null)</p>
-</li>
-</ul>
-<p>是的，这些数据范围没有任何规律，别问为啥，反正就是这样。</p>
-<p>比如，将常量 2 压入栈，那就是 iconst_2，那压6呢？iconst 6么，我们之前说了，const系列指令没有操作数，所以显然不行。这里得用另外一个系列指令：push系列指令。</p>
-<p>指令 push 系列：主要就是 bipush 和 sipush，主要就是接收数据类型不同，bipush接收8位整数压栈，sipush接收16位整数压栈。(128就已经是16位了)，具体范围就是 bipush：-128 - 127. sipush：-32768 - 32767</p>
-<p>如果还是不行，那就可以使用 ldc 指令，这个指令是干嘛的呢，他接受一个8位参数，这个参数指向常量池中 int float String 索引，然后将常量池中的指定内容压入栈。如果索引比较大，可以使用 ldc_w指令，接受两个8位参数，仅仅是索引范围变大了而已。如果压入 long double，那就是用 ldc2_w，怎么理解呢，粗略的理解成double 和 long 占两个槽位吧。</p>
-<p>三个的区别就是 const -&gt; push -&gt; ldc 范围依次增大。</p>
-<h2 id="1-3-出栈装入局部变量表指令"><a href="#1-3-出栈装入局部变量表指令" class="headerlink" title="1.3 出栈装入局部变量表指令"></a>1.3 出栈装入局部变量表指令</h2><p>首先我先猜测一下，一般来说数据不会直接装入局表，除非是方法的形参已经实例方法的this。一般来说局部变量都是先进入操作数栈，再从栈出来进入局表，大致应该是啊。</p>
-<p>装入局表指令 store 系列：</p>
-<ul>
-<li><p>xstore&lt;_n&gt; 同理x可以是 i l f d a. n可以是 0 - 3</p>
-</li>
-<li><p>xstore</p>
-</li>
-</ul>
-<p>这个命令的意思是，把操作数栈 栈顶的元素，弹出，然后放入局部变量表index 为 n 的地方。注意，始终弹得是栈顶元素。</p>
-<p>当然了，有特殊的东西，比如存入数组这种的，去看尚硅谷的手册，我这里不提供了。</p>
-<h1 id="2-算数指令"><a href="#2-算数指令" class="headerlink" title="2. 算数指令"></a>2. 算数指令</h1><p>加法指令：iadd，ladd，fadd，dadd</p>
-<p>减法指令：isub，lsub，fsub，dsub</p>
-<p>乘法指令：imul，lmul，fmul，dmul</p>
-<p>除法指令：idiv，ldiv，fdiv，ddiv</p>
-<p>取余指令：irem，lrem，frem，drem # remainder</p>
-<p>取反指令：ineg，lneg，fneg，dneg # negation</p>
-<p>自增指令：iinc xx(局表index) by xx(增加的具体数值)</p>
-<p>需要注意的是，前面的很多指令，比如 add，div这种，其实是把操作数栈中的栈顶两个数，弹出，运算，再压栈，所以没有操作数。但是比较特殊的就是 iinc，比如我们 <code>int i = 0; int j = i + 10;</code> 这里就会用到自增，int j &#x3D; i + 10的指令就是 <code>iinc i在局表的位置 by 10</code>.</p>
-<h1 id="3-数据类型转化"><a href="#3-数据类型转化" class="headerlink" title="3. 数据类型转化"></a>3. 数据类型转化</h1><p>基本格式很简单，就是 x2y，x y 分别代表俩类型呗，然后 to 呗，很简单，然后我们细分一下。</p>
-<p>首先，根据转化的类型，分为两种：宽化数据类型转换，窄化数据类型转换，其实很简单，就是 小范围到大范围 和 大范围到小范围，我们先说宽化：</p>
-<h2 id="3-1-宽化数据类型转换"><a href="#3-1-宽化数据类型转换" class="headerlink" title="3.1 宽化数据类型转换"></a>3.1 宽化数据类型转换</h2><ul>
-<li><p>int 到大范围：i2l, i2f, i2d</p>
-</li>
-<li><p>long 到大范围：l2f, l2d</p>
-</li>
-<li><p>float 到大范围：f2d</p>
-</li>
-</ul>
-<p>说白了就是： int –&gt; long –&gt; float –&gt; double，这个也就是自动类型转换，虽然你的代码没有体现任何的类型转换，但是字节码会给你加上这部分的。</p>
-<h2 id="3-2-精度问题"><a href="#3-2-精度问题" class="headerlink" title="3.2 精度问题"></a>3.2 精度问题</h2><p>既然这里宽数据类型转换，那就肯定要涉及到精度问题：</p>
-<ul>
-<li><p>首先 int 转换为 long，double 不会发生精度丢失。</p>
-</li>
-<li><p>int 或者 long 转换为 float，或者 long 转化成 double，都有可能造成精度丢失，可能会丢失最低有效位上的某些值，转化后的浮点数值是根据 IEEE754最接近舍入模式所得到的正确整数值。</p>
-</li>
-</ul>
-<p>这里举个例子，有如下代码：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">123123123</span>;</span><br><span class="line"><span class="type">float</span> <span class="variable">j</span> <span class="operator">=</span> i;</span><br><span class="line">System.out.println(j);</span><br></pre></td></tr></table></figure>
-
-<p>这里的 j 就是 1.2312312E8，也就是 123123120。</p>
-<h2 id="3-3-关于-byte-short-char-的问题"><a href="#3-3-关于-byte-short-char-的问题" class="headerlink" title="3.3 关于 byte short char 的问题"></a>3.3 关于 byte short char 的问题</h2><p>是的，你没有看到任何关于 byte short char 的转换指令，为啥？因为压根就没有，比如 byte -&gt; long，其实jvm底层是用的 i2l 来实现的，JVM 肯定会把 byte short long 当做int处理。</p>
-<p>至于为什么这么设计，因为在局部变量表中一个slot就是4个字节的，或者说32bit，那你这个 byte short long 存进去，那不还是用int的slot来存么，那在底层就完全没有必要区分byte short char了，而且，如果再设计这些指令，指令集可就不够了，毕竟一个指令就是一个字节，所以最多只有256 个指令。</p>
-<h2 id="3-4-窄化类型转换"><a href="#3-4-窄化类型转换" class="headerlink" title="3.4 窄化类型转换"></a>3.4 窄化类型转换</h2><p>说的好高级啊，其实就是强制类型转化，把大范围数据类型强制转化为小范围</p>
-<ul>
-<li><p>int 转化为 byte short char：i2b, i2s, i2c</p>
-</li>
-<li><p>long转化为 int：l2i</p>
-</li>
-<li><p>float 转化为 int 或者 long：f2i, f2l</p>
-</li>
-<li><p>double 转化为 int, long, float：d2i, d2l, d2f</p>
-</li>
-<li><p>如果是 float 或者 long 转化为 byte 这种，没有直接的指令支持，那就只好两步走：f2i + i2b</p>
-</li>
-<li><p>如果是 double -&gt; byte，肯定不会 d2f, f2i, i2b, 直接就是 d2i, i2b。一般来说转化最多就是两步</p>
-</li>
-</ul>
-<p>这个也会有精度损失问题，而且很有可能出现精度损失，但是不管精度损失成啥样，都不会抛出异常，特殊的，如果是 byte 转化为 short，直接就是 i2s，没有b2i这一说啊记着。</p>
-<h2 id="3-5-窄化的特殊情况："><a href="#3-5-窄化的特殊情况：" class="headerlink" title="3.5 窄化的特殊情况："></a>3.5 窄化的特殊情况：</h2><p>当一个浮点数转化为整数时，遵循以下规则：</p>
-<ul>
-<li><p>浮点数是 NaN，转化结果就是 int 或者 long 的0</p>
-</li>
-<li><p>如果浮点数不是无穷大，那没啥好说的，直接取舍就行了</p>
-</li>
-</ul>
-<p>当一个double转化为 float的时候：</p>
-<ul>
-<li><p>double如果特别接近0，接近到float都没法表示了，转化结果就为正负0</p>
-</li>
-<li><p>如果double是无穷大，float没法表示，结果就是 float的正负无穷大 Infinity</p>
-</li>
-<li><p>如果double是NaN，那float转化完也是NaN</p>
-</li>
-</ul>
-<p>那当double转化为 long 或者 int 呢，如果double大到int long 没法表示，那int 和long 就会被转化为他们所能表示的最大值。</p>
-<h1 id="4-对象创建与访问指令"><a href="#4-对象创建与访问指令" class="headerlink" title="4. 对象创建与访问指令"></a>4. 对象创建与访问指令</h1><p>因为 Java是面向对象的语言，所以在字节码层面就对对象做了非常好的支持，有很多指令都是用于对象的。同时对象又分出两类，一类就是类的实例，另一类就是数组，各种各样的数组。</p>
-<h2 id="4-1-对象创建指令"><a href="#4-1-对象创建指令" class="headerlink" title="4.1 对象创建指令"></a>4.1 对象创建指令</h2><p>分为两种，创建类实例和创建数组。</p>
-<ul>
-<li><p>创建类实例：new，操作码就是new，操作数是一个指向常量池的索引，这个索引就是具体的类全限定名</p>
-</li>
-<li><p>创建数组：newarray 创建基本数据类型数组，anewarray 创建引用数据类型数组，multianewarray 创建多维数组，如果是基本数据类型数组，后面的操作数就是数组长度，如果是引用数据类型，操作数就是指向常量池的索引，具体就是你引用的类型的全限定命名。</p>
-</li>
-</ul>
-<p>创建完成后，自动把创建好的对象压入操作数栈。</p>
-<p>关于数组的创建这里，有点坑，就是 关于 multianewarray这个指令，什么时候会用这个指令呢？就是你多维数组的维数完全确定，才会用这个指令，比如：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">String[][] s1 = <span class="keyword">new</span> <span class="title class_">String</span>[<span class="number">10</span>][<span class="number">5</span>];</span><br><span class="line"><span class="comment">// 这里的指令是 multianewarray</span></span><br><span class="line"></span><br><span class="line">String[][] s2 = <span class="keyword">new</span> <span class="title class_">String</span>[<span class="number">10</span>][];</span><br><span class="line"><span class="comment">// 这里的指令是 anewarray</span></span><br></pre></td></tr></table></figure>
-
-<p>至于为啥，如果你的维数不确定，那JVM只能知道你创建了一个一维数组，但是一维数组里面的数组长度是多少JVM不知道，所以JVM不确定你里面的是不是数组，只有维数确定的情况下，JVM才能肯定你是要创建一个多维数组，才给你用 multianewarray 这个指令</p>
-<h2 id="4-2-类成员-字段-的访问指令"><a href="#4-2-类成员-字段-的访问指令" class="headerlink" title="4.2 类成员(字段)的访问指令"></a>4.2 类成员(字段)的访问指令</h2><p>这里只针对类里面的字段，对于数组的还有专门的指令。</p>
-<ul>
-<li><p>访问类字段：getstatic，putstatic。分别代表 把类字段压入操作数栈，和 给类字段赋值。</p>
-</li>
-<li><p>访问类实例字段：getfield，putfield。代表的东西和上面一样。</p>
-</li>
-</ul>
-<p>get 这个指令没啥好说的其实，就是后面跟这个常量池索引，把响应的内容（也就是字段信息，fieldref）压入操作数栈。</p>
-<p>put 这个还真得说说，看下面的例子：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Order</span>&#123; id = <span class="number">10</span>; &#125;</span><br><span class="line"></span><br><span class="line"><span class="type">Order</span> <span class="variable">order</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Order</span>();</span><br><span class="line">order.id = <span class="number">20</span>;</span><br><span class="line"><span class="comment">// new #x &lt;....Order&gt;</span></span><br><span class="line"><span class="comment">// dup</span></span><br><span class="line"><span class="comment">// invokespecial #x &lt;....Order.&lt;init&gt;</span></span><br><span class="line"><span class="comment">// astore_1</span></span><br><span class="line"><span class="comment">// aload_1</span></span><br><span class="line"><span class="comment">// bipush 20</span></span><br><span class="line"><span class="comment">// putfield #x &lt;...Order.id&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>最后就是 putfield #x，所以这个putfield到底是怎么运作的？</p>
-<p>我们在给 id 赋值的之前，操作数栈栈顶就是order对象的地址（为了省事，以后直接说对象），然后赋值的时候又压入操作数栈 20，然后putfield，putfield这个时候就会把栈里面的前两个东西弹出来，根据后面的操作数（一个fieldref_info）确定要给对象的哪个字段赋值，然后就会给弹出来的第二个对象的相应字段赋上第一个弹出来的值。</p>
-<p>说人话，就是现在操作数栈里有一个对象和一个待赋的值，然后putfield给他俩弹出来，根据接收的操作数，就给对象的响应字段赋上那个值。</p>
-<p>注意，这两种指令：getstatic 和 putstatic 指令，他们的操作数都是一个 fieldref_info，表示要给哪个字段赋值或者取出，但是具体执行这个操作的对象，以及要被赋的值，都是从操作数栈中弹出来的。</p>
-<h2 id="4-3-数组元素操作指令"><a href="#4-3-数组元素操作指令" class="headerlink" title="4.3 数组元素操作指令"></a>4.3 数组元素操作指令</h2><ul>
-<li>把数组元素压入操作数栈指令：baload, saload, caload, iaload, laload, faload, daload, aaload，首先 aload 代表 arrayLoad，然后这些首字母分别代表：byte short char int long float double 引用。</li>
-</ul>
-<p>xaload系列的指令需要从操作数栈中弹出2个值，分别是：数组元素索引（int），数组引用，然后他就会把指定数组里面的指定索引的元素对应的值重新压回操作数栈。</p>
-<ul>
-<li>把操作数栈的值赋值给数组元素：bastore, castore, sastore, iastore, lastore, fastore, dastore, aastore，和上面差不多，不多解释。</li>
-</ul>
-<p>这个xastore系列指令需要从操作数栈弹出3个值，分别是（按顺序）：待赋的值，数组元素的引用（int），数组引用。astore指令就会给对应的数组的指定索引的元素赋上对应的值。</p>
-<ul>
-<li>获取数组长度：arraylength，也没有操作数，从操作数栈栈顶弹出数组引用，获取长度，然后把长度（int）重新压回操作数栈。</li>
-</ul>
-<p>这两类指令可都没有操作数，只有一个操作码，操作数全都是从操作数里弹出来的。</p>
-<p>还有就是上面的那些数据类型没有boolean，很简单，boolean数组用的指令也是 baload和bastore。</p>
-<h2 id="4-4-类型检查指令"><a href="#4-4-类型检查指令" class="headerlink" title="4.4 类型检查指令"></a>4.4 类型检查指令</h2><p>Java语法层面有instanceof 关键字，就是判断一个对象是不是一个类的实例，如果是，那就可以强制类型转换，那么强制转换在JVM层面怎么执行的？</p>
-<ul>
-<li><p>instanceof 指令：跟着一个操作数，这个操作数是一个常量索引，一个类名，他会从操作数栈中弹出栈顶的实例引用，然后把弹出的引用和操作数的类型作对比。如果满足，把true压入操作数栈，如果不满足，压入false。（其实我也不知道他到底最后压回栈的是啥，姑且说是true&#x2F;false）。</p>
-</li>
-<li><p>checkcast 指令：类型进行强制转换的时候会有，他会判断能否进行转换，和 instanceof 差不多，他有一个操作数也是指向常量池的，一个类，然后也会从操作数栈弹出栈顶的实例引用，如果可以强制转换，那就转换就行了，如果不行，抛出 ClassCastException。</p>
-</li>
-</ul>
-<h1 id="5-方法指令"><a href="#5-方法指令" class="headerlink" title="5. 方法指令"></a>5. 方法指令</h1><h2 id="5-1-方法调用"><a href="#5-1-方法调用" class="headerlink" title="5.1 方法调用"></a>5.1 方法调用</h2><p>方法调用总共就几个指令，分别是：</p>
-<ul>
-<li><p>invokevirtual：用于调用对象的实例方法，根据对象的实际类型进行分派（虚方法分派），支持多态，是Java中最常见的调用指令。这个具体说说，就是说JVM在执行你的方法的时候，并不知道你这个方法是谁的，还真不一定是当前类型的，因为很可能你这里用到了类的上转型（可不是接口的啊，接口引用调用方法可就是invokeinterface了），比如 <code>Thread t = new XXXThread(); t.run(); </code>，你这个run，已经被你XXXThread重写了，所以JVM搞不清楚了，这个得具体情况具体分析，得运行以后根据你具体的实现类，去调用方法，这就叫虚方法分派。</p>
-</li>
-<li><p>invokeinterface：这个就是调用接口回调的方法，比如 <code>XXXInterface xx = new XXXInterfaceImpl(); xx.func();</code>，这个情况下就是 invokeinterface指令。</p>
-</li>
-<li><p>invokespecial：调用 构造器，私有方法，父类方法的时候的指令，这三种方法比较特殊，因为都不能重写，构造器和私有方法那是废话，子类是铁定不能重写的，那调用父类方法？这个调用父类方法就是 super.xxx() 这种形式，这个就算你子类重写了，你super也是调用的父类的方法，和你当前子类没半毛钱关系。</p>
-</li>
-<li><p>invokestatic：调用静态方法，这个好理解。</p>
-</li>
-<li><p>invokedynamic：这个比较复杂，不说了。</p>
-</li>
-</ul>
-<p>特别的，如果一个方法是 private static 的，那优先考虑 static，指令那就是 invokestatic。</p>
-<p>如果是接口中的已经实现的方法呢？众所周知（我还真不知道JDK8的接口可以有静态方法），jdk8的接口可以有default 方法和 static 方法（都可以实现），那么我们调用这两种方法，指令是啥？看例子：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">interface</span> <span class="title class_">AA</span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="title function_">method1</span><span class="params">()</span>&#123; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">default</span> <span class="title function_">method2</span><span class="params">()</span>&#123; &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BB</span> <span class="keyword">implements</span> <span class="title class_">AA</span>&#123; &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span>&#123;</span><br><span class="line">    <span class="type">AA</span> <span class="variable">aa</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">BB</span>();</span><br><span class="line">    aa.method2(); <span class="comment">// invokeinterface</span></span><br><span class="line">    AA.method1(); <span class="comment">// invokestatic</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>可以看到，即便是方法在接口中已经实现了，指令仍旧是 invokeinterface，但是接口中的静态方法可不是invokeinterface，即便他是在接口中定义的，调用接口中的静态方法指令是 invokestatic，可以看得出来static的优先级比interface高。</p>
-<h2 id="5-2-方法返回："><a href="#5-2-方法返回：" class="headerlink" title="5.2 方法返回："></a>5.2 方法返回：</h2><p>这个倒是很简单，分为有返回值和无返回值：</p>
-<ul>
-<li><p>有返回值：ireturn（返回 boolean byte char short int），lreturn，freturn，dreturn，areturn。这个返回值类型啊，主要看的是你定义方法的时候写的方法返回值，就算你是 <code>public float f()&#123;int i = 10; return i;&#125;</code> 最后返回也是freturn，和你具体返回的啥没太大关系。</p>
-</li>
-<li><p>无返回值：return</p>
-</li>
-</ul>
-<p>如果有返回值，那他具体会干啥？他会把当前栈帧的操作数栈的栈顶元素弹出，然后结束方法，方法一结束栈帧出栈，操作数栈也没了，然后把这个栈顶元素，压入调用这个方法的方法的操作数栈。</p>
-<h1 id="6-操作数栈管理指令："><a href="#6-操作数栈管理指令：" class="headerlink" title="6. 操作数栈管理指令："></a>6. 操作数栈管理指令：</h1><p>这里的管理，指的是不需要借助任何的东西，操作数栈自己进行操作。</p>
-<ul>
-<li><p>直接废弃栈顶元素，直接弹出：pop，pop2。区别就是 pop 弹出一个slot的元素，pop2弹出两个slot的元素。</p>
-</li>
-<li><p>复制操作：dup，dup2，dup_x1，dup2_x1，dup_x2，dup2_x2。</p>
-</li>
-<li><p>交换：swap，交换栈顶的两个 1slot元素，注意，只能是两个 1slot的元素交换，JVM没有提供两个 2slot的元素的交换指令。</p>
-</li>
-<li><p>nop：啥也不干，对应的16进制是0x00，就是用来站位。</p>
-</li>
-</ul>
-<p>dup需要特别说一下，这个复制是复制栈顶的一个或者两个元素，注意，可以一次复制两个的。然后 dup 和 dup2的区别就是 dup复制1slot的元素，dup2复制占2slot的对应元素，注意我说的可以占2slot的东西，还真不一定是仅仅复制一个2slot的单个元素。比如dup2可以复制栈顶的long，double，也可以复制栈顶的两个元素，一个是int，另一个是float。</p>
-<p>然后，dup指令如果后面带有_x，那就不是单纯的复制，而是复制完了以后把复制品插入到另外的位置。那么具体插入到哪呢？有个技巧：</p>
-<p>dup[n]_xm，对吧，n 如果没有那就是 1，有了那就是2。这条指令的具体意思是，先复制，然后把复制结果往下挪 n + m 个slot。</p>
-<p>首先举例子：什么情况下会pop，看下面的代码：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">Object</span> <span class="variable">obj1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line">    <span class="type">Object</span> <span class="variable">obj2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 上面的指令省略，不用想，肯定是 new dup invokespecial astore，着重看下面两行：</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">hash</span> <span class="operator">=</span> obj1.toString();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokevirtual &lt;...Object.toString&gt;</span></span><br><span class="line">    <span class="comment">// astore_2</span></span><br><span class="line">    <span class="comment">// 这里因为我们把他赋值给了局部变量，所以存入局部变量表，那么说明这个 toString 的返回值有用</span></span><br><span class="line">    obj2.toString();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokevirtual &lt;...Object.toString&gt;</span></span><br><span class="line">    <span class="comment">// pop</span></span><br><span class="line">    <span class="comment">// return</span></span><br><span class="line">    <span class="comment">// 这里为啥就pop了？因为我们就是调用了一下 toString 方法，返回值并没有保存，所以没用，没用操作数栈就把结果直接弹出</span></span><br><span class="line">    <span class="comment">// 又因为是个 String，引用类型，所以弹出一个slot的值就行了</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="type">long</span> <span class="title function_">bar</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test2</span><span class="params">()</span>&#123;</span><br><span class="line">    bar();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// invokespecial &lt;...bar&gt;</span></span><br><span class="line">    <span class="comment">// pop2</span></span><br><span class="line">    <span class="comment">// return</span></span><br><span class="line">    <span class="comment">// 这里为啥就是 pop2？因为返回值没用，所以需要弹栈，然后因为返回值是long，占用了操作数栈两个slot，索引pop2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h1 id="7-比较指令："><a href="#7-比较指令：" class="headerlink" title="7. 比较指令："></a>7. 比较指令：</h1><p>比较指令，说白了就是比较大小的呗，从栈中弹出俩数比较大小。</p>
-<p>这里我先规定：现在操作数栈中有俩数，按顺序是 v2 和 v1，注意是按顺序，也就是v2 压在 v1上面，是栈顶（其实也很好理解，v1 &gt; v2，肯定是先压入v1，再压入 v2，所以v2 在 v1上面）。然后有下面指令：</p>
-<ul>
-<li><p>fcmpl, fcmpg</p>
-</li>
-<li><p>dcmpl, dcmpg</p>
-</li>
-<li><p>lcmp</p>
-</li>
-</ul>
-<p>第一个字母代表类型（float，double，long），cmp不说，最后一个字母 l 和 g 代表 lower 和 greater。其实没啥区分，正常情况下，这些指令都是弹出v2 和 v1 进行比较，如果 v1 &gt; v2，操作数栈压入1，如果 v1 &#x3D;&#x3D; v2，操作数栈压入0，如果 v1 &lt; v2，压-1。唯一的区别就是：如果v1 或者 v2有一个出现NaN，那么 lower 压入 -1，greater 压入 1.仅此而已。</p>
-<p>所以为啥 lcmp 没有lg，因为long没有 NaN。</p>
-<h1 id="8-控制转移指令："><a href="#8-控制转移指令：" class="headerlink" title="8. 控制转移指令："></a>8. 控制转移指令：</h1><h2 id="8-1-条件跳转指令："><a href="#8-1-条件跳转指令：" class="headerlink" title="8.1 条件跳转指令："></a>8.1 条件跳转指令：</h2><p>条件跳转指令一般是用栈顶元素和0或者null去进行跳转，和比较指令关联很大，一般情况下都是比较指令先把比较结果压入栈顶，然后判断指令从栈顶获取结果进行跳转。</p>
-<p>必须要注意的是，这些跳转指令 后面都有一个操作数，代表如果判断位真则跳转到第几行指令。</p>
-<ul>
-<li><p>ifeq（if_equals），ifne（if_nonequals）如果栈顶元素 &#x3D;&#x3D; 0 &#x2F; !&#x3D; 0 ，则跳转。</p>
-</li>
-<li><p>iflt，ifle，ifgt，ifge。当栈顶元素 &gt; &gt;&#x3D; &lt; &lt;&#x3D; 0 时跳转。</p>
-</li>
-<li><p>ifnull，ifnonnull。如果栈顶元素是null&#x2F;不是null 时跳转。</p>
-</li>
-</ul>
-<p>特别需要注意一个地方，看下面代码：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">test</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">0</span>; <span class="comment">// iconst_0, istore_1</span></span><br><span class="line">    <span class="keyword">if</span>(a == <span class="number">0</span>) <span class="comment">// iload_1, ifne xx &lt;a = 20&gt;</span></span><br><span class="line">        a = <span class="number">10</span>; <span class="comment">// bipush 10, istore_1, goto xx &lt;return&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        a = <span class="number">20</span>; <span class="comment">// bipush 20, istore_1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> a; <span class="comment">// iload_1, ireturn</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>是的，我知道很简单，我们仔细看一看，如果if判断的结果为真，那他会接着if后面的按顺序执行，也就是走if路线的话根本没有跳转，只有在 if 判断不通过的情况下，走到else，这个时候才发生了指令跳转。但是这些判断指令后面又必须跟一个跳转地址，所以说这里我们判断得是 a&#x3D;&#x3D;0，如果等于则干啥，但是指令其实是反过来的，指令中判断 如果 a !&#x3D; 0，则跳转到else的地方。</p>
-<p>总结一下，就是条件跳转指令会给我们写的if判断的条件取反，我们让他判断 a 是否等于0，指令则会判断 a 是否不等于0，如果是，则直接跳转到 else，如果不是，则不跳转，接着按顺序执行if后面的指令。</p>
-<p>还有啊，这个条件跳转指令，针对的是 一个 int 和 一个常数比较，比如你直接 a &#x3D;&#x3D; 0，就会用条件跳转，如果是连个float，那就是两个float先 cmp，往操作数栈中压入比较结果，然后再条件跳转。</p>
-<h2 id="8-2-比较条件跳转指令"><a href="#8-2-比较条件跳转指令" class="headerlink" title="8.2 比较条件跳转指令"></a>8.2 比较条件跳转指令</h2><p>这个东西就是把条件跳转和比较 结合在一起了，仅此而已。主要针对两个int（或者说JVM给你转换以后是int，害，其实就是 byte short）或者两个引用的比较，当然这里的比较引用肯定是比较的hashcode。</p>
-<ul>
-<li><p>if_icmpeq，if_icmpne，if_icmplt，if_icmple，if_icmpgt，if_icmpge：从栈顶弹出v2 和 v1 两个int，如果 &#x3D;&#x3D; !&#x3D; &lt; &lt;&#x3D; &gt; &gt;&#x3D; 的话，就跳转</p>
-</li>
-<li><p>if_acmpeq，ifacmpne：从栈顶弹出两个引用，判断 &#x3D;&#x3D; !&#x3D;</p>
-</li>
-</ul>
-<h2 id="8-3-多条件跳转指令"><a href="#8-3-多条件跳转指令" class="headerlink" title="8.3 多条件跳转指令"></a>8.3 多条件跳转指令</h2><p>这个多条件不是else if 啊，指的是 switch case 结构。</p>
-<p>具体分为两个：tableswitch 和 lookupswitch，这两个都是规定了如何跳转。区别就是 如果case 的后面的东西连续，那就是tableswitch，可以直接定位。如果不连续，那就需要用到 lookupswitch。</p>
-<p>lookupswitch 优化为题：</p>
-<p>因为lookupswitch不连续，所以他的效率可能慢一点，但是这个指令自己会优化，他会把你所有的case 条件，按顺序排序，比如你是 case 100, 500, 200，那他最后优化就会变成：100, 200, 500.但是这是不是说明，如果你不break，那他就不按从上到下的顺序一溜往下走了？不是的，具体为啥，你可以去看字节码。</p>
-<p>还有jdk7支持的 case 字符串。这个东西更玄学，不细说了，挺多的，可以看：cn.chl.SwitchCase.java 这个文件。</p>
-<h2 id="8-4-无条件跳转指令"><a href="#8-4-无条件跳转指令" class="headerlink" title="8.4 无条件跳转指令"></a>8.4 无条件跳转指令</h2><p>goto 指令，后面跟着一个2字节的操作数，代表往哪里跳转，如果两个字节（65535，无符号的2字节数）不够，那就是用 goto_w 这个指令，和goto一样，区别就是goto_w 接受一个4字节的操作数。</p>
-<p>这里还可以涉及到循环，JVM中可没有任何的循环指令，其实循环都是 条件跳转指令 + 无条件跳转指令实现的。</p>
-<h1 id="9-异常与异常处理"><a href="#9-异常与异常处理" class="headerlink" title="9. 异常与异常处理"></a>9. 异常与异常处理</h1><p>很好，我们都很讨厌异常</p>
-<h2 id="9-1-异常的生成"><a href="#9-1-异常的生成" class="headerlink" title="9.1 异常的生成"></a>9.1 异常的生成</h2><p>众所周知，Java中的异常，其实就是 Exception对象，说的再准确点，就是 Throwable 实现类，所以异常，首先也要创建，然后使用关键字throw出来。</p>
-<p>JVM层面，throw 的指令：athrow。但是这个指令仅限于我们手动抛出异常，如果是自动抛出的异常，比如除以0的异常，会在执行指令idiv和ldiv时自动抛出，那么这里自动抛出的异常就不会涉及athrow指令。</p>
-<p>一旦抛出异常，直接清空方法的操作数栈（不光是清空操作数栈，整个栈帧都会直接弹出），然后把异常对象，压入方法调用者的操作数栈上。</p>
-<h2 id="9-2-异常的捕获"><a href="#9-2-异常的捕获" class="headerlink" title="9.2 异常的捕获"></a>9.2 异常的捕获</h2><p>早期的JVM采用了 jsr ret 等指令来对异常进行处理，但是是早期，现在JVM已经把这些指令废弃了，取而代之的是异常表。</p>
-<p>异常表其实很简单，就是一张表，规定了如果发生哪类异常，则跳转到哪条指令。一般来说只要你存在try catch 或者 try finally 则会出现这个东西。当</p>
-<p>异常表有有你catch的所有异常，如果发生异常，就会去和你异常表匹配，匹配到哪个异常，跳转到哪个异常的处理位置，如果没有匹配，则弹出当前栈帧。</p>
-<p>异常表结构如下：</p>
-<table>
-<thead>
-<tr>
-<th>Nr.</th>
-<th>Start PC</th>
-<th>End Pc</th>
-<th>Handler PC</th>
-<th>Catch Type</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>第几个，毛用没有</td>
-<td>try的起始位置</td>
-<td>try的结束位置</td>
-<td>抛出异常后的处理位置</td>
-<td>处理的异常类型</td>
-</tr>
-</tbody></table>
-<p>这个举个例子，看 cn.chl.ExceptionByteCode，里面的test5 方法，他的异常表如下：</p>
-<table>
-<thead>
-<tr>
-<th>Nr.</th>
-<th>Start PC</th>
-<th>End PC</th>
-<th>Handler PC</th>
-<th>Catch Type</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>0</td>
-<td>0</td>
-<td>6</td>
-<td>9</td>
-<td>java.lang.ClassNotFoundException</td>
-</tr>
-<tr>
-<td>1</td>
-<td>0</td>
-<td>6</td>
-<td>21</td>
-<td>java.lang.RuntimeException</td>
-</tr>
-</tbody></table>
-<p>所以具体什么意思呢？很简单，第一个，如果在 0 - 6 行字节码出现ClassNotFoundException，则跳转到 9 行进行处理，第二个，如果在 0 - 6 行出现RuntimeException，则跳转到 21行进行处理。就是这么简单。</p>
-<h1 id="10-同步控制指令"><a href="#10-同步控制指令" class="headerlink" title="10. 同步控制指令"></a>10. 同步控制指令</h1><p>说白了，就是同步代码块。</p>
-<p>首先，同步，有两种办法：</p>
-<ul>
-<li><p>直接给方法加上 synchronized 关键字，然后这个方法就是一个同步方法，一次只允许一个线程调用。这种办法在字节码指令角度看不到任何东西，是的，任何，一个方法你加不加同步，字节码都是那样。唯一的区别就是，方法的访问标识符会变。加上的话，方法的访问标识就会变成 public synchronzied。</p>
-</li>
-<li><p>使用同步代码块：synchronized(临界资源)。这个比较牛逼了，下面主要说这个东西。</p>
-</li>
-</ul>
-<p>如果方法内想要进入同步代码块，使用 monitorenter指令，这个指令从操作数栈中弹出这个临界资源（一般是一个对象），我们之前讲对象头结构的时候说过，对象头中存储着线程的信息，比如当前对象是否有锁，这个锁是谁拿着的。那么现在 monitorenter指令得到这个临界资源后，会去对象头中找这俩属性：</p>
-<ul>
-<li><p>看当前对象有没有被加锁，如果没有，ok，我给加上，然后我进入同步代码块</p>
-</li>
-<li><p>如果有锁，看看这个锁是谁拿着的，如果是我拿着的，行，我也可以进入这个代码块</p>
-</li>
-<li><p>如果这个锁不是我拿着，那很遗憾，我就得等着了。</p>
-</li>
-</ul>
-<p>所以我进入了同步代码块，怎么出来？monitorexit指令，这个指令也会从操作数栈得到临界资源，然后修改他的对象头，释放锁。</p>
-<p>需要注意的是，即便我们在同步代码块中没有使用try catch，JVM也会给我们生成异常表，为啥？如果出现异常，难道说当前线程就不释放锁了？不能吧。只要出现异常，则马上跳出同步代码块来释放锁。</p>
-<p>细说一下：上面我们提到，对象头中有一个东西记录这个对象是否有锁，这个东西叫 “监视器计数器”，如果计数器&#x3D;0，说明没有锁，线程可以进入，如果为1，那说明有锁，你得等着了。</p>
 ]]></content>
       <categories>
         <category>JVM</category>
