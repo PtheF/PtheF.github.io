@@ -869,6 +869,137 @@
 ]]></content>
   </entry>
   <entry>
+    <title>微信小程序-页面跳转</title>
+    <url>/2022/05/22/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F-%E9%A1%B5%E9%9D%A2%E8%B7%B3%E8%BD%AC/</url>
+    <content><![CDATA[<blockquote>
+<p>create by 陈HL_pthef on 2022&#x2F;05&#x2F;22</p>
+</blockquote>
+<p>自从宣布开始做课设到现在，各种问题层出不穷，尤其页面跳转这个问题仍旧困扰着很多人。那在这里就详细说说 这个微信小程序到底如何实现页面跳转。</p>
+<p><strong><font color="red">注意：</font></strong></p>
+<p><strong>下面的内容不要深究原因，不要深究原因，不要深究原因</strong>，跟着做就可以了。</p>
+<span id="more"></span>
+
+<h2 id="1-页面"><a href="#1-页面" class="headerlink" title="1. 页面"></a>1. 页面</h2><p>想要页面跳转肯定先得有页面，所以如何创建页面呢？我这里用一个新的微信小程序模板：<br><img src="http://49.232.218.190/p1.png" alt="weixin_app"></p>
+<p>首先，我们右键pages，那个红色的图标，右键他，然后选择新建文件夹，起一个合适的名字，我这里就叫 tempPage 。创建完以后如下所示：</p>
+<p><img src="http://49.232.218.190/p2.png" alt="new_dir"></p>
+<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color='red'>Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
+<p><img src="http://49.232.218.190/p3.png" alt="new_page"></p>
+<p>呐，看好了，Page名和文件夹名一致。</p>
+<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color='red'>全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
+<p>然后我们在这个新页面上写点东西，打开 xxx.wxml 这个文件（xxx就是你Page的名），随你写点啥，我这里就写：</p>
+<p><img src="http://49.232.218.190/p4.png" alt="temp_page_content"></p>
+<p>很好，到这里，新页面准备完成，下一步我们需要实现从index.wxml 页面跳转到你的这个新页面。</p>
+<h2 id="2-跳转"><a href="#2-跳转" class="headerlink" title="2. 跳转"></a>2. 跳转</h2><p>首先要想跳转，你得有个触发跳转的东西对吧，这里统一使用按钮也就是button，当然可以是别的，比如图片，view，啥的，都可以，但这里我就用button举例子了。所以我们的目标就是，在页面上放一个按钮，我们一点他，页面就会跳转到新页面。</p>
+<p>第一步就是创建按钮，在 index.wxml 文件里面写一个button。</p>
+<p><img src="http://49.232.218.190/p5.png" alt="button"></p>
+<p>我这里的 index.wxml 啥也没有，你们的肯定有东西，根据你们的情况，把这个button放到合适的地方。同时可以看到左边 button 也显示出来了。</p>
+<p>然后我们给这个button 绑定一个事件，在button标签里面写如下内容：</p>
+<p><img src="http://49.232.218.190/p6.png" alt="button_bind"></p>
+<p>其实就里面加了一个bindtap，bindtap后面跟着的那个东西，名字还真不能随便起，有如下规则：</p>
+<ul>
+<li>只能出现英文字母，数字和下划线（减号下面那个符号，我劝你别用）</li>
+<li>数字不能开头</li>
+</ul>
+<p>我这里就叫jump了，你那叫啥都行，比如 toPage，toMyPage，甚至abc，都可以，但是决不能是 123, 1bc 甚至各种emoji，肯定报错。</p>
+<p>然后，我们去这个页面对应的js文件下，因为我这个button是在index页面下写的，所以当前页面的js文件也就是index.js，在这个文件里加这么一段：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 我这里叫jump，你那还真不一定叫jump</span></span><br><span class="line"><span class="comment">// 你上面bindtap后面起的啥名，这里就写啥</span></span><br><span class="line"><span class="title function_">jump</span>(<span class="params"></span>)&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 同理，我这里的url 写的是 ../tempPage/tempPage</span></span><br><span class="line">    <span class="comment">// 你那里不一定，这里应该写 ../你新页面的文件夹名/Page名</span></span><br><span class="line">    <span class="comment">// 而且特别注意，这里前里两个点一定不能丢。</span></span><br><span class="line">    <span class="comment">// 而且最后面的Page，没有后缀，不是 tempPage.js </span></span><br><span class="line">    <span class="comment">// 也不是 tempPage.wxml，就是tempPage</span></span><br><span class="line">    wx.<span class="title function_">navigateTo</span>(&#123;</span><br><span class="line">        <span class="attr">url</span>: <span class="string">&quot;../tempPage/tempPage&quot;</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>现在js文件的整体效果如下：</p>
+<p><img src="http://49.232.218.190/p7.png" alt="js"></p>
+<p>也就是这段代码，至少写在Page里面，你别写到Page外面了。</p>
+<p>写完以后，保存，然后点击那个按钮，如果不出意外的话应该是可以跳转了。</p>
+<h2 id="3-意外"><a href="#3-意外" class="headerlink" title="3. 意外"></a>3. 意外</h2><p>如果没跳转，看看是不是如下原因：</p>
+<ul>
+<li>跳转后页面一片大白：卡了，重启一下程序，或者看看你的新页面是不是就没写东西，那肯定白</li>
+<li>页面白还有一种情况，那就是你把跳转页面的js文件里的东西都删了，切记切记：<strong><font color="red">新Page的js文件里的东西已经是最简形式，千万不要删任何东西</font></strong>。否则恭喜你喜提大白屏.</li>
+<li>点击按钮没有反应：<ul>
+<li>查看 bindtap 后面那个名字和代码里面那个名字是否一致，我的都叫jump</li>
+<li>卡了，重启</li>
+</ul>
+</li>
+<li>跳转后告诉你 not found：这个原因就多了，归根到底就是微信没找到页面<ul>
+<li>检查跳转路径：必须是 <code>../跳转页面所在文件夹名/跳转页面名</code>，且页面名没有任何后缀</li>
+<li>检查页面路径，两个页面是否都在文件夹里面包着，然后这个文件夹都在红色的pages下。只有满足这个要求，上面的跳转路径才能生效。</li>
+<li>别是用了中文吧？？！！</li>
+</ul>
+</li>
+</ul>
+<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><p>我这里是用了 index页面往别的页面跳转做示范，但是实际做课设的时候真不一定就是从index页面跳，可能是你自己的A页面往你自己的B页面跳，咋办？？照猫画虎呗。</p>
+<p>现在你要从A页面跳到B页面：</p>
+<ul>
+<li>首先确认两件事：<ul>
+<li>AB两页面是否都在文件夹里面，文件夹是否都在 pages 下，也就是说两文件夹同层</li>
+<li>Ab两页面的文件夹和页面名是否有中文，确认没有</li>
+</ul>
+</li>
+<li>在A页面中写一个button，并照猫画虎写个bindtap，后面的名字按规范起</li>
+<li>在A页面的js文件中，插入上述那段代码，名字必须和你的bindtap一致，url改成<code>../B页面的所在文件夹名称/B页面名称(切记没有后缀)</code></li>
+<li>完成</li>
+</ul>
+]]></content>
+  </entry>
+  <entry>
+    <title>网站部署</title>
+    <url>/2022/10/19/%E7%BD%91%E7%AB%99%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<p>最近写了个小网站，用于给别人的大创项目结项，同时自己也练练技术，本着大学最后一次做应用项目的原因，打算把这个项目做的正式一点，所以开发，部署，dns，备案 一串工作全做了，挺费劲。这里总结一下这次部署网站的流程。</p>
+<span id="more"></span>
+
+<blockquote>
+<p>create by P-F on 2022&#x2F;10&#x2F;19</p>
+</blockquote>
+<h1 id="1-开发阶段"><a href="#1-开发阶段" class="headerlink" title="1. 开发阶段"></a>1. 开发阶段</h1><p>开发阶段没什么好说的，前端用的是 Vue+element+axios，后端是 go+beego+mysql+redis+jwt，很正常的技术栈。需要说的是平时调试，平时调试的时候 Vue 项目就是 <code>npm run serve</code> 开8080端口简单启动一下，然后 beego 项目那就是 <code>bee run</code> 开 9090 端口，这个时候就有个问题，两个不同端口之间通讯会跨域，同时我每次打开浏览器还得输入 <code>:8080</code>，很麻烦，所以怎么办呢？</p>
+<p>我用本机的 Nginx 做了一下反向代理，直接访问 &#x2F; 转发到 <code>localhost:8080</code>，访问 &#x2F;v1&#x2F;* 就会转发到 <code>localhost:9090</code>，这样前端就直接访问 localhost&#x2F;v1&#x2F;xxx 就可以走 beego 服务，也不用担心跨域。看一下本机 Nginx 的配置：</p>
+<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="section">location</span> <span class="regexp">~ ^/v1/.*$</span> &#123;</span><br><span class="line">    <span class="attribute">proxy_pass</span> http://localhost:9090;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">location</span> / &#123;</span><br><span class="line">    <span class="attribute">proxy_pass</span> http://localhost:8080;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里顺带复习一下 Nginx 的 location 配置：<code>location ~</code> 后面接的是正则，会根据正则来判断是否进入这个 location。</p>
+<p>剩下的倒是十分的顺利，因为开发阶段嘛，就在本机，也没有网络的影响，总体感觉十分良好，但是到了真正上线的时候那问题就大了。</p>
+<h1 id="2-前端部署"><a href="#2-前端部署" class="headerlink" title="2. 前端部署"></a>2. 前端部署</h1><p>前端的部署，属实非常的坎坷。</p>
+<h2 id="2-1-项目拉取"><a href="#2-1-项目拉取" class="headerlink" title="2.1 项目拉取"></a>2.1 项目拉取</h2><p>把前段项目部署到服务器，首先就是如何把项目放到服务器上，之前我的做法是通过 scp 命令直接从本机复制到服务器，但是实在麻烦，所以这回变了。我在服务器上通过 git 把项目源码拉下来，然后修改一些启动参数，再 <code>npm install; npm run build</code> 即可得到 Vue 项目的 dist 包。</p>
+<h2 id="2-2-项目部署"><a href="#2-2-项目部署" class="headerlink" title="2.2 项目部署"></a>2.2 项目部署</h2><p>Vue 本质上是一个单页面应用，也就是整个网站本质上就是那个 index.html，但是通过各种 js 啥玩意的可以让这个 index.html 根据不同的 url 显示不同的东西。我第一次部署 Vue 还真就是在服务器上运行 <code>npm run serve</code> 然后就没事了，结果就是关闭终端以后项目也就没了。所以正确姿势就是：将 Vue 打包成 dist，然后配置后端服务器，比如 Nginx，Tomcat，或者自己用 nodejs 自己写一个也行，要实现将找不到对应静态资源的请求全部转发到 vue 生成的 index.html 中。下面就是使用 Nginx 部署 Vue 项目的配置：</p>
+<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="section">location</span> / &#123;</span><br><span class="line">        <span class="attribute">root</span> /usr/local/www/manyin-tech-frontend/dist;</span><br><span class="line">        <span class="attribute">try_files</span> <span class="variable">$uri</span> <span class="variable">$uri</span>/ <span class="variable">@router</span>;</span><br><span class="line">        <span class="attribute">index</span> index.html;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">location</span> <span class="variable">@router</span> &#123;</span><br><span class="line">        <span class="attribute">rewrite</span><span class="regexp"> ^.*$</span> /index.html <span class="literal">last</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>具体含义就是：首先，访问了 &#x2F; 以后，先去找有没有对应的静态资源，比如前端请求图片你也给他转发到 index.html 这显然不合适，所以首先 <code>try_files @uri @uri/</code> 来判断请求的静态资源是否存在，如果不存在，则转发到 @router 这个location，@router location 再将请求转发给 index.html。</p>
+<p>同时配置一下后端的反向代理：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这段在 server 块外面</span></span><br><span class="line">upstream manyin_service &#123;</span><br><span class="line">        server <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">9090</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location ~ ^<span class="regexp">/v1/</span>.+$ &#123;</span><br><span class="line">        proxy_pass <span class="attr">http</span>:<span class="comment">//manyin_service;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>OK，到这里算是初步的部署完了，可以通过 IP 地址访问了。</p>
+<h2 id="2-3-静态资源优化"><a href="#2-3-静态资源优化" class="headerlink" title="2.3 静态资源优化"></a>2.3 静态资源优化</h2><p>结果一访问发现问题了，页面加载速度特别的慢，可能得一分钟才能把首页加载完，这是为啥？一看浏览器控制台，好家伙，首页三张图片就 20m 多，怪不得慢。那咋办？压缩一下图片。</p>
+<p>结果网上找了一圈，要么让我下软件，要么就是在线压缩跟我要钱，好在最后找到一个非常好用的网站，功能还挺多，还能压缩图片：</p>
+<p><a href="https://oktools.net/">oktools</a></p>
+<p>通过这个网站，把图片的大小降低到了一张 200-300k 的大小，还算是ok。但是图片压缩了以后访问还是略慢，这个时候想到了 Nginx 的 gzip 功能，Nginx 可以将一些静态资源进行 gzip 压缩发送给浏览器，然后浏览器会自动解压，我寻思这样可能可以再加快一点访问速度，于是开始配置 Nginx 的压缩。实测图片不需要压缩，因为根本压不了多少，但是 Vue 打包后一些巨大的 js 文件倒是压缩效果非常不错，可能一个 3 400k 的 js 文件压缩以后就不到100k，css 也可以压缩。下面直接贴配置：</p>
+<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="attribute">sendfile</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line"><span class="attribute">gzip</span> <span class="literal">on</span>;</span><br><span class="line"><span class="attribute">gzip_types</span> application/javascript text/css;</span><br><span class="line"><span class="attribute">gzip_vary</span> <span class="literal">on</span>;</span><br><span class="line"><span class="attribute">gzip_disable</span> <span class="string">&quot;MSIE [1-6]\.&quot;</span></span><br><span class="line">gzip_min_length <span class="number">1024</span>;</span><br><span class="line"><span class="attribute">gzip_proxied</span> <span class="literal">off</span>;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>gzip gzip_types gzip_vary 这几个配置比较重要，剩下的似乎不那么要紧，啥意思也忘了，用到的时候再查。</p>
+</blockquote>
+<p>这块配置放到了 nginx 目录的 conf&#x2F;conf.d 目录下的 gzip.conf 中，这个目录里面就是一些我自己的配置文件，比如上面部署 Vue 的配置我就写在了这个目录的 manyin.conf 文件中，然后在 nginx.conf 文件中 include 就行了。</p>
+<p>配置完这些以后就算是差不多了，访问速度反正是说得过去。</p>
+<h1 id="3-后端部署"><a href="#3-后端部署" class="headerlink" title="3. 后端部署"></a>3. 后端部署</h1><p>后端倒是部署的方便，为啥？没那么多要求，就是改个启动配置，比如 mysql 的连接，redis 的连接这些的。</p>
+<p>整个项目用 go 开发，首先服务器下个 go，直接 <code>yum install -y go</code> 就行了，懒得用源码包安装。然后同理用 git 把后端代码拉取下来，安装项目的依赖包，首先得配置一下代理，否则下载 go 的第三方宝可能会比较慢：<code>go env -w GOPROXY=https://goproxy.cn,direct</code>（忘了是不是这个了，反正是当时配置了代理）。然后就是下载依赖包，好像直接 <code>go mod tidy</code> 就行了。最后一步是 <code>go mod vendor</code> 将依赖包拉到项目目录中，这样项目就可以脱离 gopath 了。</p>
+<p>然后 <code>go run main.go</code> 测试一下ok不，ok的话打包：<code>go build</code> 然后设置后台执行：<code>nohup ./go-service &gt; logs.log &amp;</code> 就可以了。</p>
+<p>到这里，前后端就算是部署完了，总结一下：后端开放 9090 端口，Nginx 将 &#x2F;v1&#x2F;* 请求转发到 9090 口实现反向代理，同时避免了跨域。Vue 项目部署在 Nginx 上，开启 gzip 帮忙加速。然后就可以愉快的通过 IP 地址访问项目了。</p>
+<h1 id="4-域名、DNS、备案"><a href="#4-域名、DNS、备案" class="headerlink" title="4. 域名、DNS、备案"></a>4. 域名、DNS、备案</h1><p>后面的倒是比较的简单吧算是，主要是麻烦，特别的麻烦，但是因为我整个流程是在腾讯云办的，所以跟着腾讯云的文档全程没有问题。</p>
+<h2 id="4-1-域名"><a href="#4-1-域名" class="headerlink" title="4.1 域名"></a>4.1 域名</h2><p>首先第一步就是买域名，买完了以后还需要买个 DNS 套餐。我这里用的是腾讯买的域名，买完以后进入腾讯的 DNSPod，给域名添加一个 A 记录（IPv4记录），指向我们从腾讯云买的服务器。然后不出意外一会儿就能通过域名访问了。</p>
+<p>但是过一阵子可能再访问会告诉你未通过报备，不让你访问，这就需要进行下一步，报备。</p>
+<h2 id="4-2-报备"><a href="#4-2-报备" class="headerlink" title="4.2 报备"></a>4.2 报备</h2><p>这一步其实也简单，跟着腾讯的文档做就可以了。首先第一步是腾讯备案，腾讯会先给把关，通过微信小程序进行备案，然后提供相关材料即可，具体啥材料文档有说的。</p>
+<p>对了，备案的时候可能需要把 DNS 的解析关掉。</p>
+<p>其实作为我们用户只需要做第一步就行了，就是填上你的报备信息，然后腾讯审核完了就会送给省里去申，这个倒是很慢，我10月3号提交的，10月19号才审核完。</p>
+<p>审完了以后会给你一个备案号，把这个备案号贴到网站的底部：</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;https://beian.miit.gov.cn/&quot;</span> <span class="attr">target</span>=<span class="string">&quot;_blank&quot;</span>&gt;</span>冀ICP备xxx号-1<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>就可以了。说是不贴的话要罚款。</p>
+<h2 id="4-3-公安备案"><a href="#4-3-公安备案" class="headerlink" title="4.3 公安备案"></a>4.3 公安备案</h2><p>管局备案完了就要去公安备案，也是跟着腾讯的文档就行了，我也是今天刚提交的，不知道结果咋样。顺带一提，腾讯的文档写的是真不错。</p>
+<h2 id="4-4-SSL-证书"><a href="#4-4-SSL-证书" class="headerlink" title="4.4 SSL 证书"></a>4.4 SSL 证书</h2><p>腾讯给提供一年的免费 SSL 证书，进入腾讯的 SSL 那个控制台就能看见，申请一个，然后怎么把证书部署到 Nginx，同样有详细的文档，这里就不说了。</p>
+<h1 id="5-总结"><a href="#5-总结" class="headerlink" title="5. 总结"></a>5. 总结</h1><p>总结一下奥，域名、DNS、备案、SSL 着一系列操作只需要跟着腾讯的文档就完全没有问题，就死死把握一个流程：购买域名和DNS -&gt; 添加解析记录 -&gt; 提交备案 -&gt; 安装 SSL -&gt; 公安备案 。然后哪个流程不会去腾讯文档查就行了。</p>
+]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>部署</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>运行时数据区概述</title>
     <url>/2022/05/27/%E8%BF%90%E8%A1%8C%E6%97%B6%E6%95%B0%E6%8D%AE%E5%8C%BA%E6%A6%82%E8%BF%B0/</url>
     <content><![CDATA[<p>从这里开始正式进入运行时数据区，运行时数据区是JVM非常核心的一部分，各种内存模型各种垃圾回收都将从这里展开。</p>
@@ -959,7 +1090,7 @@
       </tags>
   </entry>
   <entry>
-    <title>页面防抖.md</title>
+    <title>页面防抖</title>
     <url>/2022/10/17/%E9%A1%B5%E9%9D%A2%E9%98%B2%E6%8A%96-md/</url>
     <content><![CDATA[<p>页面防抖是接口幂等性的其中一环，接口幂等性说的是一个接口执行依次和执行多次发生的结果一样，后端保证接口幂等性主要是就是发送请求令牌啥的，前端的话就得考虑如何避免帕金森患者多次点击一个按钮发送多次请求。</p>
 <span id="more"></span>
@@ -970,7 +1101,7 @@
 <h1 id="1-防抖"><a href="#1-防抖" class="headerlink" title="1. 防抖"></a>1. 防抖</h1><p>前端的某个请求按钮在短时间内多次点击但是只会执行依次就是防抖，比如我以前做过一个线上考试系统，点击创建班级没有做防抖，结果被帕金森患者创建了十多个一样的班级。</p>
 <h1 id="2-实现"><a href="#2-实现" class="headerlink" title="2. 实现"></a>2. 实现</h1><p>具体实现就是，给一个按钮设置一个定时器，比如这个按钮在点击以后会在200ms以后才执行，在200ms被再次点击的话就会重置计时器，保证这个按钮是在最后一次点击的200ms以后被执行。至于说用户 200ms 以后有点急了咋办，可以在这期间给这个按钮上锁，直接disabled就行了。</p>
 <p>看代码：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 创建防抖函数</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> debounce = <span class="keyword">function</span>(<span class="params">callback, delay_</span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> delay = delay_ || <span class="number">200</span>;</span><br><span class="line">    <span class="keyword">let</span> timer;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> args = <span class="variable language_">arguments</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(timer) &#123;</span><br><span class="line">            <span class="built_in">clearTimeout</span>(timer)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">            callback.<span class="title function_">apply</span>(<span class="variable language_">this</span>, args)</span><br><span class="line">        &#125;, delay)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> &#123;debounce&#125; <span class="keyword">from</span> <span class="string">&quot;...&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 调用 debounce，传入想要实现防抖的方法，即可实现防抖</span></span><br><span class="line"><span class="attr">addUser</span>: <span class="title function_">debounce</span>(<span class="keyword">function</span>(<span class="params">user</span>)&#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(user)</span><br><span class="line">&#125;, <span class="number">500</span>)</span><br></pre></td></tr></table></figure>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 创建防抖函数</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> debounce = <span class="keyword">function</span>(<span class="params">callback, delay_</span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> delay = delay_ || <span class="number">200</span>;</span><br><span class="line">    <span class="keyword">let</span> timer;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> args = <span class="variable language_">arguments</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(timer) &#123;</span><br><span class="line">            <span class="built_in">clearTimeout</span>(timer)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">            callback.<span class="title function_">apply</span>(<span class="variable language_">this</span>, args)</span><br><span class="line">        &#125;, delay)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> &#123;debounce&#125; <span class="keyword">from</span> <span class="string">&quot;...&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 调用 debounce，传入想要实现防抖的方法，即可实现防抖</span></span><br><span class="line"><span class="attr">addUser</span>: <span class="title function_">debounce</span>(<span class="keyword">function</span>(<span class="params">user</span>)&#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(user)</span><br><span class="line">&#125;, <span class="number">500</span>)</span><br></pre></td></tr></table></figure>
 
 <h1 id="3-原理"><a href="#3-原理" class="headerlink" title="3. 原理"></a>3. 原理</h1><p>这玩意有点意思，深究一下为啥调用一个 debounce 就能实现防抖了。</p>
 <h2 id="3-1-闭包"><a href="#3-1-闭包" class="headerlink" title="3.1 闭包"></a>3.1 闭包</h2><p>首先，我觉得这个东西用到了一个很有意思的思想：闭包。debounce 作为外层函数创建了一个变量：timer，然后内层函数访问 timer，修改 timer，最后 debounce 返回了内层函数，那么到了最后 debounce 这个外层函数并没有被销毁，而是隐隐的给内层函数提供 timer 这个变量，很有意思。</p>
@@ -983,16 +1114,16 @@
 <p>我们会发现，debounce 会生成一个没有形参的函数，然后里面会调用我们传入的 callback。但是有个问题，就是我们调用 addUser 的时候肯定会传入 name 和 age，但是 addUser 又是一个无参方法，咋办，怎么正确的传参？</p>
 <p>这个时候就会说道 arguments 对象。</p>
 <h2 id="3-3-arguments"><a href="#3-3-arguments" class="headerlink" title="3.3 arguments"></a>3.3 arguments</h2><p>JS 的 function 内部会自动有一个对象：arguments，内部就存储了所有传入的参数，哪怕这个 function 没有形参：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`args len: <span class="subst">$&#123;<span class="variable language_">arguments</span>.length&#125;</span>`</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`args len: <span class="subst">$&#123;<span class="variable language_">arguments</span>.length&#125;</span>`</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
 
 <p>除此之外，我们可以通过 arguments 对象来修改实参：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 使用严格模式，修改不会生效，不加这行的话修改才能生效。</span></span><br><span class="line">    <span class="string">&#x27;use strict&#x27;</span>;</span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">0</span>] = <span class="number">100</span></span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">1</span>] = <span class="number">200</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用严格模式，修改不会生效，不加这行的话修改才能生效。</span></span><br><span class="line">    <span class="string">&#x27;use strict&#x27;</span>;</span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">0</span>] = <span class="number">100</span></span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">1</span>] = <span class="number">200</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
 
 <p>这里返回的不是 30，而是 300，即便我们传入的是 10 20，但是函数内通过 arguments 对象修改了实参为 100 200。当然这是在费严格模式下，如果在严格模式下，是不能修改实参的。（费严格模式把那行 use strict 注释掉）。</p>
 <p>所以在这个防抖函数里面，即时返回的防抖函数没有形参，我们也依旧可以通过 arguments 得到我们调用时传入的实参，然后传给 callback。</p>
 <h2 id="3-4-apply-方法"><a href="#3-4-apply-方法" class="headerlink" title="3.4 apply 方法"></a>3.4 apply 方法</h2><p>我们还会发现，调用 callback 的时候并没有直接 <code>callback(arguments)</code>，而是 <code>callback.apply(this, arguments)</code>，这是为啥？这里就需要说说 apply 方法。</p>
 <p>apply 方法用于重新指定 function 的 this 指向，当然这是我自己的理解，官方说的是让 function 在别的对象上执行：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;jack&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">20</span>,</span><br><span class="line">    </span><br><span class="line">    <span class="title function_">hello</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`hello, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.age&#125;</span> years old`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;Lucy&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">10</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">user.<span class="property">hello</span>.<span class="title function_">apply</span>(person)</span><br></pre></td></tr></table></figure>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;jack&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">20</span>,</span><br><span class="line"></span><br><span class="line">    <span class="title function_">hello</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`hello, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.age&#125;</span> years old`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;Lucy&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">10</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">user.<span class="property">hello</span>.<span class="title function_">apply</span>(person)</span><br></pre></td></tr></table></figure>
 
 <p>最后执行的结果是 hello, i’m Lucy, i’m 10 years old，我们就会发现，hello 方法里面的 this 居然指向了 person，也就相当于 hello 跑到了 person 对象内被执行了，是不是很神奇。</p>
 <p>所以防抖函数里面为啥要用 apply？因为我们传入的 callback 的 this 不是 VueComponent，所以我们需要调用 apply 方法，将 this 修改为 VueComponent，同时还需要用 apply 方法将 arguments 传入。</p>
@@ -1005,76 +1136,6 @@
         <tag>js</tag>
         <tag>前端</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>微信小程序-页面跳转</title>
-    <url>/2022/05/22/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F-%E9%A1%B5%E9%9D%A2%E8%B7%B3%E8%BD%AC/</url>
-    <content><![CDATA[<blockquote>
-<p>create by 陈HL_pthef on 2022&#x2F;05&#x2F;22</p>
-</blockquote>
-<p>自从宣布开始做课设到现在，各种问题层出不穷，尤其页面跳转这个问题仍旧困扰着很多人。那在这里就详细说说 这个微信小程序到底如何实现页面跳转。</p>
-<p><strong><font color="red">注意：</font></strong></p>
-<p><strong>下面的内容不要深究原因，不要深究原因，不要深究原因</strong>，跟着做就可以了。</p>
-<span id="more"></span>
-
-<h2 id="1-页面"><a href="#1-页面" class="headerlink" title="1. 页面"></a>1. 页面</h2><p>想要页面跳转肯定先得有页面，所以如何创建页面呢？我这里用一个新的微信小程序模板：<br><img src="http://49.232.218.190/p1.png" alt="weixin_app"></p>
-<p>首先，我们右键pages，那个红色的图标，右键他，然后选择新建文件夹，起一个合适的名字，我这里就叫 tempPage 。创建完以后如下所示：</p>
-<p><img src="http://49.232.218.190/p2.png" alt="new_dir"></p>
-<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color='red'>Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
-<p><img src="http://49.232.218.190/p3.png" alt="new_page"></p>
-<p>呐，看好了，Page名和文件夹名一致。</p>
-<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color='red'>全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
-<p>然后我们在这个新页面上写点东西，打开 xxx.wxml 这个文件（xxx就是你Page的名），随你写点啥，我这里就写：</p>
-<p><img src="http://49.232.218.190/p4.png" alt="temp_page_content"></p>
-<p>很好，到这里，新页面准备完成，下一步我们需要实现从index.wxml 页面跳转到你的这个新页面。</p>
-<h2 id="2-跳转"><a href="#2-跳转" class="headerlink" title="2. 跳转"></a>2. 跳转</h2><p>首先要想跳转，你得有个触发跳转的东西对吧，这里统一使用按钮也就是button，当然可以是别的，比如图片，view，啥的，都可以，但这里我就用button举例子了。所以我们的目标就是，在页面上放一个按钮，我们一点他，页面就会跳转到新页面。</p>
-<p>第一步就是创建按钮，在 index.wxml 文件里面写一个button。</p>
-<p><img src="http://49.232.218.190/p5.png" alt="button"></p>
-<p>我这里的 index.wxml 啥也没有，你们的肯定有东西，根据你们的情况，把这个button放到合适的地方。同时可以看到左边 button 也显示出来了。</p>
-<p>然后我们给这个button 绑定一个事件，在button标签里面写如下内容：</p>
-<p><img src="http://49.232.218.190/p6.png" alt="button_bind"></p>
-<p>其实就里面加了一个bindtap，bindtap后面跟着的那个东西，名字还真不能随便起，有如下规则：</p>
-<ul>
-<li>只能出现英文字母，数字和下划线（减号下面那个符号，我劝你别用）</li>
-<li>数字不能开头</li>
-</ul>
-<p>我这里就叫jump了，你那叫啥都行，比如 toPage，toMyPage，甚至abc，都可以，但是决不能是 123, 1bc 甚至各种emoji，肯定报错。</p>
-<p>然后，我们去这个页面对应的js文件下，因为我这个button是在index页面下写的，所以当前页面的js文件也就是index.js，在这个文件里加这么一段：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 我这里叫jump，你那还真不一定叫jump</span></span><br><span class="line"><span class="comment">// 你上面bindtap后面起的啥名，这里就写啥</span></span><br><span class="line"><span class="title function_">jump</span>(<span class="params"></span>)&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 同理，我这里的url 写的是 ../tempPage/tempPage</span></span><br><span class="line">    <span class="comment">// 你那里不一定，这里应该写 ../你新页面的文件夹名/Page名</span></span><br><span class="line">    <span class="comment">// 而且特别注意，这里前里两个点一定不能丢。</span></span><br><span class="line">    <span class="comment">// 而且最后面的Page，没有后缀，不是 tempPage.js </span></span><br><span class="line">    <span class="comment">// 也不是 tempPage.wxml，就是tempPage</span></span><br><span class="line">    wx.<span class="title function_">navigateTo</span>(&#123;</span><br><span class="line">        <span class="attr">url</span>: <span class="string">&quot;../tempPage/tempPage&quot;</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
-
-<p>现在js文件的整体效果如下：</p>
-<p><img src="http://49.232.218.190/p7.png" alt="js"></p>
-<p>也就是这段代码，至少写在Page里面，你别写到Page外面了。</p>
-<p>写完以后，保存，然后点击那个按钮，如果不出意外的话应该是可以跳转了。</p>
-<h2 id="3-意外"><a href="#3-意外" class="headerlink" title="3. 意外"></a>3. 意外</h2><p>如果没跳转，看看是不是如下原因：</p>
-<ul>
-<li>跳转后页面一片大白：卡了，重启一下程序，或者看看你的新页面是不是就没写东西，那肯定白</li>
-<li>页面白还有一种情况，那就是你把跳转页面的js文件里的东西都删了，切记切记：<strong><font color="red">新Page的js文件里的东西已经是最简形式，千万不要删任何东西</font></strong>。否则恭喜你喜提大白屏.</li>
-<li>点击按钮没有反应：<ul>
-<li>查看 bindtap 后面那个名字和代码里面那个名字是否一致，我的都叫jump</li>
-<li>卡了，重启</li>
-</ul>
-</li>
-<li>跳转后告诉你 not found：这个原因就多了，归根到底就是微信没找到页面<ul>
-<li>检查跳转路径：必须是 <code>../跳转页面所在文件夹名/跳转页面名</code>，且页面名没有任何后缀</li>
-<li>检查页面路径，两个页面是否都在文件夹里面包着，然后这个文件夹都在红色的pages下。只有满足这个要求，上面的跳转路径才能生效。</li>
-<li>别是用了中文吧？？！！</li>
-</ul>
-</li>
-</ul>
-<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><p>我这里是用了 index页面往别的页面跳转做示范，但是实际做课设的时候真不一定就是从index页面跳，可能是你自己的A页面往你自己的B页面跳，咋办？？照猫画虎呗。</p>
-<p>现在你要从A页面跳到B页面：</p>
-<ul>
-<li>首先确认两件事：<ul>
-<li>AB两页面是否都在文件夹里面，文件夹是否都在 pages 下，也就是说两文件夹同层</li>
-<li>Ab两页面的文件夹和页面名是否有中文，确认没有</li>
-</ul>
-</li>
-<li>在A页面中写一个button，并照猫画虎写个bindtap，后面的名字按规范起</li>
-<li>在A页面的js文件中，插入上述那段代码，名字必须和你的bindtap一致，url改成<code>../B页面的所在文件夹名称/B页面名称(切记没有后缀)</code></li>
-<li>完成</li>
-</ul>
-]]></content>
   </entry>
   <entry>
     <title>字节码指令</title>
