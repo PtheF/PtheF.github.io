@@ -514,630 +514,6 @@
       </tags>
   </entry>
   <entry>
-    <title>JVM-类加载</title>
-    <url>/2022/06/13/classload/</url>
-    <content><![CDATA[<p>类加载，说一说类加载的时候各种成员的初始化如何进行。</p>
-<span id="more"></span>
-
-<h1 id="1-类加载"><a href="#1-类加载" class="headerlink" title="1. 类加载"></a>1. 类加载</h1><p>是的，字节码说完了，然后就是下面的一大块东西：类加载。</p>
-<p>之前学Java反射的时候了解过，类加载分为5个阶段，如下：</p>
-<ul>
-<li>加载：通过类加载器加载一个二进制流数据</li>
-<li>链接：又分为 验证 准备 解析 三个阶段</li>
-<li>初始化</li>
-<li>使用：比如调用方法，创建对象等</li>
-<li>卸载</li>
-</ul>
-<p>后面我们就开始着重看这5个阶段。</p>
-<h1 id="2-类加载-Loading-阶段"><a href="#2-类加载-Loading-阶段" class="headerlink" title="2. 类加载 Loading 阶段"></a>2. 类加载 Loading 阶段</h1><h2 id="2-1-加载的理解"><a href="#2-1-加载的理解" class="headerlink" title="2.1 加载的理解"></a>2.1 加载的理解</h2><p>什么是加载，或者说loading阶段到底干了啥？很简单，类加载器读取一大堆二进制流，然后转化成一个类模版对象，然后把这个类模版对象存储到方法区。这样在运行时，我们就可以通过反射来获取类的属性，比如这个类的属性，方法等。</p>
-<p>但是需要注意的是，这个类模版，并不是我们获取的 Class对象，不是的，两回事，有关系，但不是一个。</p>
-<h2 id="2-2-加载完成的操作"><a href="#2-2-加载完成的操作" class="headerlink" title="2.2 加载完成的操作"></a>2.2 加载完成的操作</h2><p>就是一件事，读取class文件，生成类模版。具体说 JVM 需要完成下面三件事：</p>
-<ul>
-<li>获取类的全限定命名，从而得到这个类的class文件，进而获取二进制流（当然这个流可以从数据库中获得，获取其他的方式，总之，要的就是二进制流）；</li>
-<li>解析这个二进制流，生成对应的Java类模版，存储在方法区</li>
-<li>创建 Class对象，这个对象作为方法区类模版的访问入口，也就是说，Class对象其实是指向了方法区中的模版。</li>
-</ul>
-<h2 id="2-3-类模版和Class的位置"><a href="#2-3-类模版和Class的位置" class="headerlink" title="2.3 类模版和Class的位置"></a>2.3 类模版和Class的位置</h2><p>在完成类加载后，会在方法区（jdk8的话就是元空间）生成一个类模版对象，然后又会在堆中，没错，就是堆中，生成这个类的Class对象，然后这个Class指向了方法区中的类模版，然后我们就可以通过Class得到类的属性。</p>
-<p>只是作为了解，不展开说，挺复杂的东西。</p>
-<h2 id="2-4-数组类的创建"><a href="#2-4-数组类的创建" class="headerlink" title="2.4 数组类的创建"></a>2.4 数组类的创建</h2><p>数组比较特殊，数组并不是类加载器创建的，而是JVM根据你数组类型和数组维度动态创建的，过程如下：</p>
-<ul>
-<li>如果数组是引用数据类型，那么JVM则会根据需要 递归的去加载数据类型</li>
-<li>根据数组所需要的数据类型和数组维度，JVM动态的声明数组</li>
-</ul>
-<h1 id="3-链接阶段"><a href="#3-链接阶段" class="headerlink" title="3. 链接阶段"></a>3. 链接阶段</h1><p>众所周知，链接阶段分为三个步骤：验证，准备，解析。ok，我们一个一个说：</p>
-<h2 id="3-1-验证阶段"><a href="#3-1-验证阶段" class="headerlink" title="3.1 验证阶段"></a>3.1 验证阶段</h2><p>所谓验证阶段，那肯定就是验证文件是否合法这种的。所以在这一步，它主要验证一下内容：</p>
-<ul>
-<li>格式检查：检查字节码的魔数，版本以及指令长度等其他信息（没有在方法区中生成类模版）</li>
-<li>语义检查：检查有没有格式错误，比如继承final，是否存在父类，抽象方法有没有实现等（这个时候已经在方法区中生成了模版）</li>
-<li>字节码验证：跳转指令的跳转位置是否合法，函数调用传参类型是否正确，变量赋值的类型是否一致 等。</li>
-<li>符号引用验证：符号引用是否有直接饮用</li>
-</ul>
-<p>这个阶段有个特殊的东西：StackMapTable 栈映射帧，是干嘛的呢？用来检测操作数栈中的数据类型和局部变量表的数据类型是否匹配，然而并不能100%判断字节码没错，只是尽可能的判断。</p>
-<p>第四步的符号引用验证，简单说就是：常量池中有个ClassRefInfo信息，比如指向了一个 java.lang.String，这里就需要判断这个 String 是否存在，既视感这个的。</p>
-<p>顺带一提，验证阶段和加载阶段分的没有那么开，一般都是同时进行的。</p>
-<h2 id="3-2-准备阶段"><a href="#3-2-准备阶段" class="headerlink" title="3.2 准备阶段"></a>3.2 准备阶段</h2><p>准备阶段 Preparation，简单说，就是给这个类的静态变量（注意，是变量，是变量，不是常量，static final 可不在这里处理）分配内存空间，并给他们赋一个默认值，这个默认值应该不用说了吧，数字类型都是0，boolean是false，ref 是 null。</p>
-<p>注意：</p>
-<ul>
-<li>说过了，这里不对final进行操作，static final 的常量在编译的时候就已经被显式的赋值了，在准备阶段静态常量已经有值了。</li>
-<li>这里不对实例变量进行操作，类变量的内存被分配到了方法区，和类模版在一起，实例变量则是在堆中，和对象在一起。</li>
-<li>这个过程没有任何的代码被执行</li>
-</ul>
-<p>有个特殊情况，如果有如下代码：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> <span class="string">&quot;CONST&quot;</span>;</span><br></pre></td></tr></table></figure>
-
-<p>那么这个属性的赋值也是在编译阶段完成的，但是仅限于通过字面量给String赋值，如果你是 new String，那也就不行了。</p>
-<h2 id="3-3-解析阶段"><a href="#3-3-解析阶段" class="headerlink" title="3.3 解析阶段"></a>3.3 解析阶段</h2><p>解析 Resolution 阶段，简单说，把符号引用替换成直接饮引用。听不懂是吧，来，举个例子：</p>
-<p>我们都已经学过字节码了，字节码文件中有常量池没毛病吧，比如常量池中有个常量 Methodref_info 这个信息，这个信息里面有两部分：Class_name 和 Name_And_Type，然后这俩又是俩常量池索引，比如：Class_name #3， Name_and_type #8。这里非常的敷衍，就告诉你是 #3和#8，和内存完全没关系，这就是符号引用。</p>
-<p>这个阶段下，你不能在敷衍的告诉我 Class_name 是#3啦，太费劲了，咋办，比如这个Methodref_info是 System.out.println() 方法，行，这里你得具体告诉我 System.out 这个 Class_name 的真实内存地址，#3我不认可啦，那么在这个阶段下，Class_name #3 Name_and_type #8 就被替换成了：</p>
-<p>同时，JVM会给每个类提供一个方法表，那么你这个println方法在方法表中是第几个位置，这个就相当于方法的直接引用。</p>
-<h1 id="4-初始化阶段"><a href="#4-初始化阶段" class="headerlink" title="4. 初始化阶段"></a>4. 初始化阶段</h1><blockquote>
-<p>create  by  陈HL_pthef on  2021&#x2F;11&#x2F;4 下午6:58</p>
-</blockquote>
-<h2 id="4-1-概述"><a href="#4-1-概述" class="headerlink" title="4.1 概述"></a>4.1 概述</h2><p>初始化阶段，简单说就是给static进行赋值。很重要的一点，在初始化阶段，真正的涉及一些Java代码的执行。</p>
-<p>这个过程最重要的就是生成 &lt;clinit&gt; 方法，这个方法主要就是用来给static赋值的，他会按顺序收集你类中所有的static赋值语句（包括static代码块），整合到一起，然后生成 clinit方法，这个方法只能由JVM生成，并由JVM调用。</p>
-<h2 id="4-2-说明"><a href="#4-2-说明" class="headerlink" title="4.2 说明"></a>4.2 说明</h2><ul>
-<li><p>一个类调用 clinit 方法时，总会先去调用 父类的clinit方法，所以说，父类的static代码块优先级高于子类</p>
-</li>
-<li><p>什么情况下不会生成 clinit方法：</p>
-<ul>
-<li>一个类压根没有静态</li>
-<li>有静态，但是没有赋值，就是光秃秃一个 <code>public static int num;</code></li>
-<li>有静态，也有赋值，但是这个静态是常量，而且赋值的方式还是字面量赋值，也不会clinit。</li>
-</ul>
-</li>
-</ul>
-<h2 id="4-3-static-final-显式赋值到底发生在哪个阶段？"><a href="#4-3-static-final-显式赋值到底发生在哪个阶段？" class="headerlink" title="4.3 static final 显式赋值到底发生在哪个阶段？"></a>4.3 static final 显式赋值到底发生在哪个阶段？</h2><p>这玩意，越来越不会了，太恶心了。</p>
-<p>首先，看最简单的；</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">I</span> <span class="operator">=</span> <span class="number">20</span>;</span><br></pre></td></tr></table></figure>
-
-<p>这个倒是好说，i 肯定是在clinit中赋值，然后 I 是在链接阶段的准备环节赋的值，所以说，是不是final修饰的就一定不在clinit中赋值？再看下面这个：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">Integer</span> <span class="variable">int1</span> <span class="operator">=</span> Integer.valueOf(<span class="number">100</span>);</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Integer</span> <span class="variable">INT2</span> <span class="operator">=</span> Integer.valueOf(<span class="number">1000</span>);</span><br></pre></td></tr></table></figure>
-
-<p>这俩是在哪赋的值？直接说，这俩都是在 clinit 中赋值。那我们又猜，是不是说 引用数据类型不管是不是final都在clinit中赋值？再看下面：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> <span class="string">&quot;hello1&quot;</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">S</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;hello2&quot;</span>);</span><br></pre></td></tr></table></figure>
-
-<p>这俩都是引用，在哪里赋值啊？s 在准备阶段，S 在clinit赋值。</p>
-<p>所以说，总结一下，什么情况下会在链接阶段的准备过程赋值：</p>
-<ul>
-<li>大前提，static final 修饰的</li>
-<li>基本数据类型，给他赋一个确定的值，且不需要代码支持（比如 new Random().random() 这种的），在准备过程赋值</li>
-<li>字符串，且通过字面量的形式给他赋值，也发生在准备阶段。</li>
-</ul>
-<p>首先明确的是，绝对不是说 static final 就一定在准备阶段完成赋值。</p>
-<h2 id="4-4-clinit-方法的线程安全问题"><a href="#4-4-clinit-方法的线程安全问题" class="headerlink" title="4.4 clinit 方法的线程安全问题"></a>4.4 clinit 方法的线程安全问题</h2><p>首先，clinit是线程安全的，但是这个方法的访问修饰只有static，并没有synchronized，所以他这个锁是一个隐式的锁，JVM给自动加的。</p>
-<p>正是因为这玩意线程安全，所以说如果一个类的clinit过于繁琐，耗时较长，则会导致很多线程阻塞，有可能导致死锁。</p>
-<h2 id="4-5-类的主动使用和被动使用问题"><a href="#4-5-类的主动使用和被动使用问题" class="headerlink" title="4.5 类的主动使用和被动使用问题"></a>4.5 类的主动使用和被动使用问题</h2><p>首先，主被动使用会影响啥？不是说一个类被动使用就不会加载了，不是的，一个类要用，那就肯定需要加载，但是如果一个类是被动使用的，那么这个 初始化阶段是很有可能不执行的。注意，仅限于初始化阶段不执行。那么初始化阶段不执行就可能导致结果不一致。</p>
-<p>顺带一提，这里说的使用不是说的类的第四个阶段：使用。更多说的是首次使用。</p>
-<h3 id="4-5-1-类的主动使用"><a href="#4-5-1-类的主动使用" class="headerlink" title="4.5.1 类的主动使用"></a>4.5.1 类的主动使用</h3><p>类的主动使用会调用 &lt;clinit&gt;() 方法，也就是会经过初始化过程。</p>
-<ul>
-<li><p>创建一个类的实例，比如 new，通过反射，反序列化（是的，反序列化也是主动使用）</p>
-</li>
-<li><p>调用类的静态方法，对应指令就是执行 invokestatic 指令，很简单，不说了</p>
-</li>
-<li><p>操作类的静态字段（static修饰的，没有final），对应指令就是 getstatic 和 putstatic。同时还有接口的静态字段。</p>
-<p>这里得特别说明：并不是绝对的，不是说我们操作static final 就一定不触发初始化。我认为是啥呢，就是说你这个static final 是不是在&lt;clinit&gt;() 中被赋值，如果是，那么这里你操作static final也照样会触发初始化，如果不是，那这里就不触发初始化。</p>
-<p>同时，对于接口，也是差不多的道理，如果接口中的 static final 不需要代码支持，那就不会clinit，如果需要，那就也会被初始化</p>
-</li>
-<li><p>使用反射类的方法，比如 Class.forName() 这种的，触发初始化。</p>
-</li>
-<li><p>初始化子类之前，会初始化父类。</p>
-<p>特殊：JVM加载一个类，要求是所有父类都必须初始化，但是这条规则并不适用与接口。</p>
-<ul>
-<li>初始化一个类，并不会初始化他所有实现的接口</li>
-<li>初始化一个接口，并不会初始化他继承的所有的类</li>
-</ul>
-<p>只有当程序首次使用特定字段的时候才会触发接口的初始化。</p>
-</li>
-<li><p>如果你的接口存在default 方法，那么直接或间接实现这个接口的类 触发了初始化，那么这个接口也会被初始化</p>
-</li>
-<li><p>当虚拟机启动时，用户会指定一个主类，那么JVM会优先家在这个主类</p>
-</li>
-<li><p>使用 MethodHandle 类，JVM会初始化这个方法指向的方法所在的类</p>
-<p>我猜啊，这个类是用来调用方法的，他可以调用任何一个类的任何一个方法（不绝对啊，private我不知道行不行）</p>
-</li>
-</ul>
-<h3 id="4-5-2-类的被动使用"><a href="#4-5-2-类的被动使用" class="headerlink" title="4.5.2 类的被动使用"></a>4.5.2 类的被动使用</h3><p>被动使用，就是类加载不会经过初始化过程。</p>
-<ul>
-<li>访问static字段，只有真正定义了这个static字段的类才会被初始化。举个例子，父类有个static，然后我们通过子类访问这个字段，最终被初始化的只有父类，自卑不会被初始化。具体看 cn.chl.PassiveUse</li>
-<li>创建引用数据类型数组，数组数据类型对应的类不会初始化。就是说你 XXX[] a &#x3D; new XXX[10]; 这个时候 XXX 不会初始化，只有 a[0] &#x3D; new XXX() 的时候才会初始化（废话）</li>
-<li>访问类的 final static（具体得看你这个final static需不需要被clinit进行赋值，上面有说，具体问题具体分析）</li>
-<li>调用 ClassLoader 的loadClass 方法，加载一个类，不会初始化</li>
-</ul>
-<h1 id="5-类卸载"><a href="#5-类卸载" class="headerlink" title="5. 类卸载"></a>5. 类卸载</h1><p>是的，类的使用没有说，废话，有啥说的，就是用呗。没的说。这里直接开始说类的卸载。</p>
-<p>要想说明白这个类卸载，我们先要明白 类 类加载器 类实例 的关系。大致的关系就是：我们加载一个类，首先在方法区中创建这个类的模版，然后在堆区创建这个类的Class对象作为方法区模版的访问入口，同时这个类的类加载器也保存在堆区，加载器和Class互相指向，创建实例的话，实例也存在堆区，并指向Class对象。接下来我们具体说说每个部分。</p>
-<h2 id="5-1-类-类加载器-类实例的关系"><a href="#5-1-类-类加载器-类实例的关系" class="headerlink" title="5.1 类  类加载器   类实例的关系"></a>5.1 类  类加载器   类实例的关系</h2><p>我们之前说过，JVM中的类加载器主要分为三类：</p>
-<ul>
-<li>BootstrapClassLoader：启动类加载器，或者说 引导类加载器，Java核心类库使用这个</li>
-<li>ExtensionClassLoader：扩展类加载器，第三方jar包多数用这个</li>
-<li>ApplicationClassLoader：应用程序类加载器，或者叫系统类加载器，我们自己写的用这个</li>
-</ul>
-<p>Class对象和ClassLoader之间双向关联，Class里面有个方法：<code>getClassLoader()</code> 方法，可以得到这个类的类加载器。所以大体结构如下：</p>
-<p><img src="/../images/Class.png" alt="image-20211106131529171"></p>
-<p>看的非常清楚，不再多说。</p>
-<h2 id="5-2-类的生命周期"><a href="#5-2-类的生命周期" class="headerlink" title="5.2 类的生命周期"></a>5.2 类的生命周期</h2><p>简单说，什么时候一个类就被回收了？以上面这图来说，当 Sample 类的Class对象不再被引用，也就是不可触及时，Sample的生命周期结束，就会卸载方法区中的 Sample类模版。</p>
-<p>看似简单，其实不然，我们通过上面这图可以看出，什么时候Class就不会被引用？</p>
-<ul>
-<li>没有任何的实例引用。没有实例，那么 Sample实例到Class的引用就相当于断开了</li>
-<li>没有 Class对象的引用。这是废话</li>
-<li>没有 Sample 类加载器的引用，这样 MyClassLoader的引用断开，就相当于Loader到Class的引用断开</li>
-</ul>
-<p>只有达到这三个条件，才说明类不再使用。</p>
-<p>所以总结一下，卸载一个类，其实对应的就是方法区中的GC。方法区GC主要针对不再使用的常量和不再使用的类，常量好说，不用了呗，但是类，必须满足下面三个条件：</p>
-<ul>
-<li>这个类的所有实例，也包括派生子类的实例，全部被回收</li>
-<li>类的ClassLoader被回收（这个条件极其难以达成，除非是被精心设计的一些类的类加载器）</li>
-<li>没有引用指向 Class对象</li>
-</ul>
-<h2 id="5-3-类的卸载"><a href="#5-3-类的卸载" class="headerlink" title="5.3 类的卸载"></a>5.3 类的卸载</h2><ul>
-<li>引导类加载器不可能被卸载，也就是说被引导类加载器加载的类，运行期间你是别想卸载了</li>
-<li>系统类加载器和扩展类加载器被收集的可能性极小，因为在运行期间他们的类总是能被直接或者间接的指向</li>
-<li>我们自己写的类加载器有可能被回收，但是仅限与在简单的上下文环境中，复杂环境下依旧是直接间接引用满天飞。而且就算是回收了加载器，我们也得强制调用GC方法</li>
-</ul>
-<p>方法区回收垃圾，时间是不确定的，而且效果也不好，因为没几个类是不用的。所以，千万不要在类卸载的前提下考虑业务。</p>
-]]></content>
-      <categories>
-        <category>JVM</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>底层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>hexo部署</title>
-    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
-    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
-<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
-<span id="more"></span>
-
-<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
-<p><strong><font color='red'>步骤如下：</font></strong></p>
-<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
-<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
-<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
-<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
-<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
-<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
-<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
-<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
-<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
-
-<p>然后，正常情况下，会提示这么一句：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
-
-<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
-<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
-<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
-<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
-<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
-<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
-
-<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
-
-<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
-<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
-<p>在博客根目录下执行如下命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
-
-<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
-<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
-
-<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
-<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
-<p>然后，这三个页面以后都不要管了。</p>
-<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
-<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
-<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
-<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
-]]></content>
-      <categories>
-        <category>部署</category>
-      </categories>
-      <tags>
-        <tag>部署</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Java期末考试</title>
-    <url>/2022/06/07/java-exam/</url>
-    <content><![CDATA[<p>Java期末考试瞎指导。</p>
-<span id="more"></span>
-
-<h1 id="1-Java-概述"><a href="#1-Java-概述" class="headerlink" title="1. Java 概述"></a>1. Java 概述</h1><p>好像没啥会考的，主要就是主方法，记住就行了。</p>
-<h1 id="2-基本数据类型和数组"><a href="#2-基本数据类型和数组" class="headerlink" title="2. 基本数据类型和数组"></a>2. 基本数据类型和数组</h1><p>八种基本数据类型 byte  char  short  int  long  float  double  boolean，大致有俩小知识点：</p>
-<ul>
-<li>精度丢失问题：高精度往低精度转化会丢东西</li>
-<li>类型转化：这个又分强制类型转化和自动类型转化<ul>
-<li>强制类型转化很简单：<code>long l = 1L; int i = (int)l;</code></li>
-<li>自动类型转化：就是两个精度不一样的数据类型放在一起运算，会自动把低精度值转化为高精度值</li>
-</ul>
-</li>
-</ul>
-<p>单独的数组可能会考个小题，问你下面哪种创建数组的方式不对，这个记住三种创建数组的方式就行了：</p>
-<ul>
-<li>动态赋值 <code>int[] a = new int[数组长度];</code></li>
-<li>静态赋值 <code>int[] a = new int[]&#123;...数组元素&#125;;</code></li>
-<li>简化静态 <code>int[] a = &#123;...数组元素&#125;;</code></li>
-</ul>
-<p>然后数组的循环赋值，循环取值，<code>array.length</code> 得到数组长度应该都不用说了。</p>
-<h1 id="3-运算符、表达式、语句"><a href="#3-运算符、表达式、语句" class="headerlink" title="3. 运算符、表达式、语句"></a>3. 运算符、表达式、语句</h1><p>运算符就是大致就是 + - * &#x2F; % 这种的，然后逻辑运算符就是与或非 &amp;&amp; || ! 这仨，没啥说的。</p>
-<p>还有一些不咋常用的运算符比如三目，移位，位运算，不是很常用，了解就行了。</p>
-<p>至于运算符的各种性质比如 结合性 运算符优先级等等，这种东西说实话没啥用，考的可能性有，撑死了一道小题，尤其优先级这个，我觉得智商100以上的人都会给算式加括号，实际情况不会去研究优先级这种东西。所以这个稍微看看就行了，不是重点。</p>
-<p>语句，以及流程控制，这个东西和C++可以说一模一样：</p>
-<ul>
-<li>判断：<code>if()&#123;...&#125;</code>、<code>if()&#123;...&#125;else&#123;...&#125;</code>、<code>if()&#123;...&#125;else if()&#123;...&#125;else.&#123;..&#125;</code></li>
-<li>循环：<code>for(..;..;..)&#123;...&#125;</code>、<code>while()&#123;...&#125;</code>、<code>do&#123;...&#125;while()</code></li>
-<li>break、continue：用于终止循环和跳过剩余步骤继续下一轮循环，这个python和C++也都有</li>
-</ul>
-<p>剩下的什么变量命名规范，还有剩下的一些小知识点，我觉得都是码代码的基础规范了，不说了。</p>
-<h1 id="4-类和对象"><a href="#4-类和对象" class="headerlink" title="4. 类和对象"></a>4. 类和对象</h1><p>这章那就太重要了，可以这么说，100分的卷80分都和这章有联系，要么直接考这章，要么考后面的继承和接口，属于是间接的考这章的东西。</p>
-<h2 id="4-1-如何写类和对象"><a href="#4-1-如何写类和对象" class="headerlink" title="4.1 如何写类和对象"></a>4.1 如何写类和对象</h2><p>和C++差不多，大致思路一样，就是语法变了而已。</p>
-<p>这里面包含了第四章的1-6，比较简单，可以说是后面所有东西的基础。</p>
-<h2 id="4-2-方法"><a href="#4-2-方法" class="headerlink" title="4.2 方法"></a>4.2 方法</h2><p>这里分了两种方法：实例方法和静态方法。</p>
-<ul>
-<li>实例方法：只有创建对象以后，通过对象才能访问</li>
-<li>静态方法：用static修饰，可以直接通过类名访问</li>
-</ul>
-<h2 id="4-3-方法重载"><a href="#4-3-方法重载" class="headerlink" title="4.3 方法重载"></a>4.3 方法重载</h2><p>简单说就是类里面的几个方法，方法名相同但是参数列表不同，比如：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo</span>&#123;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">sum</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b, <span class="type">int</span> c, <span class="type">int</span> d)</span>&#123; <span class="keyword">return</span> a + b + c + e; &#125;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">sum</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b, <span class="type">int</span> c)</span>&#123; <span class="keyword">return</span> sum(a, b, c, <span class="number">0</span>); &#125;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">sum</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span>&#123; <span class="keyword">return</span> sum(a, b, <span class="number">0</span>, <span class="number">0</span>); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>很简单的概念，记住就行了，大部分情况下不会没事干重载一个方法，考试的时候方法重载多半要和构造方法联动，到时候就是一个类好几个构造方法的重载，然后构造方法里面还有各种的this，问你创建完这个对象以后输出是啥。</p>
-<h2 id="4-4-构造方法"><a href="#4-4-构造方法" class="headerlink" title="4.4 构造方法"></a>4.4 构造方法</h2><p>创建对象时给成员赋值的方法：</p>
-<ul>
-<li>方法名和类名相同，且没有返回值</li>
-<li>构造方法也能重载</li>
-<li>构造方法大致分为两类：无参构造和带参构造。区别就是有无入参</li>
-<li>一个类至少有一个构造方法，如果不写，编译器会给你自动补一个无参构造</li>
-<li>注意上面这条，只有不写构造的时候才会补，但凡写了构造，都不会给你补无参了</li>
-</ul>
-<h2 id="4-5-this关键字"><a href="#4-5-this关键字" class="headerlink" title="4.5 this关键字"></a>4.5 this关键字</h2><p>这个就比较重要了，可能会在这里出 除了 编程题以外的任何题型，比如选择题，再比如程序结果分析，给你一段代码里面套一堆this，问你最终输出啥。</p>
-<p>同时这个this会和第五章的super联动，如果到时候出的题恶心的话，可能两个类相互继承，然后子类又是this又是super的，不好分析反正。</p>
-<p>this有两种意思：</p>
-<ul>
-<li><code>this(...看情况有没有参数)</code>：指的是调用当前类的某一个构造方法，且<font color='red'>如果要写这个，必须写在构造器的第一行</font>，根据this() 的传参确定是哪一个构造方法的重载。</li>
-<li><code>this.xxxx</code>：指的是当前类的某一个成员，为了避免方法的参数名和成员名重名。</li>
-</ul>
-<h2 id="4-6-访问控制"><a href="#4-6-访问控制" class="headerlink" title="4.6 访问控制"></a>4.6 访问控制</h2><p>其实就是三个访问修饰符：</p>
-<ul>
-<li>private：私有，类外不可访问</li>
-<li>protected：受保护，同包下类外可以直接访问好像，这个不怎么用</li>
-<li>public：公有，类外随便访问</li>
-</ul>
-<p>这里需要把握好一件事：<font color='red'>所有的访问控制都是相对于其他类对本类的访问，类内部随便访问类自身成员和方法，访问控制是用来限制类外对类的修改。</font>。</p>
-<h2 id="4-7-包和Import"><a href="#4-7-包和Import" class="headerlink" title="4.7 包和Import"></a>4.7 包和Import</h2><p>这俩东西我天天用，但是问我这是啥我还真不好解释，包自己看吧，import我说一句：</p>
-<p>import后面跟着的是你类的全限定命名，什么意思，就是说你有一个类，在 cn.heuet包下，有个类叫User，那你导入的时候就得写 <code>import cn.heuet.User</code>。这个cn.heuet.User 就是User这个类的全限定命名，就是把包名带上就行了。</p>
-<h2 id="4-8-剩下的"><a href="#4-8-剩下的" class="headerlink" title="4.8 剩下的"></a>4.8 剩下的</h2><p>什么对象组合，就是类里面的成员是另一个类，什么对象数组，就是和基本数据类型差不多 <code>User[] users = new User[10];</code> 就是这个。</p>
-<p>包装类提一句，就是把基础数据类型封装成了一个类，仅此而已，这个类里面包含了一些这个类型的一些属性。自己看书吧，这个不是很重要，包装类主要用在泛型上，但是你们学的似乎泛型不是重点，所以连带着包装类没那么重要。</p>
-<h2 id="4-9-考题"><a href="#4-9-考题" class="headerlink" title="4.9 考题"></a>4.9 考题</h2><p>我觉得这一章的考题，大部分，应该都不会很难，难题主要集中在下一章。但是有另类，也就是 4.3-4.5。这几部分出题的话有可能会比较恶心。</p>
-<p>可能会出程序分析题，就是给你一段代码，问你执行结果是啥，各种构造方法重载+this关键字，比如可能会出下面这种题：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> a;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getA</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">this</span>.a; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.a = <span class="number">10</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;a1&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(<span class="type">int</span> a)</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>();</span><br><span class="line">        <span class="built_in">this</span>.a = a;</span><br><span class="line">        System.out.println(<span class="string">&quot;a2&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>(a &gt; b ? a : b);</span><br><span class="line">        System.out.println(<span class="string">&quot;a3&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">A</span> <span class="variable">a</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">A</span>(<span class="number">10</span>, <span class="number">30</span>);</span><br><span class="line">System.out.println(a.getA());</span><br><span class="line"></span><br><span class="line"><span class="comment">// 问：程序输出啥？</span></span><br><span class="line"><span class="comment">// a1</span></span><br><span class="line"><span class="comment">// a2</span></span><br><span class="line"><span class="comment">// a3</span></span><br><span class="line"><span class="comment">// 30</span></span><br></pre></td></tr></table></figure>
-
-<p>反正我觉得这章的主要考点，额，都可能会提到点，各种小知识点，比如还有static，100%会考，但是我觉得难点就是这个构造重载+this。剩下的不是很难了。</p>
-<h1 id="5-继承、接口、泛型"><a href="#5-继承、接口、泛型" class="headerlink" title="5. 继承、接口、泛型"></a>5. 继承、接口、泛型</h1><h2 id="5-1-继承"><a href="#5-1-继承" class="headerlink" title="5.1 继承"></a>5.1 继承</h2><p>这章的超级重点，真的是超级重点，往后什么接口，什么泛型，哪怕是上转型对象，也不如继承重要。为啥，继承的某些特性确实比较恶心，特别容易出程序分析题，甚至可以这么说，到时候程序分析题假如有5个，很有可能3个题，都是分析继承。</p>
-<p>大致是什么题型呢？就是给你好几个类，最可能是两个类继承，如果老师不当人的话也有可能出现三个类以上互相继承，继承一大堆私有公有，然后同时需要考虑子父类的构造方法执行顺序。然后三个类磨磨唧唧给你继承完了，随便给你创建一个对象，问你打印啥东西，然后问你哪个成员的值是多少。这种题可以说就是整张卷子的难度天花板，极难分析而且极易出错。</p>
-<p>题目知识点：</p>
-<ul>
-<li>构造方法重载</li>
-<li>this关键字</li>
-<li>super关键字</li>
-<li>继承</li>
-<li>方法重写</li>
-<li>子类对象和父类对象成员冲突</li>
-</ul>
-<p>差不多一道这种程序分析题，少说上面这些东西融合个3 4个知识点，比如A类继承了B类，然后调用了B类的某个super，然后覆盖了某个B类的成员，再通过super.xxx去访问这个成员，然后调用两个B类的公开方法去操作B类的私有成员，巨麻烦巨绕。</p>
-<p>我这里建议啊：碰见这种题，有条件直接敲一遍跑一遍，别自己分析，费力不讨好的。</p>
-<p>这章的知识点挺多的我就不说了，看书吧，看不懂来问就行。看的重点就集中在继承这一块，就是this、super、重写、成员覆盖 等等。</p>
-<h2 id="5-2-接口"><a href="#5-2-接口" class="headerlink" title="5.2 接口"></a>5.2 接口</h2><p>后面的接口，反倒不是很难，你们这本书基于jdk1.6，1.6的时候接口比较死板，就是一个类实现一个接口，然后必须实现这个接口里面的所有方法，就这么简单。</p>
-<p>然后需要注意的就是：Java中类是单继承，但是可以多实现接口，这个记住了，可能考小题。</p>
-<h2 id="5-3-上转型对象"><a href="#5-3-上转型对象" class="headerlink" title="5.3 上转型对象"></a>5.3 上转型对象</h2><p>这个不太好解释了，就是一个类，继承或者实现了另外一个东西，然后创建对象的时候就是 父类&#x2F;接口引用指向子类&#x2F;实现类对象。额，看代码吧：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">B</span> <span class="keyword">extends</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 这就是上转型</span></span><br><span class="line"><span class="type">A</span> <span class="variable">a</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">B</span>();</span><br></pre></td></tr></table></figure>
-
-<p>前面A a，就是创建了一个父类的引用，后面真正创建了子类对象，然后A a &#x3D; new B(); 的意义就是 父类引用指向子类对象。</p>
-<p>这个分为两个：一个是接口的上转型，或者叫接口回调；另一个是子类的上转型，就是父类引用指向子类对象。</p>
-<p>前一个可以说不重要，但是后面这个，子类上转型为父类，就又可以和继承联动出一些让人想吐的题了。比如上面说的，3 4 个类来回继承，各种super this，好不容易继承完了，给你创建对象的时候给你来个上转型，哎，难度又高了，更不会了。</p>
-<h2 id="5-4-剩下的东西"><a href="#5-4-剩下的东西" class="headerlink" title="5.4 剩下的东西"></a>5.4 剩下的东西</h2><p>比如各种奇葩的类，匿名类，内部类，异常类，泛型类，以及泛型，这些东西可以说不重要，多半不会考的，考了也是小题，不会是重点。</p>
-<p>但是我还是提一句啊，异常这个东西，其实是特别重要的，奈何她讲的不行，考试也不是重点。咱们学的里面，接口回调+异常+泛型，这三个东西都是那种实际上相当重要但是她不给好好讲的。</p>
-<h2 id="5-5-考题"><a href="#5-5-考题" class="headerlink" title="5.5 考题"></a>5.5 考题</h2><p>继承+重载+this+super+成员覆盖+方法重写+子类上转型，就这几个东西，会出一些难度极高的题。</p>
-<p>反正我当年碰见这种程序分析题，看不懂，直接敲了一遍。比如可能会有这种：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> a;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getA</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">this</span>.a; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setA</span><span class="params">(<span class="type">int</span> a)</span>&#123; <span class="built_in">this</span>.a = a; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.a = <span class="number">10</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;a1&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(<span class="type">int</span> a)</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>();</span><br><span class="line">        <span class="built_in">this</span>.a = a;</span><br><span class="line">        System.out.println(<span class="string">&quot;a2&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">B</span> <span class="keyword">extends</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> b;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getB</span><span class="params">()</span> &#123; <span class="keyword">return</span> b; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setB</span><span class="params">(<span class="type">int</span> b)</span> &#123; <span class="built_in">this</span>.b = b; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">B</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.b = <span class="number">100</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;b1&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">B</span><span class="params">(<span class="type">int</span> b)</span>&#123;</span><br><span class="line">        <span class="built_in">super</span>(b);</span><br><span class="line">        <span class="built_in">this</span>.b = b;</span><br><span class="line">        System.out.println(<span class="string">&quot;b2&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">C</span> <span class="keyword">extends</span> <span class="title class_">B</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> b;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setB</span><span class="params">(<span class="type">int</span> b)</span>&#123; <span class="built_in">this</span>.b = b; <span class="built_in">super</span>.setB(b / <span class="number">10</span>); &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getB</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">this</span>.b; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getSuperB</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">super</span>.getB(); &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">C</span><span class="params">(<span class="type">int</span> b)</span>&#123;</span><br><span class="line">        <span class="built_in">super</span>(b);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">C</span> <span class="variable">c</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">C</span>(<span class="number">2022</span>);</span><br><span class="line">        System.out.println(c.getB());</span><br><span class="line">        System.out.println(c.getA());</span><br><span class="line">        c.setB(<span class="number">100000</span>);</span><br><span class="line">        System.out.println(c.getB());</span><br><span class="line">        System.out.println(c.getA());</span><br><span class="line">        System.out.println(c.getSuperB());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 然后问你输出是啥</span></span><br><span class="line">a1</span><br><span class="line">a2</span><br><span class="line">b2</span><br><span class="line"><span class="number">0</span></span><br><span class="line"><span class="number">2022</span></span><br><span class="line"><span class="number">100000</span></span><br><span class="line"><span class="number">2022</span></span><br><span class="line"><span class="number">10000</span></span><br></pre></td></tr></table></figure>
-
-<p>这题我瞎写的啊，真正考试那题八成比我这个复杂点，我这个考虑了半天也没把上转型考虑进去，考试的时候这种题，咋也得用上转型恶心人。</p>
-<h1 id="6-7-字符串系列和集合系列"><a href="#6-7-字符串系列和集合系列" class="headerlink" title="6. 7. 字符串系列和集合系列"></a>6. 7. 字符串系列和集合系列</h1><p>这俩东西，是面试的高频问题，对的，面试的高频问题，一遍面试一上来问你字符串的东西，然后面试会问你集合类的源码，比如ArrayList内部是否线程安全。话说回来，考试好像不是很重要。</p>
-<p>字符串有个小知识点：就是字符串判断相等的问题，这个考试很有可能会考。</p>
-<p>我这里就大致一说吧：字符串如果是 <code>String s1 = &quot;hello world&quot;;</code> 这种直接赋值，我们叫他字面量赋值，这个时候他就是指向了一块字符串内存，这个时候另一个字符串<code>String s2 = &quot;hello world&quot;;</code> s2 就也会指向这块内存。就是这种字面量赋值的方式，只要两个字符串内容相等，那么两个字符串 <code>s1 == s2 且 s1.equals(s2) == true</code>。</p>
-<p>如果不是字面量赋值，比如这样 <code>String s1 = new String(&quot;hello world&quot;);</code> 那这就是一个对象，不会直接指向这个helloworld 的内存，这个时候另一个字符串 <code>String s2 = new String(&quot;hello world&quot;);</code> 即便内容相等，但是两个对象也不相等，这个时候 <code>s1 != s2 但 s1.equals(s2) == true</code> 。</p>
-<p>看不懂的话看看书吧，这个地方要深究的话可以一路给你讲到JVM虚拟机讲到底层，那就费劲了。</p>
-<p>剩下的各种字符串衍生类比如StringBuffer、StringToken啥的，还有什么Scanner这些的，似乎不重要，考的话也是考小题，然后正则表达式，我记得当年我们考过填空？还是选择，忘了。正则倒是有可能会考，但不是重点。</p>
-<p>然后就是各种集合，这个集合一般会伴随泛型，但是既然泛型没咋讲，那我估计集合也不太会考，考的话也是考小题。对于考试来说数组就够用了，什么LinkedList什么TreeMap，学算法才可能用呢。</p>
-<h1 id="8-线程"><a href="#8-线程" class="headerlink" title="8. 线程"></a>8. 线程</h1><p>如何创建线程啥的，考的可能性不大，至少不会让你们自己写线程，线程这个东西，我找了一个30多小时的课专门学的，挺难的，我觉得没啥必要重点看。</p>
-<p>但是，如果我没猜错，这应该是你们第一次接触多线程，第一次听说线程通讯和线程状态，所以说概念题倒是很有可能考，我们当年考了一道简答题，就是直接问 线程有哪些状态，这些状态如何切换。</p>
-<p>所以线程多看看概念我觉得就差不多了，如何创建线程，如何开始线程，甚至还有线程通讯，各种sleep各种notify，没啥必要花时间看我觉得。</p>
-<h1 id="9-总结一下"><a href="#9-总结一下" class="headerlink" title="9. 总结一下"></a>9. 总结一下</h1><p>呐，复习吧，就紧着第四章和第五章复习，第五章呢，就紧着继承那块复习，我大胆预测一下啊，就继承那块，少说占个20分以上，而且出的题都是大题。剩下的小知识点就会出一些小题，比如可能会考你 面向对象的三个特征（封装继承多态）这类的小概念。</p>
-<p>编程题反倒不会太难，因为继承那块的东西让你们写说实在的多少有点难为你们了，所以最后考的，应该就是让你们设计个类，然后写写方法，但是也不会太简单，C++的时候和Python考试编程题充其量就是让你写个水仙花数，打印个质数，Java就绝不会这么简单了。Java的编程题可能会多少和实践有点联系，比如让你用类实现个登录这种的。</p>
-<p>嗯，说难不难说简单不简单的。</p>
-]]></content>
-  </entry>
-  <entry>
-    <title>微信小程序-页面跳转</title>
-    <url>/2022/05/22/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F-%E9%A1%B5%E9%9D%A2%E8%B7%B3%E8%BD%AC/</url>
-    <content><![CDATA[<blockquote>
-<p>create by 陈HL_pthef on 2022&#x2F;05&#x2F;22</p>
-</blockquote>
-<p>自从宣布开始做课设到现在，各种问题层出不穷，尤其页面跳转这个问题仍旧困扰着很多人。那在这里就详细说说 这个微信小程序到底如何实现页面跳转。</p>
-<p><strong><font color="red">注意：</font></strong></p>
-<p><strong>下面的内容不要深究原因，不要深究原因，不要深究原因</strong>，跟着做就可以了。</p>
-<span id="more"></span>
-
-<h2 id="1-页面"><a href="#1-页面" class="headerlink" title="1. 页面"></a>1. 页面</h2><p>想要页面跳转肯定先得有页面，所以如何创建页面呢？我这里用一个新的微信小程序模板：<br><img src="http://49.232.218.190/p1.png" alt="weixin_app"></p>
-<p>首先，我们右键pages，那个红色的图标，右键他，然后选择新建文件夹，起一个合适的名字，我这里就叫 tempPage 。创建完以后如下所示：</p>
-<p><img src="http://49.232.218.190/p2.png" alt="new_dir"></p>
-<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color='red'>Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
-<p><img src="http://49.232.218.190/p3.png" alt="new_page"></p>
-<p>呐，看好了，Page名和文件夹名一致。</p>
-<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color='red'>全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
-<p>然后我们在这个新页面上写点东西，打开 xxx.wxml 这个文件（xxx就是你Page的名），随你写点啥，我这里就写：</p>
-<p><img src="http://49.232.218.190/p4.png" alt="temp_page_content"></p>
-<p>很好，到这里，新页面准备完成，下一步我们需要实现从index.wxml 页面跳转到你的这个新页面。</p>
-<h2 id="2-跳转"><a href="#2-跳转" class="headerlink" title="2. 跳转"></a>2. 跳转</h2><p>首先要想跳转，你得有个触发跳转的东西对吧，这里统一使用按钮也就是button，当然可以是别的，比如图片，view，啥的，都可以，但这里我就用button举例子了。所以我们的目标就是，在页面上放一个按钮，我们一点他，页面就会跳转到新页面。</p>
-<p>第一步就是创建按钮，在 index.wxml 文件里面写一个button。</p>
-<p><img src="http://49.232.218.190/p5.png" alt="button"></p>
-<p>我这里的 index.wxml 啥也没有，你们的肯定有东西，根据你们的情况，把这个button放到合适的地方。同时可以看到左边 button 也显示出来了。</p>
-<p>然后我们给这个button 绑定一个事件，在button标签里面写如下内容：</p>
-<p><img src="http://49.232.218.190/p6.png" alt="button_bind"></p>
-<p>其实就里面加了一个bindtap，bindtap后面跟着的那个东西，名字还真不能随便起，有如下规则：</p>
-<ul>
-<li>只能出现英文字母，数字和下划线（减号下面那个符号，我劝你别用）</li>
-<li>数字不能开头</li>
-</ul>
-<p>我这里就叫jump了，你那叫啥都行，比如 toPage，toMyPage，甚至abc，都可以，但是决不能是 123, 1bc 甚至各种emoji，肯定报错。</p>
-<p>然后，我们去这个页面对应的js文件下，因为我这个button是在index页面下写的，所以当前页面的js文件也就是index.js，在这个文件里加这么一段：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 我这里叫jump，你那还真不一定叫jump</span></span><br><span class="line"><span class="comment">// 你上面bindtap后面起的啥名，这里就写啥</span></span><br><span class="line"><span class="title function_">jump</span>(<span class="params"></span>)&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 同理，我这里的url 写的是 ../tempPage/tempPage</span></span><br><span class="line">    <span class="comment">// 你那里不一定，这里应该写 ../你新页面的文件夹名/Page名</span></span><br><span class="line">    <span class="comment">// 而且特别注意，这里前里两个点一定不能丢。</span></span><br><span class="line">    <span class="comment">// 而且最后面的Page，没有后缀，不是 tempPage.js </span></span><br><span class="line">    <span class="comment">// 也不是 tempPage.wxml，就是tempPage</span></span><br><span class="line">    wx.<span class="title function_">navigateTo</span>(&#123;</span><br><span class="line">        <span class="attr">url</span>: <span class="string">&quot;../tempPage/tempPage&quot;</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
-
-<p>现在js文件的整体效果如下：</p>
-<p><img src="http://49.232.218.190/p7.png" alt="js"></p>
-<p>也就是这段代码，至少写在Page里面，你别写到Page外面了。</p>
-<p>写完以后，保存，然后点击那个按钮，如果不出意外的话应该是可以跳转了。</p>
-<h2 id="3-意外"><a href="#3-意外" class="headerlink" title="3. 意外"></a>3. 意外</h2><p>如果没跳转，看看是不是如下原因：</p>
-<ul>
-<li>跳转后页面一片大白：卡了，重启一下程序，或者看看你的新页面是不是就没写东西，那肯定白</li>
-<li>页面白还有一种情况，那就是你把跳转页面的js文件里的东西都删了，切记切记：<strong><font color="red">新Page的js文件里的东西已经是最简形式，千万不要删任何东西</font></strong>。否则恭喜你喜提大白屏.</li>
-<li>点击按钮没有反应：<ul>
-<li>查看 bindtap 后面那个名字和代码里面那个名字是否一致，我的都叫jump</li>
-<li>卡了，重启</li>
-</ul>
-</li>
-<li>跳转后告诉你 not found：这个原因就多了，归根到底就是微信没找到页面<ul>
-<li>检查跳转路径：必须是 <code>../跳转页面所在文件夹名/跳转页面名</code>，且页面名没有任何后缀</li>
-<li>检查页面路径，两个页面是否都在文件夹里面包着，然后这个文件夹都在红色的pages下。只有满足这个要求，上面的跳转路径才能生效。</li>
-<li>别是用了中文吧？？！！</li>
-</ul>
-</li>
-</ul>
-<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><p>我这里是用了 index页面往别的页面跳转做示范，但是实际做课设的时候真不一定就是从index页面跳，可能是你自己的A页面往你自己的B页面跳，咋办？？照猫画虎呗。</p>
-<p>现在你要从A页面跳到B页面：</p>
-<ul>
-<li>首先确认两件事：<ul>
-<li>AB两页面是否都在文件夹里面，文件夹是否都在 pages 下，也就是说两文件夹同层</li>
-<li>Ab两页面的文件夹和页面名是否有中文，确认没有</li>
-</ul>
-</li>
-<li>在A页面中写一个button，并照猫画虎写个bindtap，后面的名字按规范起</li>
-<li>在A页面的js文件中，插入上述那段代码，名字必须和你的bindtap一致，url改成<code>../B页面的所在文件夹名称/B页面名称(切记没有后缀)</code></li>
-<li>完成</li>
-</ul>
-]]></content>
-  </entry>
-  <entry>
-    <title>网站部署</title>
-    <url>/2022/10/19/%E7%BD%91%E7%AB%99%E9%83%A8%E7%BD%B2/</url>
-    <content><![CDATA[<p>最近写了个小网站，用于给别人的大创项目结项，同时自己也练练技术，本着大学最后一次做应用项目的原因，打算把这个项目做的正式一点，所以开发，部署，dns，备案 一串工作全做了，挺费劲。这里总结一下这次部署网站的流程。</p>
-<span id="more"></span>
-
-<blockquote>
-<p>create by P-F on 2022&#x2F;10&#x2F;19</p>
-</blockquote>
-<h1 id="1-开发阶段"><a href="#1-开发阶段" class="headerlink" title="1. 开发阶段"></a>1. 开发阶段</h1><p>开发阶段没什么好说的，前端用的是 Vue+element+axios，后端是 go+beego+mysql+redis+jwt，很正常的技术栈。需要说的是平时调试，平时调试的时候 Vue 项目就是 <code>npm run serve</code> 开8080端口简单启动一下，然后 beego 项目那就是 <code>bee run</code> 开 9090 端口，这个时候就有个问题，两个不同端口之间通讯会跨域，同时我每次打开浏览器还得输入 <code>:8080</code>，很麻烦，所以怎么办呢？</p>
-<p>我用本机的 Nginx 做了一下反向代理，直接访问 &#x2F; 转发到 <code>localhost:8080</code>，访问 &#x2F;v1&#x2F;* 就会转发到 <code>localhost:9090</code>，这样前端就直接访问 localhost&#x2F;v1&#x2F;xxx 就可以走 beego 服务，也不用担心跨域。看一下本机 Nginx 的配置：</p>
-<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="section">location</span> <span class="regexp">~ ^/v1/.*$</span> &#123;</span><br><span class="line">    <span class="attribute">proxy_pass</span> http://localhost:9090;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">location</span> / &#123;</span><br><span class="line">    <span class="attribute">proxy_pass</span> http://localhost:8080;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这里顺带复习一下 Nginx 的 location 配置：<code>location ~</code> 后面接的是正则，会根据正则来判断是否进入这个 location。</p>
-<p>剩下的倒是十分的顺利，因为开发阶段嘛，就在本机，也没有网络的影响，总体感觉十分良好，但是到了真正上线的时候那问题就大了。</p>
-<h1 id="2-前端部署"><a href="#2-前端部署" class="headerlink" title="2. 前端部署"></a>2. 前端部署</h1><p>前端的部署，属实非常的坎坷。</p>
-<h2 id="2-1-项目拉取"><a href="#2-1-项目拉取" class="headerlink" title="2.1 项目拉取"></a>2.1 项目拉取</h2><p>把前段项目部署到服务器，首先就是如何把项目放到服务器上，之前我的做法是通过 scp 命令直接从本机复制到服务器，但是实在麻烦，所以这回变了。我在服务器上通过 git 把项目源码拉下来，然后修改一些启动参数，再 <code>npm install; npm run build</code> 即可得到 Vue 项目的 dist 包。</p>
-<h2 id="2-2-项目部署"><a href="#2-2-项目部署" class="headerlink" title="2.2 项目部署"></a>2.2 项目部署</h2><p>Vue 本质上是一个单页面应用，也就是整个网站本质上就是那个 index.html，但是通过各种 js 啥玩意的可以让这个 index.html 根据不同的 url 显示不同的东西。我第一次部署 Vue 还真就是在服务器上运行 <code>npm run serve</code> 然后就没事了，结果就是关闭终端以后项目也就没了。所以正确姿势就是：将 Vue 打包成 dist，然后配置后端服务器，比如 Nginx，Tomcat，或者自己用 nodejs 自己写一个也行，要实现将找不到对应静态资源的请求全部转发到 vue 生成的 index.html 中。下面就是使用 Nginx 部署 Vue 项目的配置：</p>
-<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="section">location</span> / &#123;</span><br><span class="line">        <span class="attribute">root</span> /usr/local/www/manyin-tech-frontend/dist;</span><br><span class="line">        <span class="attribute">try_files</span> <span class="variable">$uri</span> <span class="variable">$uri</span>/ <span class="variable">@router</span>;</span><br><span class="line">        <span class="attribute">index</span> index.html;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">location</span> <span class="variable">@router</span> &#123;</span><br><span class="line">        <span class="attribute">rewrite</span><span class="regexp"> ^.*$</span> /index.html <span class="literal">last</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>具体含义就是：首先，访问了 &#x2F; 以后，先去找有没有对应的静态资源，比如前端请求图片你也给他转发到 index.html 这显然不合适，所以首先 <code>try_files @uri @uri/</code> 来判断请求的静态资源是否存在，如果不存在，则转发到 @router 这个location，@router location 再将请求转发给 index.html。</p>
-<p>同时配置一下后端的反向代理：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这段在 server 块外面</span></span><br><span class="line">upstream manyin_service &#123;</span><br><span class="line">        server <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">9090</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location ~ ^<span class="regexp">/v1/</span>.+$ &#123;</span><br><span class="line">        proxy_pass <span class="attr">http</span>:<span class="comment">//manyin_service;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>OK，到这里算是初步的部署完了，可以通过 IP 地址访问了。</p>
-<h2 id="2-3-静态资源优化"><a href="#2-3-静态资源优化" class="headerlink" title="2.3 静态资源优化"></a>2.3 静态资源优化</h2><p>结果一访问发现问题了，页面加载速度特别的慢，可能得一分钟才能把首页加载完，这是为啥？一看浏览器控制台，好家伙，首页三张图片就 20m 多，怪不得慢。那咋办？压缩一下图片。</p>
-<p>结果网上找了一圈，要么让我下软件，要么就是在线压缩跟我要钱，好在最后找到一个非常好用的网站，功能还挺多，还能压缩图片：</p>
-<p><a href="https://oktools.net/">oktools</a></p>
-<p>通过这个网站，把图片的大小降低到了一张 200-300k 的大小，还算是ok。但是图片压缩了以后访问还是略慢，这个时候想到了 Nginx 的 gzip 功能，Nginx 可以将一些静态资源进行 gzip 压缩发送给浏览器，然后浏览器会自动解压，我寻思这样可能可以再加快一点访问速度，于是开始配置 Nginx 的压缩。实测图片不需要压缩，因为根本压不了多少，但是 Vue 打包后一些巨大的 js 文件倒是压缩效果非常不错，可能一个 3 400k 的 js 文件压缩以后就不到100k，css 也可以压缩。下面直接贴配置：</p>
-<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="attribute">sendfile</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line"><span class="attribute">gzip</span> <span class="literal">on</span>;</span><br><span class="line"><span class="attribute">gzip_types</span> application/javascript text/css;</span><br><span class="line"><span class="attribute">gzip_vary</span> <span class="literal">on</span>;</span><br><span class="line"><span class="attribute">gzip_disable</span> <span class="string">&quot;MSIE [1-6]\.&quot;</span></span><br><span class="line">gzip_min_length <span class="number">1024</span>;</span><br><span class="line"><span class="attribute">gzip_proxied</span> <span class="literal">off</span>;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>gzip gzip_types gzip_vary 这几个配置比较重要，剩下的似乎不那么要紧，啥意思也忘了，用到的时候再查。</p>
-</blockquote>
-<p>这块配置放到了 nginx 目录的 conf&#x2F;conf.d 目录下的 gzip.conf 中，这个目录里面就是一些我自己的配置文件，比如上面部署 Vue 的配置我就写在了这个目录的 manyin.conf 文件中，然后在 nginx.conf 文件中 include 就行了。</p>
-<p>配置完这些以后就算是差不多了，访问速度反正是说得过去。</p>
-<h1 id="3-后端部署"><a href="#3-后端部署" class="headerlink" title="3. 后端部署"></a>3. 后端部署</h1><p>后端倒是部署的方便，为啥？没那么多要求，就是改个启动配置，比如 mysql 的连接，redis 的连接这些的。</p>
-<p>整个项目用 go 开发，首先服务器下个 go，直接 <code>yum install -y go</code> 就行了，懒得用源码包安装。然后同理用 git 把后端代码拉取下来，安装项目的依赖包，首先得配置一下代理，否则下载 go 的第三方宝可能会比较慢：<code>go env -w GOPROXY=https://goproxy.cn,direct</code>（忘了是不是这个了，反正是当时配置了代理）。然后就是下载依赖包，好像直接 <code>go mod tidy</code> 就行了。最后一步是 <code>go mod vendor</code> 将依赖包拉到项目目录中，这样项目就可以脱离 gopath 了。</p>
-<p>然后 <code>go run main.go</code> 测试一下ok不，ok的话打包：<code>go build</code> 然后设置后台执行：<code>nohup ./go-service &gt; logs.log &amp;</code> 就可以了。</p>
-<p>到这里，前后端就算是部署完了，总结一下：后端开放 9090 端口，Nginx 将 &#x2F;v1&#x2F;* 请求转发到 9090 口实现反向代理，同时避免了跨域。Vue 项目部署在 Nginx 上，开启 gzip 帮忙加速。然后就可以愉快的通过 IP 地址访问项目了。</p>
-<h1 id="4-域名、DNS、备案"><a href="#4-域名、DNS、备案" class="headerlink" title="4. 域名、DNS、备案"></a>4. 域名、DNS、备案</h1><p>后面的倒是比较的简单吧算是，主要是麻烦，特别的麻烦，但是因为我整个流程是在腾讯云办的，所以跟着腾讯云的文档全程没有问题。</p>
-<h2 id="4-1-域名"><a href="#4-1-域名" class="headerlink" title="4.1 域名"></a>4.1 域名</h2><p>首先第一步就是买域名，买完了以后还需要买个 DNS 套餐。我这里用的是腾讯买的域名，买完以后进入腾讯的 DNSPod，给域名添加一个 A 记录（IPv4记录），指向我们从腾讯云买的服务器。然后不出意外一会儿就能通过域名访问了。</p>
-<p>但是过一阵子可能再访问会告诉你未通过报备，不让你访问，这就需要进行下一步，报备。</p>
-<h2 id="4-2-报备"><a href="#4-2-报备" class="headerlink" title="4.2 报备"></a>4.2 报备</h2><p>这一步其实也简单，跟着腾讯的文档做就可以了。首先第一步是腾讯备案，腾讯会先给把关，通过微信小程序进行备案，然后提供相关材料即可，具体啥材料文档有说的。</p>
-<p>对了，备案的时候可能需要把 DNS 的解析关掉。</p>
-<p>其实作为我们用户只需要做第一步就行了，就是填上你的报备信息，然后腾讯审核完了就会送给省里去申，这个倒是很慢，我10月3号提交的，10月19号才审核完。</p>
-<p>审完了以后会给你一个备案号，把这个备案号贴到网站的底部：</p>
-<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;https://beian.miit.gov.cn/&quot;</span> <span class="attr">target</span>=<span class="string">&quot;_blank&quot;</span>&gt;</span>冀ICP备xxx号-1<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>就可以了。说是不贴的话要罚款。</p>
-<h2 id="4-3-公安备案"><a href="#4-3-公安备案" class="headerlink" title="4.3 公安备案"></a>4.3 公安备案</h2><p>管局备案完了就要去公安备案，也是跟着腾讯的文档就行了，我也是今天刚提交的，不知道结果咋样。顺带一提，腾讯的文档写的是真不错。</p>
-<h2 id="4-4-SSL-证书"><a href="#4-4-SSL-证书" class="headerlink" title="4.4 SSL 证书"></a>4.4 SSL 证书</h2><p>腾讯给提供一年的免费 SSL 证书，进入腾讯的 SSL 那个控制台就能看见，申请一个，然后怎么把证书部署到 Nginx，同样有详细的文档，这里就不说了。</p>
-<h1 id="5-总结"><a href="#5-总结" class="headerlink" title="5. 总结"></a>5. 总结</h1><p>总结一下奥，域名、DNS、备案、SSL 着一系列操作只需要跟着腾讯的文档就完全没有问题，就死死把握一个流程：购买域名和DNS -&gt; 添加解析记录 -&gt; 提交备案 -&gt; 安装 SSL -&gt; 公安备案 。然后哪个流程不会去腾讯文档查就行了。</p>
-]]></content>
-      <categories>
-        <category>部署</category>
-      </categories>
-      <tags>
-        <tag>部署</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>运行时数据区概述</title>
-    <url>/2022/05/27/%E8%BF%90%E8%A1%8C%E6%97%B6%E6%95%B0%E6%8D%AE%E5%8C%BA%E6%A6%82%E8%BF%B0/</url>
-    <content><![CDATA[<p>从这里开始正式进入运行时数据区，运行时数据区是JVM非常核心的一部分，各种内存模型各种垃圾回收都将从这里展开。</p>
-<span id="more"></span>
-
-<h1 id="1-运行时数据区"><a href="#1-运行时数据区" class="headerlink" title="1. 运行时数据区"></a>1. 运行时数据区</h1><p>运行时数据区，非常之核心，JVM运行时大部分数据都存在运行时数据区，所以后面大部分的展开，比如各种的字符串，常量池，GC，等等等等一系列的故事都将发生在这里。</p>
-<p>首先看一下运行时数据区的图：</p>
-<p><img src="/images/runtime/Runtime_data_area.png" alt="runtime"></p>
-<p>主要就是包含了：程序计数器、本地方法栈、虚拟机栈、堆、元空间。其中这里先介绍几个简单的，比如程序计数器和本地方法这种的，剩下的虚拟机栈和堆和元空间，都是重点中的重点。</p>
-<p>同时扩展一点东西：</p>
-<ul>
-<li><p>PC寄存器：不涉及 Error 不涉及 GC</p>
-</li>
-<li><p>虚拟机栈：涉及 Error，比如 StackOverFlowError，不涉及GC，直接弹栈即可。</p>
-</li>
-<li><p>本地方法栈：涉及 Error，不涉及 GCasd</p>
-</li>
-<li><p>堆 和 方法区：都涉及 Error 和 GC</p>
-</li>
-</ul>
-<p>这5种东西，一部分是和Java程序共存亡，随着JVM启动而启动，随着JVM销毁而销毁另外的，和线程共存亡。</p>
-<p>方法区 和 堆，线程之间公用，剩下的，每一个线程都会有自己独一份的这些东西。</p>
-<p>对应的对象就是 Runtime，每一个Java 应用，或者说，一个jvm就对应着一个Runtime对象。</p>
-<p>其中，JVM内部还有一些线程：</p>
-<ul>
-<li><p>虚拟机线程，特别复杂，不说了</p>
-</li>
-<li><p>周期任务线程，一般用于周期性操作的调度执行</p>
-</li>
-<li><p>GC线程，支持不同种类的垃圾收集行为</p>
-</li>
-<li><p>编译线程，将字节码编译成本地代码</p>
-</li>
-<li><p>信号调度线程，接收信号发给JVM处理</p>
-</li>
-</ul>
-<p>这些东西似乎就没有啥用了，应该不会用到吧。</p>
-<h1 id="2-PC寄存器"><a href="#2-PC寄存器" class="headerlink" title="2. PC寄存器"></a>2. PC寄存器</h1><p>所谓PC寄存器，全称 Program Counter Register，也叫程序计数器，主要用于存储下一条要执行的指令的地址。</p>
-<p>我们随便写一个程序，然后我们反编译他的 class文件，会看到如下文字：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:bipush   10  </span><br><span class="line">2:istore_1  </span><br><span class="line">3:bipush   20  </span><br><span class="line">4:istore_2</span><br></pre></td></tr></table></figure>
-
-<p>这种的，第一列的数字就是指令地址，第二列以及后面的东西就叫指令，pc寄存器会存储下一条指令的地址，也就是 比如 0 2 这种东西，然后执行引擎会读取pc寄存器里面存储的指令地址所对应的指令，去运行这个指令。</p>
-<p>具体流程下图所示：</p>
-<p><img src="/images/runtime/pc_register.png" alt="pc_process"></p>
-<h2 id="为什幺用PC寄存器"><a href="#为什幺用PC寄存器" class="headerlink" title="为什幺用PC寄存器"></a>为什幺用PC寄存器</h2><p>记录执行位置，并发(CPU轮转)状态下，每个线程都会抢时间片，那么抢到了就会接着执行，这个时候就需要记录当前状态下，该执行那条指令了，PC寄存器就是记录执行状态的。</p>
-<p>JVM字节码解释器通过改变PC寄存器的值来记录执行状态。</p>
-<h1 id="3-本地方法接口"><a href="#3-本地方法接口" class="headerlink" title="3. 本地方法接口"></a>3. 本地方法接口</h1><p>我们前面一直在说Runtime的事，我们先跳出Runtime，先来看一个东西：本地方法。</p>
-<p>首先我们来看一眼JVM的整体结构：</p>
-<p><img src="/images/runtime/jvm_structure.jpg" alt="jvm_stu"></p>
-<p>看到右下角的两个东西了么：NativeMethodInterface和 NativeMethodLibrary，这两个东西要和 运行时数据区里面的 本地方法栈进行联系，所以我们现看这两块内容。</p>
-<h2 id="本地方法"><a href="#本地方法" class="headerlink" title="本地方法"></a>本地方法</h2><h3 id="什么是本地方法"><a href="#什么是本地方法" class="headerlink" title="什么是本地方法"></a>什么是本地方法</h3><p>何为本地方法，Java 调用一个非Java 实现的方法的接口，这个接口就是本地方法，也就是 NativeMethod，(Native 是个关键字);</p>
-<p>再简单说，本地方法就是一个Java方法，但是这个方法的具体实现并不是 Java，多数情况下是 C&#x2F;C++。本地接口的作用就是融合不同语言来为Java所用，最主要还是融合 C&#x2F;C++.</p>
-<p>需要注意的是，native 方法因为它本身就是 Java 方法，所以Java 方法上有的东西他都有，比如可以进行权限控制，可以使用同步代码，可以抛出异常，可以有static 修饰等。</p>
-<h3 id="为什么要用本地方法"><a href="#为什么要用本地方法" class="headerlink" title="为什么要用本地方法"></a>为什么要用本地方法</h3><p>有时Java需要和外部环境交互，比如操作系统，创建 Thread这种的，或者说有些时候需要特别在以效率，就需要用到NativeMethod</p>
-<h3 id="和操作系统的交互"><a href="#和操作系统的交互" class="headerlink" title="和操作系统的交互"></a>和操作系统的交互</h3><p>JVM毕竟不是真是的操作系统，他是要依赖于本地环境，这就不可避免的有C代码，同时如果我们关注效率，也需要C，比如 创建线程，这个就是一个本地方法，调用了操作系统的api，去创建线程。</p>
-<p>Sun’s Java 的解释器有一部分就是C写的，JVM内部就已经植入了一部分C代码，所以不可避免的需要和C交互。</p>
-<h3 id="现状"><a href="#现状" class="headerlink" title="现状"></a>现状</h3><p>目前Java已经很少用到Native了，除非是一些底层操作，比如调用打印机这种的，还是需要用到C。</p>
-<h1 id="4-本地方法栈"><a href="#4-本地方法栈" class="headerlink" title="4. 本地方法栈"></a>4. 本地方法栈</h1><p>至于本地方法栈，这个东西 简单说，似乎不怎么用。这里涉及到了一些虚拟机栈的知识，后面会说。</p>
-<ul>
-<li><p>Java虚拟机栈使用管理Java方法的，那么很显然本地方法栈就是用来管理本地方法的。</p>
-</li>
-<li><p>和虚拟机栈同理，本地方法栈也是线程独有的。</p>
-</li>
-<li><p>同样可以扩展本地方法栈，同样会抛出 StackOverflowError 和 OutOfMemoryError。</p>
-</li>
-<li><p>当某个线程调用了一个本地方法后，这个本地方法就会进入一个权限的不受虚拟机限制的世界。他和虚拟机有同样的权限。</p>
-<ul>
-<li><p>本地方法可以调用本地方法接口来访问虚拟机内部的运行时数据区。</p>
-</li>
-<li><p>可以直接使用本机处理器中的寄存器。</p>
-</li>
-<li><p>可以直接分配本地内存</p>
-</li>
-</ul>
-</li>
-<li><p>并不是所有的 JVM 都支持本地方法，因为虚拟机规范并没有规定本地方法的实现语言等， 所以如果虚拟机不打算使用本地方法，也就无需本地方法栈</p>
-</li>
-<li><p>Hotspot JVM中，直接把本地方法栈和虚拟机栈合二为一。</p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>JVM</category>
-      </categories>
-      <tags>
-        <tag>java</tag>
-        <tag>底层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>页面防抖</title>
-    <url>/2022/10/17/%E9%A1%B5%E9%9D%A2%E9%98%B2%E6%8A%96-md/</url>
-    <content><![CDATA[<p>页面防抖是接口幂等性的其中一环，接口幂等性说的是一个接口执行依次和执行多次发生的结果一样，后端保证接口幂等性主要是就是发送请求令牌啥的，前端的话就得考虑如何避免帕金森患者多次点击一个按钮发送多次请求。</p>
-<span id="more"></span>
-
-<blockquote>
-<p>create by P-F on 2022&#x2F;10&#x2F;17</p>
-</blockquote>
-<h1 id="1-防抖"><a href="#1-防抖" class="headerlink" title="1. 防抖"></a>1. 防抖</h1><p>前端的某个请求按钮在短时间内多次点击但是只会执行依次就是防抖，比如我以前做过一个线上考试系统，点击创建班级没有做防抖，结果被帕金森患者创建了十多个一样的班级。</p>
-<h1 id="2-实现"><a href="#2-实现" class="headerlink" title="2. 实现"></a>2. 实现</h1><p>具体实现就是，给一个按钮设置一个定时器，比如这个按钮在点击以后会在200ms以后才执行，在200ms被再次点击的话就会重置计时器，保证这个按钮是在最后一次点击的200ms以后被执行。至于说用户 200ms 以后有点急了咋办，可以在这期间给这个按钮上锁，直接disabled就行了。</p>
-<p>看代码：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 创建防抖函数</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> debounce = <span class="keyword">function</span>(<span class="params">callback, delay_</span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> delay = delay_ || <span class="number">200</span>;</span><br><span class="line">    <span class="keyword">let</span> timer;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> args = <span class="variable language_">arguments</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(timer) &#123;</span><br><span class="line">            <span class="built_in">clearTimeout</span>(timer)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">            callback.<span class="title function_">apply</span>(<span class="variable language_">this</span>, args)</span><br><span class="line">        &#125;, delay)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> &#123;debounce&#125; <span class="keyword">from</span> <span class="string">&quot;...&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 调用 debounce，传入想要实现防抖的方法，即可实现防抖</span></span><br><span class="line"><span class="attr">addUser</span>: <span class="title function_">debounce</span>(<span class="keyword">function</span>(<span class="params">user</span>)&#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(user)</span><br><span class="line">&#125;, <span class="number">500</span>)</span><br></pre></td></tr></table></figure>
-
-<h1 id="3-原理"><a href="#3-原理" class="headerlink" title="3. 原理"></a>3. 原理</h1><p>这玩意有点意思，深究一下为啥调用一个 debounce 就能实现防抖了。</p>
-<h2 id="3-1-闭包"><a href="#3-1-闭包" class="headerlink" title="3.1 闭包"></a>3.1 闭包</h2><p>首先，我觉得这个东西用到了一个很有意思的思想：闭包。debounce 作为外层函数创建了一个变量：timer，然后内层函数访问 timer，修改 timer，最后 debounce 返回了内层函数，那么到了最后 debounce 这个外层函数并没有被销毁，而是隐隐的给内层函数提供 timer 这个变量，很有意思。</p>
-<h2 id="3-2-结果"><a href="#3-2-结果" class="headerlink" title="3.2 结果"></a>3.2 结果</h2><p>我们调用 <code>addUser: debounce(function(args)&#123;...&#125;, 300)</code> 之后，addUser 最后变成了啥样了？</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">    <span class="attr">methods</span>: &#123;</span><br><span class="line">        <span class="attr">addUser</span>: <span class="title function_">debounce</span>(<span class="keyword">function</span>(<span class="params">name, age</span>) &#123;</span><br><span class="line">            <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`add user, name=<span class="subst">$&#123;name&#125;</span>, age=<span class="subst">$&#123;age&#125;</span>`</span>)</span><br><span class="line">        &#125;, <span class="number">300</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上面是我们想要让 addUser 实现防抖，那就传入我们要防抖的逻辑传入 debounce，然后打印一下 addUser 看看是啥样的：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 页面渲染以后 addUser：</span></span><br><span class="line"><span class="attr">addUser</span>: <span class="keyword">function</span> <span class="title function_">_</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> args = <span class="variable language_">arguments</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(timer) &#123;</span><br><span class="line">        <span class="built_in">clearTimeout</span>(timer)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">        callback.<span class="title function_">apply</span>(<span class="variable language_">this</span>, args)</span><br><span class="line">    &#125;, delay)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我们会发现，debounce 会生成一个没有形参的函数，然后里面会调用我们传入的 callback。但是有个问题，就是我们调用 addUser 的时候肯定会传入 name 和 age，但是 addUser 又是一个无参方法，咋办，怎么正确的传参？</p>
-<p>这个时候就会说道 arguments 对象。</p>
-<h2 id="3-3-arguments"><a href="#3-3-arguments" class="headerlink" title="3.3 arguments"></a>3.3 arguments</h2><p>JS 的 function 内部会自动有一个对象：arguments，内部就存储了所有传入的参数，哪怕这个 function 没有形参：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`args len: <span class="subst">$&#123;<span class="variable language_">arguments</span>.length&#125;</span>`</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
-
-<p>除此之外，我们可以通过 arguments 对象来修改实参：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用严格模式，修改不会生效，不加这行的话修改才能生效。</span></span><br><span class="line">    <span class="string">&#x27;use strict&#x27;</span>;</span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">0</span>] = <span class="number">100</span></span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">1</span>] = <span class="number">200</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
-
-<p>这里返回的不是 30，而是 300，即便我们传入的是 10 20，但是函数内通过 arguments 对象修改了实参为 100 200。当然这是在费严格模式下，如果在严格模式下，是不能修改实参的。（费严格模式把那行 use strict 注释掉）。</p>
-<p>所以在这个防抖函数里面，即时返回的防抖函数没有形参，我们也依旧可以通过 arguments 得到我们调用时传入的实参，然后传给 callback。</p>
-<h2 id="3-4-apply-方法"><a href="#3-4-apply-方法" class="headerlink" title="3.4 apply 方法"></a>3.4 apply 方法</h2><p>我们还会发现，调用 callback 的时候并没有直接 <code>callback(arguments)</code>，而是 <code>callback.apply(this, arguments)</code>，这是为啥？这里就需要说说 apply 方法。</p>
-<p>apply 方法用于重新指定 function 的 this 指向，当然这是我自己的理解，官方说的是让 function 在别的对象上执行：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;jack&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">20</span>,</span><br><span class="line"></span><br><span class="line">    <span class="title function_">hello</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`hello, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.age&#125;</span> years old`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;Lucy&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">10</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">user.<span class="property">hello</span>.<span class="title function_">apply</span>(person)</span><br></pre></td></tr></table></figure>
-
-<p>最后执行的结果是 hello, i’m Lucy, i’m 10 years old，我们就会发现，hello 方法里面的 this 居然指向了 person，也就相当于 hello 跑到了 person 对象内被执行了，是不是很神奇。</p>
-<p>所以防抖函数里面为啥要用 apply？因为我们传入的 callback 的 this 不是 VueComponent，所以我们需要调用 apply 方法，将 this 修改为 VueComponent，同时还需要用 apply 方法将 arguments 传入。</p>
-<h1 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h1><p>可以看到，一个小小的防抖就涉及到这么多知识点，就是因为当时看不懂这个防抖，才去补课 this 指向问题的。</p>
-]]></content>
-      <categories>
-        <category>JS</category>
-      </categories>
-      <tags>
-        <tag>js</tag>
-        <tag>前端</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>字节码指令</title>
     <url>/2022/06/13/bytecode-command/</url>
     <content><![CDATA[<p>这章就是具体的各种字节码指令，深入的说一下每个指令都是干嘛的。</p>
@@ -1836,6 +1212,176 @@
 <p>注意：</p>
 <p>一个指令，可以从局部变量表，常量池，堆中对象，方法调用，系统调用中获取数据，这些数据会压入操作数栈</p>
 <p>一个指令，也可以从操作数栈获取多个数据，也就是pop多次，然后可以进行各种操作，然后结果还可以存入操作数栈</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JVM-类加载</title>
+    <url>/2022/06/13/classload/</url>
+    <content><![CDATA[<p>类加载，说一说类加载的时候各种成员的初始化如何进行。</p>
+<span id="more"></span>
+
+<h1 id="1-类加载"><a href="#1-类加载" class="headerlink" title="1. 类加载"></a>1. 类加载</h1><p>是的，字节码说完了，然后就是下面的一大块东西：类加载。</p>
+<p>之前学Java反射的时候了解过，类加载分为5个阶段，如下：</p>
+<ul>
+<li>加载：通过类加载器加载一个二进制流数据</li>
+<li>链接：又分为 验证 准备 解析 三个阶段</li>
+<li>初始化</li>
+<li>使用：比如调用方法，创建对象等</li>
+<li>卸载</li>
+</ul>
+<p>后面我们就开始着重看这5个阶段。</p>
+<h1 id="2-类加载-Loading-阶段"><a href="#2-类加载-Loading-阶段" class="headerlink" title="2. 类加载 Loading 阶段"></a>2. 类加载 Loading 阶段</h1><h2 id="2-1-加载的理解"><a href="#2-1-加载的理解" class="headerlink" title="2.1 加载的理解"></a>2.1 加载的理解</h2><p>什么是加载，或者说loading阶段到底干了啥？很简单，类加载器读取一大堆二进制流，然后转化成一个类模版对象，然后把这个类模版对象存储到方法区。这样在运行时，我们就可以通过反射来获取类的属性，比如这个类的属性，方法等。</p>
+<p>但是需要注意的是，这个类模版，并不是我们获取的 Class对象，不是的，两回事，有关系，但不是一个。</p>
+<h2 id="2-2-加载完成的操作"><a href="#2-2-加载完成的操作" class="headerlink" title="2.2 加载完成的操作"></a>2.2 加载完成的操作</h2><p>就是一件事，读取class文件，生成类模版。具体说 JVM 需要完成下面三件事：</p>
+<ul>
+<li>获取类的全限定命名，从而得到这个类的class文件，进而获取二进制流（当然这个流可以从数据库中获得，获取其他的方式，总之，要的就是二进制流）；</li>
+<li>解析这个二进制流，生成对应的Java类模版，存储在方法区</li>
+<li>创建 Class对象，这个对象作为方法区类模版的访问入口，也就是说，Class对象其实是指向了方法区中的模版。</li>
+</ul>
+<h2 id="2-3-类模版和Class的位置"><a href="#2-3-类模版和Class的位置" class="headerlink" title="2.3 类模版和Class的位置"></a>2.3 类模版和Class的位置</h2><p>在完成类加载后，会在方法区（jdk8的话就是元空间）生成一个类模版对象，然后又会在堆中，没错，就是堆中，生成这个类的Class对象，然后这个Class指向了方法区中的类模版，然后我们就可以通过Class得到类的属性。</p>
+<p>只是作为了解，不展开说，挺复杂的东西。</p>
+<h2 id="2-4-数组类的创建"><a href="#2-4-数组类的创建" class="headerlink" title="2.4 数组类的创建"></a>2.4 数组类的创建</h2><p>数组比较特殊，数组并不是类加载器创建的，而是JVM根据你数组类型和数组维度动态创建的，过程如下：</p>
+<ul>
+<li>如果数组是引用数据类型，那么JVM则会根据需要 递归的去加载数据类型</li>
+<li>根据数组所需要的数据类型和数组维度，JVM动态的声明数组</li>
+</ul>
+<h1 id="3-链接阶段"><a href="#3-链接阶段" class="headerlink" title="3. 链接阶段"></a>3. 链接阶段</h1><p>众所周知，链接阶段分为三个步骤：验证，准备，解析。ok，我们一个一个说：</p>
+<h2 id="3-1-验证阶段"><a href="#3-1-验证阶段" class="headerlink" title="3.1 验证阶段"></a>3.1 验证阶段</h2><p>所谓验证阶段，那肯定就是验证文件是否合法这种的。所以在这一步，它主要验证一下内容：</p>
+<ul>
+<li>格式检查：检查字节码的魔数，版本以及指令长度等其他信息（没有在方法区中生成类模版）</li>
+<li>语义检查：检查有没有格式错误，比如继承final，是否存在父类，抽象方法有没有实现等（这个时候已经在方法区中生成了模版）</li>
+<li>字节码验证：跳转指令的跳转位置是否合法，函数调用传参类型是否正确，变量赋值的类型是否一致 等。</li>
+<li>符号引用验证：符号引用是否有直接饮用</li>
+</ul>
+<p>这个阶段有个特殊的东西：StackMapTable 栈映射帧，是干嘛的呢？用来检测操作数栈中的数据类型和局部变量表的数据类型是否匹配，然而并不能100%判断字节码没错，只是尽可能的判断。</p>
+<p>第四步的符号引用验证，简单说就是：常量池中有个ClassRefInfo信息，比如指向了一个 java.lang.String，这里就需要判断这个 String 是否存在，既视感这个的。</p>
+<p>顺带一提，验证阶段和加载阶段分的没有那么开，一般都是同时进行的。</p>
+<h2 id="3-2-准备阶段"><a href="#3-2-准备阶段" class="headerlink" title="3.2 准备阶段"></a>3.2 准备阶段</h2><p>准备阶段 Preparation，简单说，就是给这个类的静态变量（注意，是变量，是变量，不是常量，static final 可不在这里处理）分配内存空间，并给他们赋一个默认值，这个默认值应该不用说了吧，数字类型都是0，boolean是false，ref 是 null。</p>
+<p>注意：</p>
+<ul>
+<li>说过了，这里不对final进行操作，static final 的常量在编译的时候就已经被显式的赋值了，在准备阶段静态常量已经有值了。</li>
+<li>这里不对实例变量进行操作，类变量的内存被分配到了方法区，和类模版在一起，实例变量则是在堆中，和对象在一起。</li>
+<li>这个过程没有任何的代码被执行</li>
+</ul>
+<p>有个特殊情况，如果有如下代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">str</span> <span class="operator">=</span> <span class="string">&quot;CONST&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>那么这个属性的赋值也是在编译阶段完成的，但是仅限于通过字面量给String赋值，如果你是 new String，那也就不行了。</p>
+<h2 id="3-3-解析阶段"><a href="#3-3-解析阶段" class="headerlink" title="3.3 解析阶段"></a>3.3 解析阶段</h2><p>解析 Resolution 阶段，简单说，把符号引用替换成直接饮引用。听不懂是吧，来，举个例子：</p>
+<p>我们都已经学过字节码了，字节码文件中有常量池没毛病吧，比如常量池中有个常量 Methodref_info 这个信息，这个信息里面有两部分：Class_name 和 Name_And_Type，然后这俩又是俩常量池索引，比如：Class_name #3， Name_and_type #8。这里非常的敷衍，就告诉你是 #3和#8，和内存完全没关系，这就是符号引用。</p>
+<p>这个阶段下，你不能在敷衍的告诉我 Class_name 是#3啦，太费劲了，咋办，比如这个Methodref_info是 System.out.println() 方法，行，这里你得具体告诉我 System.out 这个 Class_name 的真实内存地址，#3我不认可啦，那么在这个阶段下，Class_name #3 Name_and_type #8 就被替换成了：</p>
+<p>同时，JVM会给每个类提供一个方法表，那么你这个println方法在方法表中是第几个位置，这个就相当于方法的直接引用。</p>
+<h1 id="4-初始化阶段"><a href="#4-初始化阶段" class="headerlink" title="4. 初始化阶段"></a>4. 初始化阶段</h1><blockquote>
+<p>create  by  陈HL_pthef on  2021&#x2F;11&#x2F;4 下午6:58</p>
+</blockquote>
+<h2 id="4-1-概述"><a href="#4-1-概述" class="headerlink" title="4.1 概述"></a>4.1 概述</h2><p>初始化阶段，简单说就是给static进行赋值。很重要的一点，在初始化阶段，真正的涉及一些Java代码的执行。</p>
+<p>这个过程最重要的就是生成 &lt;clinit&gt; 方法，这个方法主要就是用来给static赋值的，他会按顺序收集你类中所有的static赋值语句（包括static代码块），整合到一起，然后生成 clinit方法，这个方法只能由JVM生成，并由JVM调用。</p>
+<h2 id="4-2-说明"><a href="#4-2-说明" class="headerlink" title="4.2 说明"></a>4.2 说明</h2><ul>
+<li><p>一个类调用 clinit 方法时，总会先去调用 父类的clinit方法，所以说，父类的static代码块优先级高于子类</p>
+</li>
+<li><p>什么情况下不会生成 clinit方法：</p>
+<ul>
+<li>一个类压根没有静态</li>
+<li>有静态，但是没有赋值，就是光秃秃一个 <code>public static int num;</code></li>
+<li>有静态，也有赋值，但是这个静态是常量，而且赋值的方式还是字面量赋值，也不会clinit。</li>
+</ul>
+</li>
+</ul>
+<h2 id="4-3-static-final-显式赋值到底发生在哪个阶段？"><a href="#4-3-static-final-显式赋值到底发生在哪个阶段？" class="headerlink" title="4.3 static final 显式赋值到底发生在哪个阶段？"></a>4.3 static final 显式赋值到底发生在哪个阶段？</h2><p>这玩意，越来越不会了，太恶心了。</p>
+<p>首先，看最简单的；</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">I</span> <span class="operator">=</span> <span class="number">20</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这个倒是好说，i 肯定是在clinit中赋值，然后 I 是在链接阶段的准备环节赋的值，所以说，是不是final修饰的就一定不在clinit中赋值？再看下面这个：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="type">Integer</span> <span class="variable">int1</span> <span class="operator">=</span> Integer.valueOf(<span class="number">100</span>);</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Integer</span> <span class="variable">INT2</span> <span class="operator">=</span> Integer.valueOf(<span class="number">1000</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这俩是在哪赋的值？直接说，这俩都是在 clinit 中赋值。那我们又猜，是不是说 引用数据类型不管是不是final都在clinit中赋值？再看下面：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> <span class="string">&quot;hello1&quot;</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">S</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;hello2&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这俩都是引用，在哪里赋值啊？s 在准备阶段，S 在clinit赋值。</p>
+<p>所以说，总结一下，什么情况下会在链接阶段的准备过程赋值：</p>
+<ul>
+<li>大前提，static final 修饰的</li>
+<li>基本数据类型，给他赋一个确定的值，且不需要代码支持（比如 new Random().random() 这种的），在准备过程赋值</li>
+<li>字符串，且通过字面量的形式给他赋值，也发生在准备阶段。</li>
+</ul>
+<p>首先明确的是，绝对不是说 static final 就一定在准备阶段完成赋值。</p>
+<h2 id="4-4-clinit-方法的线程安全问题"><a href="#4-4-clinit-方法的线程安全问题" class="headerlink" title="4.4 clinit 方法的线程安全问题"></a>4.4 clinit 方法的线程安全问题</h2><p>首先，clinit是线程安全的，但是这个方法的访问修饰只有static，并没有synchronized，所以他这个锁是一个隐式的锁，JVM给自动加的。</p>
+<p>正是因为这玩意线程安全，所以说如果一个类的clinit过于繁琐，耗时较长，则会导致很多线程阻塞，有可能导致死锁。</p>
+<h2 id="4-5-类的主动使用和被动使用问题"><a href="#4-5-类的主动使用和被动使用问题" class="headerlink" title="4.5 类的主动使用和被动使用问题"></a>4.5 类的主动使用和被动使用问题</h2><p>首先，主被动使用会影响啥？不是说一个类被动使用就不会加载了，不是的，一个类要用，那就肯定需要加载，但是如果一个类是被动使用的，那么这个 初始化阶段是很有可能不执行的。注意，仅限于初始化阶段不执行。那么初始化阶段不执行就可能导致结果不一致。</p>
+<p>顺带一提，这里说的使用不是说的类的第四个阶段：使用。更多说的是首次使用。</p>
+<h3 id="4-5-1-类的主动使用"><a href="#4-5-1-类的主动使用" class="headerlink" title="4.5.1 类的主动使用"></a>4.5.1 类的主动使用</h3><p>类的主动使用会调用 &lt;clinit&gt;() 方法，也就是会经过初始化过程。</p>
+<ul>
+<li><p>创建一个类的实例，比如 new，通过反射，反序列化（是的，反序列化也是主动使用）</p>
+</li>
+<li><p>调用类的静态方法，对应指令就是执行 invokestatic 指令，很简单，不说了</p>
+</li>
+<li><p>操作类的静态字段（static修饰的，没有final），对应指令就是 getstatic 和 putstatic。同时还有接口的静态字段。</p>
+<p>这里得特别说明：并不是绝对的，不是说我们操作static final 就一定不触发初始化。我认为是啥呢，就是说你这个static final 是不是在&lt;clinit&gt;() 中被赋值，如果是，那么这里你操作static final也照样会触发初始化，如果不是，那这里就不触发初始化。</p>
+<p>同时，对于接口，也是差不多的道理，如果接口中的 static final 不需要代码支持，那就不会clinit，如果需要，那就也会被初始化</p>
+</li>
+<li><p>使用反射类的方法，比如 Class.forName() 这种的，触发初始化。</p>
+</li>
+<li><p>初始化子类之前，会初始化父类。</p>
+<p>特殊：JVM加载一个类，要求是所有父类都必须初始化，但是这条规则并不适用与接口。</p>
+<ul>
+<li>初始化一个类，并不会初始化他所有实现的接口</li>
+<li>初始化一个接口，并不会初始化他继承的所有的类</li>
+</ul>
+<p>只有当程序首次使用特定字段的时候才会触发接口的初始化。</p>
+</li>
+<li><p>如果你的接口存在default 方法，那么直接或间接实现这个接口的类 触发了初始化，那么这个接口也会被初始化</p>
+</li>
+<li><p>当虚拟机启动时，用户会指定一个主类，那么JVM会优先家在这个主类</p>
+</li>
+<li><p>使用 MethodHandle 类，JVM会初始化这个方法指向的方法所在的类</p>
+<p>我猜啊，这个类是用来调用方法的，他可以调用任何一个类的任何一个方法（不绝对啊，private我不知道行不行）</p>
+</li>
+</ul>
+<h3 id="4-5-2-类的被动使用"><a href="#4-5-2-类的被动使用" class="headerlink" title="4.5.2 类的被动使用"></a>4.5.2 类的被动使用</h3><p>被动使用，就是类加载不会经过初始化过程。</p>
+<ul>
+<li>访问static字段，只有真正定义了这个static字段的类才会被初始化。举个例子，父类有个static，然后我们通过子类访问这个字段，最终被初始化的只有父类，自卑不会被初始化。具体看 cn.chl.PassiveUse</li>
+<li>创建引用数据类型数组，数组数据类型对应的类不会初始化。就是说你 XXX[] a &#x3D; new XXX[10]; 这个时候 XXX 不会初始化，只有 a[0] &#x3D; new XXX() 的时候才会初始化（废话）</li>
+<li>访问类的 final static（具体得看你这个final static需不需要被clinit进行赋值，上面有说，具体问题具体分析）</li>
+<li>调用 ClassLoader 的loadClass 方法，加载一个类，不会初始化</li>
+</ul>
+<h1 id="5-类卸载"><a href="#5-类卸载" class="headerlink" title="5. 类卸载"></a>5. 类卸载</h1><p>是的，类的使用没有说，废话，有啥说的，就是用呗。没的说。这里直接开始说类的卸载。</p>
+<p>要想说明白这个类卸载，我们先要明白 类 类加载器 类实例 的关系。大致的关系就是：我们加载一个类，首先在方法区中创建这个类的模版，然后在堆区创建这个类的Class对象作为方法区模版的访问入口，同时这个类的类加载器也保存在堆区，加载器和Class互相指向，创建实例的话，实例也存在堆区，并指向Class对象。接下来我们具体说说每个部分。</p>
+<h2 id="5-1-类-类加载器-类实例的关系"><a href="#5-1-类-类加载器-类实例的关系" class="headerlink" title="5.1 类  类加载器   类实例的关系"></a>5.1 类  类加载器   类实例的关系</h2><p>我们之前说过，JVM中的类加载器主要分为三类：</p>
+<ul>
+<li>BootstrapClassLoader：启动类加载器，或者说 引导类加载器，Java核心类库使用这个</li>
+<li>ExtensionClassLoader：扩展类加载器，第三方jar包多数用这个</li>
+<li>ApplicationClassLoader：应用程序类加载器，或者叫系统类加载器，我们自己写的用这个</li>
+</ul>
+<p>Class对象和ClassLoader之间双向关联，Class里面有个方法：<code>getClassLoader()</code> 方法，可以得到这个类的类加载器。所以大体结构如下：</p>
+<p><img src="/../images/Class.png" alt="image-20211106131529171"></p>
+<p>看的非常清楚，不再多说。</p>
+<h2 id="5-2-类的生命周期"><a href="#5-2-类的生命周期" class="headerlink" title="5.2 类的生命周期"></a>5.2 类的生命周期</h2><p>简单说，什么时候一个类就被回收了？以上面这图来说，当 Sample 类的Class对象不再被引用，也就是不可触及时，Sample的生命周期结束，就会卸载方法区中的 Sample类模版。</p>
+<p>看似简单，其实不然，我们通过上面这图可以看出，什么时候Class就不会被引用？</p>
+<ul>
+<li>没有任何的实例引用。没有实例，那么 Sample实例到Class的引用就相当于断开了</li>
+<li>没有 Class对象的引用。这是废话</li>
+<li>没有 Sample 类加载器的引用，这样 MyClassLoader的引用断开，就相当于Loader到Class的引用断开</li>
+</ul>
+<p>只有达到这三个条件，才说明类不再使用。</p>
+<p>所以总结一下，卸载一个类，其实对应的就是方法区中的GC。方法区GC主要针对不再使用的常量和不再使用的类，常量好说，不用了呗，但是类，必须满足下面三个条件：</p>
+<ul>
+<li>这个类的所有实例，也包括派生子类的实例，全部被回收</li>
+<li>类的ClassLoader被回收（这个条件极其难以达成，除非是被精心设计的一些类的类加载器）</li>
+<li>没有引用指向 Class对象</li>
+</ul>
+<h2 id="5-3-类的卸载"><a href="#5-3-类的卸载" class="headerlink" title="5.3 类的卸载"></a>5.3 类的卸载</h2><ul>
+<li>引导类加载器不可能被卸载，也就是说被引导类加载器加载的类，运行期间你是别想卸载了</li>
+<li>系统类加载器和扩展类加载器被收集的可能性极小，因为在运行期间他们的类总是能被直接或者间接的指向</li>
+<li>我们自己写的类加载器有可能被回收，但是仅限与在简单的上下文环境中，复杂环境下依旧是直接间接引用满天飞。而且就算是回收了加载器，我们也得强制调用GC方法</li>
+</ul>
+<p>方法区回收垃圾，时间是不确定的，而且效果也不好，因为没几个类是不用的。所以，千万不要在类卸载的前提下考虑业务。</p>
 ]]></content>
       <categories>
         <category>JVM</category>
@@ -2650,6 +2196,191 @@
       </tags>
   </entry>
   <entry>
+    <title>hexo部署</title>
+    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
+<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
+<span id="more"></span>
+
+<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
+<p><strong><font color='red'>步骤如下：</font></strong></p>
+<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
+<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
+<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
+<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
+<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
+<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
+<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
+<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
+<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
+
+<p>然后，正常情况下，会提示这么一句：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
+
+<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
+<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
+<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
+<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
+<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
+<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
+
+<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
+
+<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
+<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
+<p>在博客根目录下执行如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
+
+<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
+<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
+
+<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
+<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
+<p>然后，这三个页面以后都不要管了。</p>
+<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
+<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
+<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
+<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
+]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>部署</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java期末考试</title>
+    <url>/2022/06/07/java-exam/</url>
+    <content><![CDATA[<p>Java期末考试瞎指导。</p>
+<span id="more"></span>
+
+<h1 id="1-Java-概述"><a href="#1-Java-概述" class="headerlink" title="1. Java 概述"></a>1. Java 概述</h1><p>好像没啥会考的，主要就是主方法，记住就行了。</p>
+<h1 id="2-基本数据类型和数组"><a href="#2-基本数据类型和数组" class="headerlink" title="2. 基本数据类型和数组"></a>2. 基本数据类型和数组</h1><p>八种基本数据类型 byte  char  short  int  long  float  double  boolean，大致有俩小知识点：</p>
+<ul>
+<li>精度丢失问题：高精度往低精度转化会丢东西</li>
+<li>类型转化：这个又分强制类型转化和自动类型转化<ul>
+<li>强制类型转化很简单：<code>long l = 1L; int i = (int)l;</code></li>
+<li>自动类型转化：就是两个精度不一样的数据类型放在一起运算，会自动把低精度值转化为高精度值</li>
+</ul>
+</li>
+</ul>
+<p>单独的数组可能会考个小题，问你下面哪种创建数组的方式不对，这个记住三种创建数组的方式就行了：</p>
+<ul>
+<li>动态赋值 <code>int[] a = new int[数组长度];</code></li>
+<li>静态赋值 <code>int[] a = new int[]&#123;...数组元素&#125;;</code></li>
+<li>简化静态 <code>int[] a = &#123;...数组元素&#125;;</code></li>
+</ul>
+<p>然后数组的循环赋值，循环取值，<code>array.length</code> 得到数组长度应该都不用说了。</p>
+<h1 id="3-运算符、表达式、语句"><a href="#3-运算符、表达式、语句" class="headerlink" title="3. 运算符、表达式、语句"></a>3. 运算符、表达式、语句</h1><p>运算符就是大致就是 + - * &#x2F; % 这种的，然后逻辑运算符就是与或非 &amp;&amp; || ! 这仨，没啥说的。</p>
+<p>还有一些不咋常用的运算符比如三目，移位，位运算，不是很常用，了解就行了。</p>
+<p>至于运算符的各种性质比如 结合性 运算符优先级等等，这种东西说实话没啥用，考的可能性有，撑死了一道小题，尤其优先级这个，我觉得智商100以上的人都会给算式加括号，实际情况不会去研究优先级这种东西。所以这个稍微看看就行了，不是重点。</p>
+<p>语句，以及流程控制，这个东西和C++可以说一模一样：</p>
+<ul>
+<li>判断：<code>if()&#123;...&#125;</code>、<code>if()&#123;...&#125;else&#123;...&#125;</code>、<code>if()&#123;...&#125;else if()&#123;...&#125;else.&#123;..&#125;</code></li>
+<li>循环：<code>for(..;..;..)&#123;...&#125;</code>、<code>while()&#123;...&#125;</code>、<code>do&#123;...&#125;while()</code></li>
+<li>break、continue：用于终止循环和跳过剩余步骤继续下一轮循环，这个python和C++也都有</li>
+</ul>
+<p>剩下的什么变量命名规范，还有剩下的一些小知识点，我觉得都是码代码的基础规范了，不说了。</p>
+<h1 id="4-类和对象"><a href="#4-类和对象" class="headerlink" title="4. 类和对象"></a>4. 类和对象</h1><p>这章那就太重要了，可以这么说，100分的卷80分都和这章有联系，要么直接考这章，要么考后面的继承和接口，属于是间接的考这章的东西。</p>
+<h2 id="4-1-如何写类和对象"><a href="#4-1-如何写类和对象" class="headerlink" title="4.1 如何写类和对象"></a>4.1 如何写类和对象</h2><p>和C++差不多，大致思路一样，就是语法变了而已。</p>
+<p>这里面包含了第四章的1-6，比较简单，可以说是后面所有东西的基础。</p>
+<h2 id="4-2-方法"><a href="#4-2-方法" class="headerlink" title="4.2 方法"></a>4.2 方法</h2><p>这里分了两种方法：实例方法和静态方法。</p>
+<ul>
+<li>实例方法：只有创建对象以后，通过对象才能访问</li>
+<li>静态方法：用static修饰，可以直接通过类名访问</li>
+</ul>
+<h2 id="4-3-方法重载"><a href="#4-3-方法重载" class="headerlink" title="4.3 方法重载"></a>4.3 方法重载</h2><p>简单说就是类里面的几个方法，方法名相同但是参数列表不同，比如：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo</span>&#123;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">sum</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b, <span class="type">int</span> c, <span class="type">int</span> d)</span>&#123; <span class="keyword">return</span> a + b + c + e; &#125;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">sum</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b, <span class="type">int</span> c)</span>&#123; <span class="keyword">return</span> sum(a, b, c, <span class="number">0</span>); &#125;</span><br><span class="line">    <span class="type">int</span> <span class="title function_">sum</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span>&#123; <span class="keyword">return</span> sum(a, b, <span class="number">0</span>, <span class="number">0</span>); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>很简单的概念，记住就行了，大部分情况下不会没事干重载一个方法，考试的时候方法重载多半要和构造方法联动，到时候就是一个类好几个构造方法的重载，然后构造方法里面还有各种的this，问你创建完这个对象以后输出是啥。</p>
+<h2 id="4-4-构造方法"><a href="#4-4-构造方法" class="headerlink" title="4.4 构造方法"></a>4.4 构造方法</h2><p>创建对象时给成员赋值的方法：</p>
+<ul>
+<li>方法名和类名相同，且没有返回值</li>
+<li>构造方法也能重载</li>
+<li>构造方法大致分为两类：无参构造和带参构造。区别就是有无入参</li>
+<li>一个类至少有一个构造方法，如果不写，编译器会给你自动补一个无参构造</li>
+<li>注意上面这条，只有不写构造的时候才会补，但凡写了构造，都不会给你补无参了</li>
+</ul>
+<h2 id="4-5-this关键字"><a href="#4-5-this关键字" class="headerlink" title="4.5 this关键字"></a>4.5 this关键字</h2><p>这个就比较重要了，可能会在这里出 除了 编程题以外的任何题型，比如选择题，再比如程序结果分析，给你一段代码里面套一堆this，问你最终输出啥。</p>
+<p>同时这个this会和第五章的super联动，如果到时候出的题恶心的话，可能两个类相互继承，然后子类又是this又是super的，不好分析反正。</p>
+<p>this有两种意思：</p>
+<ul>
+<li><code>this(...看情况有没有参数)</code>：指的是调用当前类的某一个构造方法，且<font color='red'>如果要写这个，必须写在构造器的第一行</font>，根据this() 的传参确定是哪一个构造方法的重载。</li>
+<li><code>this.xxxx</code>：指的是当前类的某一个成员，为了避免方法的参数名和成员名重名。</li>
+</ul>
+<h2 id="4-6-访问控制"><a href="#4-6-访问控制" class="headerlink" title="4.6 访问控制"></a>4.6 访问控制</h2><p>其实就是三个访问修饰符：</p>
+<ul>
+<li>private：私有，类外不可访问</li>
+<li>protected：受保护，同包下类外可以直接访问好像，这个不怎么用</li>
+<li>public：公有，类外随便访问</li>
+</ul>
+<p>这里需要把握好一件事：<font color='red'>所有的访问控制都是相对于其他类对本类的访问，类内部随便访问类自身成员和方法，访问控制是用来限制类外对类的修改。</font>。</p>
+<h2 id="4-7-包和Import"><a href="#4-7-包和Import" class="headerlink" title="4.7 包和Import"></a>4.7 包和Import</h2><p>这俩东西我天天用，但是问我这是啥我还真不好解释，包自己看吧，import我说一句：</p>
+<p>import后面跟着的是你类的全限定命名，什么意思，就是说你有一个类，在 cn.heuet包下，有个类叫User，那你导入的时候就得写 <code>import cn.heuet.User</code>。这个cn.heuet.User 就是User这个类的全限定命名，就是把包名带上就行了。</p>
+<h2 id="4-8-剩下的"><a href="#4-8-剩下的" class="headerlink" title="4.8 剩下的"></a>4.8 剩下的</h2><p>什么对象组合，就是类里面的成员是另一个类，什么对象数组，就是和基本数据类型差不多 <code>User[] users = new User[10];</code> 就是这个。</p>
+<p>包装类提一句，就是把基础数据类型封装成了一个类，仅此而已，这个类里面包含了一些这个类型的一些属性。自己看书吧，这个不是很重要，包装类主要用在泛型上，但是你们学的似乎泛型不是重点，所以连带着包装类没那么重要。</p>
+<h2 id="4-9-考题"><a href="#4-9-考题" class="headerlink" title="4.9 考题"></a>4.9 考题</h2><p>我觉得这一章的考题，大部分，应该都不会很难，难题主要集中在下一章。但是有另类，也就是 4.3-4.5。这几部分出题的话有可能会比较恶心。</p>
+<p>可能会出程序分析题，就是给你一段代码，问你执行结果是啥，各种构造方法重载+this关键字，比如可能会出下面这种题：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> a;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getA</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">this</span>.a; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.a = <span class="number">10</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;a1&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(<span class="type">int</span> a)</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>();</span><br><span class="line">        <span class="built_in">this</span>.a = a;</span><br><span class="line">        System.out.println(<span class="string">&quot;a2&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>(a &gt; b ? a : b);</span><br><span class="line">        System.out.println(<span class="string">&quot;a3&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">A</span> <span class="variable">a</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">A</span>(<span class="number">10</span>, <span class="number">30</span>);</span><br><span class="line">System.out.println(a.getA());</span><br><span class="line"></span><br><span class="line"><span class="comment">// 问：程序输出啥？</span></span><br><span class="line"><span class="comment">// a1</span></span><br><span class="line"><span class="comment">// a2</span></span><br><span class="line"><span class="comment">// a3</span></span><br><span class="line"><span class="comment">// 30</span></span><br></pre></td></tr></table></figure>
+
+<p>反正我觉得这章的主要考点，额，都可能会提到点，各种小知识点，比如还有static，100%会考，但是我觉得难点就是这个构造重载+this。剩下的不是很难了。</p>
+<h1 id="5-继承、接口、泛型"><a href="#5-继承、接口、泛型" class="headerlink" title="5. 继承、接口、泛型"></a>5. 继承、接口、泛型</h1><h2 id="5-1-继承"><a href="#5-1-继承" class="headerlink" title="5.1 继承"></a>5.1 继承</h2><p>这章的超级重点，真的是超级重点，往后什么接口，什么泛型，哪怕是上转型对象，也不如继承重要。为啥，继承的某些特性确实比较恶心，特别容易出程序分析题，甚至可以这么说，到时候程序分析题假如有5个，很有可能3个题，都是分析继承。</p>
+<p>大致是什么题型呢？就是给你好几个类，最可能是两个类继承，如果老师不当人的话也有可能出现三个类以上互相继承，继承一大堆私有公有，然后同时需要考虑子父类的构造方法执行顺序。然后三个类磨磨唧唧给你继承完了，随便给你创建一个对象，问你打印啥东西，然后问你哪个成员的值是多少。这种题可以说就是整张卷子的难度天花板，极难分析而且极易出错。</p>
+<p>题目知识点：</p>
+<ul>
+<li>构造方法重载</li>
+<li>this关键字</li>
+<li>super关键字</li>
+<li>继承</li>
+<li>方法重写</li>
+<li>子类对象和父类对象成员冲突</li>
+</ul>
+<p>差不多一道这种程序分析题，少说上面这些东西融合个3 4个知识点，比如A类继承了B类，然后调用了B类的某个super，然后覆盖了某个B类的成员，再通过super.xxx去访问这个成员，然后调用两个B类的公开方法去操作B类的私有成员，巨麻烦巨绕。</p>
+<p>我这里建议啊：碰见这种题，有条件直接敲一遍跑一遍，别自己分析，费力不讨好的。</p>
+<p>这章的知识点挺多的我就不说了，看书吧，看不懂来问就行。看的重点就集中在继承这一块，就是this、super、重写、成员覆盖 等等。</p>
+<h2 id="5-2-接口"><a href="#5-2-接口" class="headerlink" title="5.2 接口"></a>5.2 接口</h2><p>后面的接口，反倒不是很难，你们这本书基于jdk1.6，1.6的时候接口比较死板，就是一个类实现一个接口，然后必须实现这个接口里面的所有方法，就这么简单。</p>
+<p>然后需要注意的就是：Java中类是单继承，但是可以多实现接口，这个记住了，可能考小题。</p>
+<h2 id="5-3-上转型对象"><a href="#5-3-上转型对象" class="headerlink" title="5.3 上转型对象"></a>5.3 上转型对象</h2><p>这个不太好解释了，就是一个类，继承或者实现了另外一个东西，然后创建对象的时候就是 父类&#x2F;接口引用指向子类&#x2F;实现类对象。额，看代码吧：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">B</span> <span class="keyword">extends</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 这就是上转型</span></span><br><span class="line"><span class="type">A</span> <span class="variable">a</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">B</span>();</span><br></pre></td></tr></table></figure>
+
+<p>前面A a，就是创建了一个父类的引用，后面真正创建了子类对象，然后A a &#x3D; new B(); 的意义就是 父类引用指向子类对象。</p>
+<p>这个分为两个：一个是接口的上转型，或者叫接口回调；另一个是子类的上转型，就是父类引用指向子类对象。</p>
+<p>前一个可以说不重要，但是后面这个，子类上转型为父类，就又可以和继承联动出一些让人想吐的题了。比如上面说的，3 4 个类来回继承，各种super this，好不容易继承完了，给你创建对象的时候给你来个上转型，哎，难度又高了，更不会了。</p>
+<h2 id="5-4-剩下的东西"><a href="#5-4-剩下的东西" class="headerlink" title="5.4 剩下的东西"></a>5.4 剩下的东西</h2><p>比如各种奇葩的类，匿名类，内部类，异常类，泛型类，以及泛型，这些东西可以说不重要，多半不会考的，考了也是小题，不会是重点。</p>
+<p>但是我还是提一句啊，异常这个东西，其实是特别重要的，奈何她讲的不行，考试也不是重点。咱们学的里面，接口回调+异常+泛型，这三个东西都是那种实际上相当重要但是她不给好好讲的。</p>
+<h2 id="5-5-考题"><a href="#5-5-考题" class="headerlink" title="5.5 考题"></a>5.5 考题</h2><p>继承+重载+this+super+成员覆盖+方法重写+子类上转型，就这几个东西，会出一些难度极高的题。</p>
+<p>反正我当年碰见这种程序分析题，看不懂，直接敲了一遍。比如可能会有这种：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> a;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getA</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">this</span>.a; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setA</span><span class="params">(<span class="type">int</span> a)</span>&#123; <span class="built_in">this</span>.a = a; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.a = <span class="number">10</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;a1&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(<span class="type">int</span> a)</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>();</span><br><span class="line">        <span class="built_in">this</span>.a = a;</span><br><span class="line">        System.out.println(<span class="string">&quot;a2&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">B</span> <span class="keyword">extends</span> <span class="title class_">A</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> b;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getB</span><span class="params">()</span> &#123; <span class="keyword">return</span> b; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setB</span><span class="params">(<span class="type">int</span> b)</span> &#123; <span class="built_in">this</span>.b = b; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">B</span><span class="params">()</span>&#123;</span><br><span class="line">        <span class="built_in">this</span>.b = <span class="number">100</span>;</span><br><span class="line">        System.out.println(<span class="string">&quot;b1&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">B</span><span class="params">(<span class="type">int</span> b)</span>&#123;</span><br><span class="line">        <span class="built_in">super</span>(b);</span><br><span class="line">        <span class="built_in">this</span>.b = b;</span><br><span class="line">        System.out.println(<span class="string">&quot;b2&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">C</span> <span class="keyword">extends</span> <span class="title class_">B</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> b;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setB</span><span class="params">(<span class="type">int</span> b)</span>&#123; <span class="built_in">this</span>.b = b; <span class="built_in">super</span>.setB(b / <span class="number">10</span>); &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getB</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">this</span>.b; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getSuperB</span><span class="params">()</span>&#123; <span class="keyword">return</span> <span class="built_in">super</span>.getB(); &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">C</span><span class="params">(<span class="type">int</span> b)</span>&#123;</span><br><span class="line">        <span class="built_in">super</span>(b);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">C</span> <span class="variable">c</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">C</span>(<span class="number">2022</span>);</span><br><span class="line">        System.out.println(c.getB());</span><br><span class="line">        System.out.println(c.getA());</span><br><span class="line">        c.setB(<span class="number">100000</span>);</span><br><span class="line">        System.out.println(c.getB());</span><br><span class="line">        System.out.println(c.getA());</span><br><span class="line">        System.out.println(c.getSuperB());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 然后问你输出是啥</span></span><br><span class="line">a1</span><br><span class="line">a2</span><br><span class="line">b2</span><br><span class="line"><span class="number">0</span></span><br><span class="line"><span class="number">2022</span></span><br><span class="line"><span class="number">100000</span></span><br><span class="line"><span class="number">2022</span></span><br><span class="line"><span class="number">10000</span></span><br></pre></td></tr></table></figure>
+
+<p>这题我瞎写的啊，真正考试那题八成比我这个复杂点，我这个考虑了半天也没把上转型考虑进去，考试的时候这种题，咋也得用上转型恶心人。</p>
+<h1 id="6-7-字符串系列和集合系列"><a href="#6-7-字符串系列和集合系列" class="headerlink" title="6. 7. 字符串系列和集合系列"></a>6. 7. 字符串系列和集合系列</h1><p>这俩东西，是面试的高频问题，对的，面试的高频问题，一遍面试一上来问你字符串的东西，然后面试会问你集合类的源码，比如ArrayList内部是否线程安全。话说回来，考试好像不是很重要。</p>
+<p>字符串有个小知识点：就是字符串判断相等的问题，这个考试很有可能会考。</p>
+<p>我这里就大致一说吧：字符串如果是 <code>String s1 = &quot;hello world&quot;;</code> 这种直接赋值，我们叫他字面量赋值，这个时候他就是指向了一块字符串内存，这个时候另一个字符串<code>String s2 = &quot;hello world&quot;;</code> s2 就也会指向这块内存。就是这种字面量赋值的方式，只要两个字符串内容相等，那么两个字符串 <code>s1 == s2 且 s1.equals(s2) == true</code>。</p>
+<p>如果不是字面量赋值，比如这样 <code>String s1 = new String(&quot;hello world&quot;);</code> 那这就是一个对象，不会直接指向这个helloworld 的内存，这个时候另一个字符串 <code>String s2 = new String(&quot;hello world&quot;);</code> 即便内容相等，但是两个对象也不相等，这个时候 <code>s1 != s2 但 s1.equals(s2) == true</code> 。</p>
+<p>看不懂的话看看书吧，这个地方要深究的话可以一路给你讲到JVM虚拟机讲到底层，那就费劲了。</p>
+<p>剩下的各种字符串衍生类比如StringBuffer、StringToken啥的，还有什么Scanner这些的，似乎不重要，考的话也是考小题，然后正则表达式，我记得当年我们考过填空？还是选择，忘了。正则倒是有可能会考，但不是重点。</p>
+<p>然后就是各种集合，这个集合一般会伴随泛型，但是既然泛型没咋讲，那我估计集合也不太会考，考的话也是考小题。对于考试来说数组就够用了，什么LinkedList什么TreeMap，学算法才可能用呢。</p>
+<h1 id="8-线程"><a href="#8-线程" class="headerlink" title="8. 线程"></a>8. 线程</h1><p>如何创建线程啥的，考的可能性不大，至少不会让你们自己写线程，线程这个东西，我找了一个30多小时的课专门学的，挺难的，我觉得没啥必要重点看。</p>
+<p>但是，如果我没猜错，这应该是你们第一次接触多线程，第一次听说线程通讯和线程状态，所以说概念题倒是很有可能考，我们当年考了一道简答题，就是直接问 线程有哪些状态，这些状态如何切换。</p>
+<p>所以线程多看看概念我觉得就差不多了，如何创建线程，如何开始线程，甚至还有线程通讯，各种sleep各种notify，没啥必要花时间看我觉得。</p>
+<h1 id="9-总结一下"><a href="#9-总结一下" class="headerlink" title="9. 总结一下"></a>9. 总结一下</h1><p>呐，复习吧，就紧着第四章和第五章复习，第五章呢，就紧着继承那块复习，我大胆预测一下啊，就继承那块，少说占个20分以上，而且出的题都是大题。剩下的小知识点就会出一些小题，比如可能会考你 面向对象的三个特征（封装继承多态）这类的小概念。</p>
+<p>编程题反倒不会太难，因为继承那块的东西让你们写说实在的多少有点难为你们了，所以最后考的，应该就是让你们设计个类，然后写写方法，但是也不会太简单，C++的时候和Python考试编程题充其量就是让你写个水仙花数，打印个质数，Java就绝不会这么简单了。Java的编程题可能会多少和实践有点联系，比如让你用类实现个登录这种的。</p>
+<p>嗯，说难不难说简单不简单的。</p>
+]]></content>
+  </entry>
+  <entry>
     <title>JVM-堆</title>
     <url>/2022/05/28/jvm-heap/</url>
     <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
@@ -2955,6 +2686,76 @@
         <tag>java</tag>
         <tag>底层</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>微信小程序-页面跳转</title>
+    <url>/2022/05/22/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F-%E9%A1%B5%E9%9D%A2%E8%B7%B3%E8%BD%AC/</url>
+    <content><![CDATA[<blockquote>
+<p>create by 陈HL_pthef on 2022&#x2F;05&#x2F;22</p>
+</blockquote>
+<p>自从宣布开始做课设到现在，各种问题层出不穷，尤其页面跳转这个问题仍旧困扰着很多人。那在这里就详细说说 这个微信小程序到底如何实现页面跳转。</p>
+<p><strong><font color="red">注意：</font></strong></p>
+<p><strong>下面的内容不要深究原因，不要深究原因，不要深究原因</strong>，跟着做就可以了。</p>
+<span id="more"></span>
+
+<h2 id="1-页面"><a href="#1-页面" class="headerlink" title="1. 页面"></a>1. 页面</h2><p>想要页面跳转肯定先得有页面，所以如何创建页面呢？我这里用一个新的微信小程序模板：<br><img src="http://49.232.218.190/p1.png" alt="weixin_app"></p>
+<p>首先，我们右键pages，那个红色的图标，右键他，然后选择新建文件夹，起一个合适的名字，我这里就叫 tempPage 。创建完以后如下所示：</p>
+<p><img src="http://49.232.218.190/p2.png" alt="new_dir"></p>
+<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color='red'>Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
+<p><img src="http://49.232.218.190/p3.png" alt="new_page"></p>
+<p>呐，看好了，Page名和文件夹名一致。</p>
+<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color='red'>全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
+<p>然后我们在这个新页面上写点东西，打开 xxx.wxml 这个文件（xxx就是你Page的名），随你写点啥，我这里就写：</p>
+<p><img src="http://49.232.218.190/p4.png" alt="temp_page_content"></p>
+<p>很好，到这里，新页面准备完成，下一步我们需要实现从index.wxml 页面跳转到你的这个新页面。</p>
+<h2 id="2-跳转"><a href="#2-跳转" class="headerlink" title="2. 跳转"></a>2. 跳转</h2><p>首先要想跳转，你得有个触发跳转的东西对吧，这里统一使用按钮也就是button，当然可以是别的，比如图片，view，啥的，都可以，但这里我就用button举例子了。所以我们的目标就是，在页面上放一个按钮，我们一点他，页面就会跳转到新页面。</p>
+<p>第一步就是创建按钮，在 index.wxml 文件里面写一个button。</p>
+<p><img src="http://49.232.218.190/p5.png" alt="button"></p>
+<p>我这里的 index.wxml 啥也没有，你们的肯定有东西，根据你们的情况，把这个button放到合适的地方。同时可以看到左边 button 也显示出来了。</p>
+<p>然后我们给这个button 绑定一个事件，在button标签里面写如下内容：</p>
+<p><img src="http://49.232.218.190/p6.png" alt="button_bind"></p>
+<p>其实就里面加了一个bindtap，bindtap后面跟着的那个东西，名字还真不能随便起，有如下规则：</p>
+<ul>
+<li>只能出现英文字母，数字和下划线（减号下面那个符号，我劝你别用）</li>
+<li>数字不能开头</li>
+</ul>
+<p>我这里就叫jump了，你那叫啥都行，比如 toPage，toMyPage，甚至abc，都可以，但是决不能是 123, 1bc 甚至各种emoji，肯定报错。</p>
+<p>然后，我们去这个页面对应的js文件下，因为我这个button是在index页面下写的，所以当前页面的js文件也就是index.js，在这个文件里加这么一段：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 我这里叫jump，你那还真不一定叫jump</span></span><br><span class="line"><span class="comment">// 你上面bindtap后面起的啥名，这里就写啥</span></span><br><span class="line"><span class="title function_">jump</span>(<span class="params"></span>)&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 同理，我这里的url 写的是 ../tempPage/tempPage</span></span><br><span class="line">    <span class="comment">// 你那里不一定，这里应该写 ../你新页面的文件夹名/Page名</span></span><br><span class="line">    <span class="comment">// 而且特别注意，这里前里两个点一定不能丢。</span></span><br><span class="line">    <span class="comment">// 而且最后面的Page，没有后缀，不是 tempPage.js </span></span><br><span class="line">    <span class="comment">// 也不是 tempPage.wxml，就是tempPage</span></span><br><span class="line">    wx.<span class="title function_">navigateTo</span>(&#123;</span><br><span class="line">        <span class="attr">url</span>: <span class="string">&quot;../tempPage/tempPage&quot;</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>现在js文件的整体效果如下：</p>
+<p><img src="http://49.232.218.190/p7.png" alt="js"></p>
+<p>也就是这段代码，至少写在Page里面，你别写到Page外面了。</p>
+<p>写完以后，保存，然后点击那个按钮，如果不出意外的话应该是可以跳转了。</p>
+<h2 id="3-意外"><a href="#3-意外" class="headerlink" title="3. 意外"></a>3. 意外</h2><p>如果没跳转，看看是不是如下原因：</p>
+<ul>
+<li>跳转后页面一片大白：卡了，重启一下程序，或者看看你的新页面是不是就没写东西，那肯定白</li>
+<li>页面白还有一种情况，那就是你把跳转页面的js文件里的东西都删了，切记切记：<strong><font color="red">新Page的js文件里的东西已经是最简形式，千万不要删任何东西</font></strong>。否则恭喜你喜提大白屏.</li>
+<li>点击按钮没有反应：<ul>
+<li>查看 bindtap 后面那个名字和代码里面那个名字是否一致，我的都叫jump</li>
+<li>卡了，重启</li>
+</ul>
+</li>
+<li>跳转后告诉你 not found：这个原因就多了，归根到底就是微信没找到页面<ul>
+<li>检查跳转路径：必须是 <code>../跳转页面所在文件夹名/跳转页面名</code>，且页面名没有任何后缀</li>
+<li>检查页面路径，两个页面是否都在文件夹里面包着，然后这个文件夹都在红色的pages下。只有满足这个要求，上面的跳转路径才能生效。</li>
+<li>别是用了中文吧？？！！</li>
+</ul>
+</li>
+</ul>
+<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><p>我这里是用了 index页面往别的页面跳转做示范，但是实际做课设的时候真不一定就是从index页面跳，可能是你自己的A页面往你自己的B页面跳，咋办？？照猫画虎呗。</p>
+<p>现在你要从A页面跳到B页面：</p>
+<ul>
+<li>首先确认两件事：<ul>
+<li>AB两页面是否都在文件夹里面，文件夹是否都在 pages 下，也就是说两文件夹同层</li>
+<li>Ab两页面的文件夹和页面名是否有中文，确认没有</li>
+</ul>
+</li>
+<li>在A页面中写一个button，并照猫画虎写个bindtap，后面的名字按规范起</li>
+<li>在A页面的js文件中，插入上述那段代码，名字必须和你的bindtap一致，url改成<code>../B页面的所在文件夹名称/B页面名称(切记没有后缀)</code></li>
+<li>完成</li>
+</ul>
+]]></content>
   </entry>
   <entry>
     <title>JVM-方法区</title>
@@ -3351,6 +3152,67 @@
       </tags>
   </entry>
   <entry>
+    <title>网站部署</title>
+    <url>/2022/10/19/%E7%BD%91%E7%AB%99%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<p>最近写了个小网站，用于给别人的大创项目结项，同时自己也练练技术，本着大学最后一次做应用项目的原因，打算把这个项目做的正式一点，所以开发，部署，dns，备案 一串工作全做了，挺费劲。这里总结一下这次部署网站的流程。</p>
+<span id="more"></span>
+
+<blockquote>
+<p>create by P-F on 2022&#x2F;10&#x2F;19</p>
+</blockquote>
+<h1 id="1-开发阶段"><a href="#1-开发阶段" class="headerlink" title="1. 开发阶段"></a>1. 开发阶段</h1><p>开发阶段没什么好说的，前端用的是 Vue+element+axios，后端是 go+beego+mysql+redis+jwt，很正常的技术栈。需要说的是平时调试，平时调试的时候 Vue 项目就是 <code>npm run serve</code> 开8080端口简单启动一下，然后 beego 项目那就是 <code>bee run</code> 开 9090 端口，这个时候就有个问题，两个不同端口之间通讯会跨域，同时我每次打开浏览器还得输入 <code>:8080</code>，很麻烦，所以怎么办呢？</p>
+<p>我用本机的 Nginx 做了一下反向代理，直接访问 &#x2F; 转发到 <code>localhost:8080</code>，访问 &#x2F;v1&#x2F;* 就会转发到 <code>localhost:9090</code>，这样前端就直接访问 localhost&#x2F;v1&#x2F;xxx 就可以走 beego 服务，也不用担心跨域。看一下本机 Nginx 的配置：</p>
+<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="section">location</span> <span class="regexp">~ ^/v1/.*$</span> &#123;</span><br><span class="line">    <span class="attribute">proxy_pass</span> http://localhost:9090;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">location</span> / &#123;</span><br><span class="line">    <span class="attribute">proxy_pass</span> http://localhost:8080;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里顺带复习一下 Nginx 的 location 配置：<code>location ~</code> 后面接的是正则，会根据正则来判断是否进入这个 location。</p>
+<p>剩下的倒是十分的顺利，因为开发阶段嘛，就在本机，也没有网络的影响，总体感觉十分良好，但是到了真正上线的时候那问题就大了。</p>
+<h1 id="2-前端部署"><a href="#2-前端部署" class="headerlink" title="2. 前端部署"></a>2. 前端部署</h1><p>前端的部署，属实非常的坎坷。</p>
+<h2 id="2-1-项目拉取"><a href="#2-1-项目拉取" class="headerlink" title="2.1 项目拉取"></a>2.1 项目拉取</h2><p>把前段项目部署到服务器，首先就是如何把项目放到服务器上，之前我的做法是通过 scp 命令直接从本机复制到服务器，但是实在麻烦，所以这回变了。我在服务器上通过 git 把项目源码拉下来，然后修改一些启动参数，再 <code>npm install; npm run build</code> 即可得到 Vue 项目的 dist 包。</p>
+<h2 id="2-2-项目部署"><a href="#2-2-项目部署" class="headerlink" title="2.2 项目部署"></a>2.2 项目部署</h2><p>Vue 本质上是一个单页面应用，也就是整个网站本质上就是那个 index.html，但是通过各种 js 啥玩意的可以让这个 index.html 根据不同的 url 显示不同的东西。我第一次部署 Vue 还真就是在服务器上运行 <code>npm run serve</code> 然后就没事了，结果就是关闭终端以后项目也就没了。所以正确姿势就是：将 Vue 打包成 dist，然后配置后端服务器，比如 Nginx，Tomcat，或者自己用 nodejs 自己写一个也行，要实现将找不到对应静态资源的请求全部转发到 vue 生成的 index.html 中。下面就是使用 Nginx 部署 Vue 项目的配置：</p>
+<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="section">location</span> / &#123;</span><br><span class="line">        <span class="attribute">root</span> /usr/local/www/manyin-tech-frontend/dist;</span><br><span class="line">        <span class="attribute">try_files</span> <span class="variable">$uri</span> <span class="variable">$uri</span>/ <span class="variable">@router</span>;</span><br><span class="line">        <span class="attribute">index</span> index.html;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">location</span> <span class="variable">@router</span> &#123;</span><br><span class="line">        <span class="attribute">rewrite</span><span class="regexp"> ^.*$</span> /index.html <span class="literal">last</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>具体含义就是：首先，访问了 &#x2F; 以后，先去找有没有对应的静态资源，比如前端请求图片你也给他转发到 index.html 这显然不合适，所以首先 <code>try_files @uri @uri/</code> 来判断请求的静态资源是否存在，如果不存在，则转发到 @router 这个location，@router location 再将请求转发给 index.html。</p>
+<p>同时配置一下后端的反向代理：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这段在 server 块外面</span></span><br><span class="line">upstream manyin_service &#123;</span><br><span class="line">        server <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">9090</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location ~ ^<span class="regexp">/v1/</span>.+$ &#123;</span><br><span class="line">        proxy_pass <span class="attr">http</span>:<span class="comment">//manyin_service;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>OK，到这里算是初步的部署完了，可以通过 IP 地址访问了。</p>
+<h2 id="2-3-静态资源优化"><a href="#2-3-静态资源优化" class="headerlink" title="2.3 静态资源优化"></a>2.3 静态资源优化</h2><p>结果一访问发现问题了，页面加载速度特别的慢，可能得一分钟才能把首页加载完，这是为啥？一看浏览器控制台，好家伙，首页三张图片就 20m 多，怪不得慢。那咋办？压缩一下图片。</p>
+<p>结果网上找了一圈，要么让我下软件，要么就是在线压缩跟我要钱，好在最后找到一个非常好用的网站，功能还挺多，还能压缩图片：</p>
+<p><a href="https://oktools.net/">oktools</a></p>
+<p>通过这个网站，把图片的大小降低到了一张 200-300k 的大小，还算是ok。但是图片压缩了以后访问还是略慢，这个时候想到了 Nginx 的 gzip 功能，Nginx 可以将一些静态资源进行 gzip 压缩发送给浏览器，然后浏览器会自动解压，我寻思这样可能可以再加快一点访问速度，于是开始配置 Nginx 的压缩。实测图片不需要压缩，因为根本压不了多少，但是 Vue 打包后一些巨大的 js 文件倒是压缩效果非常不错，可能一个 3 400k 的 js 文件压缩以后就不到100k，css 也可以压缩。下面直接贴配置：</p>
+<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="attribute">sendfile</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line"><span class="attribute">gzip</span> <span class="literal">on</span>;</span><br><span class="line"><span class="attribute">gzip_types</span> application/javascript text/css;</span><br><span class="line"><span class="attribute">gzip_vary</span> <span class="literal">on</span>;</span><br><span class="line"><span class="attribute">gzip_disable</span> <span class="string">&quot;MSIE [1-6]\.&quot;</span></span><br><span class="line">gzip_min_length <span class="number">1024</span>;</span><br><span class="line"><span class="attribute">gzip_proxied</span> <span class="literal">off</span>;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>gzip gzip_types gzip_vary 这几个配置比较重要，剩下的似乎不那么要紧，啥意思也忘了，用到的时候再查。</p>
+</blockquote>
+<p>这块配置放到了 nginx 目录的 conf&#x2F;conf.d 目录下的 gzip.conf 中，这个目录里面就是一些我自己的配置文件，比如上面部署 Vue 的配置我就写在了这个目录的 manyin.conf 文件中，然后在 nginx.conf 文件中 include 就行了。</p>
+<p>配置完这些以后就算是差不多了，访问速度反正是说得过去。</p>
+<h1 id="3-后端部署"><a href="#3-后端部署" class="headerlink" title="3. 后端部署"></a>3. 后端部署</h1><p>后端倒是部署的方便，为啥？没那么多要求，就是改个启动配置，比如 mysql 的连接，redis 的连接这些的。</p>
+<p>整个项目用 go 开发，首先服务器下个 go，直接 <code>yum install -y go</code> 就行了，懒得用源码包安装。然后同理用 git 把后端代码拉取下来，安装项目的依赖包，首先得配置一下代理，否则下载 go 的第三方宝可能会比较慢：<code>go env -w GOPROXY=https://goproxy.cn,direct</code>（忘了是不是这个了，反正是当时配置了代理）。然后就是下载依赖包，好像直接 <code>go mod tidy</code> 就行了。最后一步是 <code>go mod vendor</code> 将依赖包拉到项目目录中，这样项目就可以脱离 gopath 了。</p>
+<p>然后 <code>go run main.go</code> 测试一下ok不，ok的话打包：<code>go build</code> 然后设置后台执行：<code>nohup ./go-service &gt; logs.log &amp;</code> 就可以了。</p>
+<p>到这里，前后端就算是部署完了，总结一下：后端开放 9090 端口，Nginx 将 &#x2F;v1&#x2F;* 请求转发到 9090 口实现反向代理，同时避免了跨域。Vue 项目部署在 Nginx 上，开启 gzip 帮忙加速。然后就可以愉快的通过 IP 地址访问项目了。</p>
+<h1 id="4-域名、DNS、备案"><a href="#4-域名、DNS、备案" class="headerlink" title="4. 域名、DNS、备案"></a>4. 域名、DNS、备案</h1><p>后面的倒是比较的简单吧算是，主要是麻烦，特别的麻烦，但是因为我整个流程是在腾讯云办的，所以跟着腾讯云的文档全程没有问题。</p>
+<h2 id="4-1-域名"><a href="#4-1-域名" class="headerlink" title="4.1 域名"></a>4.1 域名</h2><p>首先第一步就是买域名，买完了以后还需要买个 DNS 套餐。我这里用的是腾讯买的域名，买完以后进入腾讯的 DNSPod，给域名添加一个 A 记录（IPv4记录），指向我们从腾讯云买的服务器。然后不出意外一会儿就能通过域名访问了。</p>
+<p>但是过一阵子可能再访问会告诉你未通过报备，不让你访问，这就需要进行下一步，报备。</p>
+<h2 id="4-2-报备"><a href="#4-2-报备" class="headerlink" title="4.2 报备"></a>4.2 报备</h2><p>这一步其实也简单，跟着腾讯的文档做就可以了。首先第一步是腾讯备案，腾讯会先给把关，通过微信小程序进行备案，然后提供相关材料即可，具体啥材料文档有说的。</p>
+<p>对了，备案的时候可能需要把 DNS 的解析关掉。</p>
+<p>其实作为我们用户只需要做第一步就行了，就是填上你的报备信息，然后腾讯审核完了就会送给省里去申，这个倒是很慢，我10月3号提交的，10月19号才审核完。</p>
+<p>审完了以后会给你一个备案号，把这个备案号贴到网站的底部：</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;https://beian.miit.gov.cn/&quot;</span> <span class="attr">target</span>=<span class="string">&quot;_blank&quot;</span>&gt;</span>冀ICP备xxx号-1<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>就可以了。说是不贴的话要罚款。</p>
+<h2 id="4-3-公安备案"><a href="#4-3-公安备案" class="headerlink" title="4.3 公安备案"></a>4.3 公安备案</h2><p>管局备案完了就要去公安备案，也是跟着腾讯的文档就行了，我也是今天刚提交的，不知道结果咋样。顺带一提，腾讯的文档写的是真不错。</p>
+<h2 id="4-4-SSL-证书"><a href="#4-4-SSL-证书" class="headerlink" title="4.4 SSL 证书"></a>4.4 SSL 证书</h2><p>腾讯给提供一年的免费 SSL 证书，进入腾讯的 SSL 那个控制台就能看见，申请一个，然后怎么把证书部署到 Nginx，同样有详细的文档，这里就不说了。</p>
+<h1 id="5-总结"><a href="#5-总结" class="headerlink" title="5. 总结"></a>5. 总结</h1><p>总结一下奥，域名、DNS、备案、SSL 着一系列操作只需要跟着腾讯的文档就完全没有问题，就死死把握一个流程：购买域名和DNS -&gt; 添加解析记录 -&gt; 提交备案 -&gt; 安装 SSL -&gt; 公安备案 。然后哪个流程不会去腾讯文档查就行了。</p>
+]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>部署</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>虚拟机栈</title>
     <url>/2022/05/27/jvm-stack/</url>
     <content><![CDATA[<p>虚拟机栈，JVM用于处理方法执行的地方，东西还挺多，而且还听重要.</p>
@@ -3665,6 +3527,144 @@
       <tags>
         <tag>java</tag>
         <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>运行时数据区概述</title>
+    <url>/2022/05/27/%E8%BF%90%E8%A1%8C%E6%97%B6%E6%95%B0%E6%8D%AE%E5%8C%BA%E6%A6%82%E8%BF%B0/</url>
+    <content><![CDATA[<p>从这里开始正式进入运行时数据区，运行时数据区是JVM非常核心的一部分，各种内存模型各种垃圾回收都将从这里展开。</p>
+<span id="more"></span>
+
+<h1 id="1-运行时数据区"><a href="#1-运行时数据区" class="headerlink" title="1. 运行时数据区"></a>1. 运行时数据区</h1><p>运行时数据区，非常之核心，JVM运行时大部分数据都存在运行时数据区，所以后面大部分的展开，比如各种的字符串，常量池，GC，等等等等一系列的故事都将发生在这里。</p>
+<p>首先看一下运行时数据区的图：</p>
+<p><img src="/images/runtime/Runtime_data_area.png" alt="runtime"></p>
+<p>主要就是包含了：程序计数器、本地方法栈、虚拟机栈、堆、元空间。其中这里先介绍几个简单的，比如程序计数器和本地方法这种的，剩下的虚拟机栈和堆和元空间，都是重点中的重点。</p>
+<p>同时扩展一点东西：</p>
+<ul>
+<li><p>PC寄存器：不涉及 Error 不涉及 GC</p>
+</li>
+<li><p>虚拟机栈：涉及 Error，比如 StackOverFlowError，不涉及GC，直接弹栈即可。</p>
+</li>
+<li><p>本地方法栈：涉及 Error，不涉及 GCasd</p>
+</li>
+<li><p>堆 和 方法区：都涉及 Error 和 GC</p>
+</li>
+</ul>
+<p>这5种东西，一部分是和Java程序共存亡，随着JVM启动而启动，随着JVM销毁而销毁另外的，和线程共存亡。</p>
+<p>方法区 和 堆，线程之间公用，剩下的，每一个线程都会有自己独一份的这些东西。</p>
+<p>对应的对象就是 Runtime，每一个Java 应用，或者说，一个jvm就对应着一个Runtime对象。</p>
+<p>其中，JVM内部还有一些线程：</p>
+<ul>
+<li><p>虚拟机线程，特别复杂，不说了</p>
+</li>
+<li><p>周期任务线程，一般用于周期性操作的调度执行</p>
+</li>
+<li><p>GC线程，支持不同种类的垃圾收集行为</p>
+</li>
+<li><p>编译线程，将字节码编译成本地代码</p>
+</li>
+<li><p>信号调度线程，接收信号发给JVM处理</p>
+</li>
+</ul>
+<p>这些东西似乎就没有啥用了，应该不会用到吧。</p>
+<h1 id="2-PC寄存器"><a href="#2-PC寄存器" class="headerlink" title="2. PC寄存器"></a>2. PC寄存器</h1><p>所谓PC寄存器，全称 Program Counter Register，也叫程序计数器，主要用于存储下一条要执行的指令的地址。</p>
+<p>我们随便写一个程序，然后我们反编译他的 class文件，会看到如下文字：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:bipush   10  </span><br><span class="line">2:istore_1  </span><br><span class="line">3:bipush   20  </span><br><span class="line">4:istore_2</span><br></pre></td></tr></table></figure>
+
+<p>这种的，第一列的数字就是指令地址，第二列以及后面的东西就叫指令，pc寄存器会存储下一条指令的地址，也就是 比如 0 2 这种东西，然后执行引擎会读取pc寄存器里面存储的指令地址所对应的指令，去运行这个指令。</p>
+<p>具体流程下图所示：</p>
+<p><img src="/images/runtime/pc_register.png" alt="pc_process"></p>
+<h2 id="为什幺用PC寄存器"><a href="#为什幺用PC寄存器" class="headerlink" title="为什幺用PC寄存器"></a>为什幺用PC寄存器</h2><p>记录执行位置，并发(CPU轮转)状态下，每个线程都会抢时间片，那么抢到了就会接着执行，这个时候就需要记录当前状态下，该执行那条指令了，PC寄存器就是记录执行状态的。</p>
+<p>JVM字节码解释器通过改变PC寄存器的值来记录执行状态。</p>
+<h1 id="3-本地方法接口"><a href="#3-本地方法接口" class="headerlink" title="3. 本地方法接口"></a>3. 本地方法接口</h1><p>我们前面一直在说Runtime的事，我们先跳出Runtime，先来看一个东西：本地方法。</p>
+<p>首先我们来看一眼JVM的整体结构：</p>
+<p><img src="/images/runtime/jvm_structure.jpg" alt="jvm_stu"></p>
+<p>看到右下角的两个东西了么：NativeMethodInterface和 NativeMethodLibrary，这两个东西要和 运行时数据区里面的 本地方法栈进行联系，所以我们现看这两块内容。</p>
+<h2 id="本地方法"><a href="#本地方法" class="headerlink" title="本地方法"></a>本地方法</h2><h3 id="什么是本地方法"><a href="#什么是本地方法" class="headerlink" title="什么是本地方法"></a>什么是本地方法</h3><p>何为本地方法，Java 调用一个非Java 实现的方法的接口，这个接口就是本地方法，也就是 NativeMethod，(Native 是个关键字);</p>
+<p>再简单说，本地方法就是一个Java方法，但是这个方法的具体实现并不是 Java，多数情况下是 C&#x2F;C++。本地接口的作用就是融合不同语言来为Java所用，最主要还是融合 C&#x2F;C++.</p>
+<p>需要注意的是，native 方法因为它本身就是 Java 方法，所以Java 方法上有的东西他都有，比如可以进行权限控制，可以使用同步代码，可以抛出异常，可以有static 修饰等。</p>
+<h3 id="为什么要用本地方法"><a href="#为什么要用本地方法" class="headerlink" title="为什么要用本地方法"></a>为什么要用本地方法</h3><p>有时Java需要和外部环境交互，比如操作系统，创建 Thread这种的，或者说有些时候需要特别在以效率，就需要用到NativeMethod</p>
+<h3 id="和操作系统的交互"><a href="#和操作系统的交互" class="headerlink" title="和操作系统的交互"></a>和操作系统的交互</h3><p>JVM毕竟不是真是的操作系统，他是要依赖于本地环境，这就不可避免的有C代码，同时如果我们关注效率，也需要C，比如 创建线程，这个就是一个本地方法，调用了操作系统的api，去创建线程。</p>
+<p>Sun’s Java 的解释器有一部分就是C写的，JVM内部就已经植入了一部分C代码，所以不可避免的需要和C交互。</p>
+<h3 id="现状"><a href="#现状" class="headerlink" title="现状"></a>现状</h3><p>目前Java已经很少用到Native了，除非是一些底层操作，比如调用打印机这种的，还是需要用到C。</p>
+<h1 id="4-本地方法栈"><a href="#4-本地方法栈" class="headerlink" title="4. 本地方法栈"></a>4. 本地方法栈</h1><p>至于本地方法栈，这个东西 简单说，似乎不怎么用。这里涉及到了一些虚拟机栈的知识，后面会说。</p>
+<ul>
+<li><p>Java虚拟机栈使用管理Java方法的，那么很显然本地方法栈就是用来管理本地方法的。</p>
+</li>
+<li><p>和虚拟机栈同理，本地方法栈也是线程独有的。</p>
+</li>
+<li><p>同样可以扩展本地方法栈，同样会抛出 StackOverflowError 和 OutOfMemoryError。</p>
+</li>
+<li><p>当某个线程调用了一个本地方法后，这个本地方法就会进入一个权限的不受虚拟机限制的世界。他和虚拟机有同样的权限。</p>
+<ul>
+<li><p>本地方法可以调用本地方法接口来访问虚拟机内部的运行时数据区。</p>
+</li>
+<li><p>可以直接使用本机处理器中的寄存器。</p>
+</li>
+<li><p>可以直接分配本地内存</p>
+</li>
+</ul>
+</li>
+<li><p>并不是所有的 JVM 都支持本地方法，因为虚拟机规范并没有规定本地方法的实现语言等， 所以如果虚拟机不打算使用本地方法，也就无需本地方法栈</p>
+</li>
+<li><p>Hotspot JVM中，直接把本地方法栈和虚拟机栈合二为一。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>页面防抖</title>
+    <url>/2022/10/17/%E9%A1%B5%E9%9D%A2%E9%98%B2%E6%8A%96-md/</url>
+    <content><![CDATA[<p>页面防抖是接口幂等性的其中一环，接口幂等性说的是一个接口执行依次和执行多次发生的结果一样，后端保证接口幂等性主要是就是发送请求令牌啥的，前端的话就得考虑如何避免帕金森患者多次点击一个按钮发送多次请求。</p>
+<span id="more"></span>
+
+<blockquote>
+<p>create by P-F on 2022&#x2F;10&#x2F;17</p>
+</blockquote>
+<h1 id="1-防抖"><a href="#1-防抖" class="headerlink" title="1. 防抖"></a>1. 防抖</h1><p>前端的某个请求按钮在短时间内多次点击但是只会执行依次就是防抖，比如我以前做过一个线上考试系统，点击创建班级没有做防抖，结果被帕金森患者创建了十多个一样的班级。</p>
+<h1 id="2-实现"><a href="#2-实现" class="headerlink" title="2. 实现"></a>2. 实现</h1><p>具体实现就是，给一个按钮设置一个定时器，比如这个按钮在点击以后会在200ms以后才执行，在200ms被再次点击的话就会重置计时器，保证这个按钮是在最后一次点击的200ms以后被执行。至于说用户 200ms 以后有点急了咋办，可以在这期间给这个按钮上锁，直接disabled就行了。</p>
+<p>看代码：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 创建防抖函数</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> debounce = <span class="keyword">function</span>(<span class="params">callback, delay_</span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> delay = delay_ || <span class="number">200</span>;</span><br><span class="line">    <span class="keyword">let</span> timer;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> args = <span class="variable language_">arguments</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(timer) &#123;</span><br><span class="line">            <span class="built_in">clearTimeout</span>(timer)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">            callback.<span class="title function_">apply</span>(<span class="variable language_">this</span>, args)</span><br><span class="line">        &#125;, delay)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> &#123;debounce&#125; <span class="keyword">from</span> <span class="string">&quot;...&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 调用 debounce，传入想要实现防抖的方法，即可实现防抖</span></span><br><span class="line"><span class="attr">addUser</span>: <span class="title function_">debounce</span>(<span class="keyword">function</span>(<span class="params">user</span>)&#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(user)</span><br><span class="line">&#125;, <span class="number">500</span>)</span><br></pre></td></tr></table></figure>
+
+<h1 id="3-原理"><a href="#3-原理" class="headerlink" title="3. 原理"></a>3. 原理</h1><p>这玩意有点意思，深究一下为啥调用一个 debounce 就能实现防抖了。</p>
+<h2 id="3-1-闭包"><a href="#3-1-闭包" class="headerlink" title="3.1 闭包"></a>3.1 闭包</h2><p>首先，我觉得这个东西用到了一个很有意思的思想：闭包。debounce 作为外层函数创建了一个变量：timer，然后内层函数访问 timer，修改 timer，最后 debounce 返回了内层函数，那么到了最后 debounce 这个外层函数并没有被销毁，而是隐隐的给内层函数提供 timer 这个变量，很有意思。</p>
+<h2 id="3-2-结果"><a href="#3-2-结果" class="headerlink" title="3.2 结果"></a>3.2 结果</h2><p>我们调用 <code>addUser: debounce(function(args)&#123;...&#125;, 300)</code> 之后，addUser 最后变成了啥样了？</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">    <span class="attr">methods</span>: &#123;</span><br><span class="line">        <span class="attr">addUser</span>: <span class="title function_">debounce</span>(<span class="keyword">function</span>(<span class="params">name, age</span>) &#123;</span><br><span class="line">            <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`add user, name=<span class="subst">$&#123;name&#125;</span>, age=<span class="subst">$&#123;age&#125;</span>`</span>)</span><br><span class="line">        &#125;, <span class="number">300</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面是我们想要让 addUser 实现防抖，那就传入我们要防抖的逻辑传入 debounce，然后打印一下 addUser 看看是啥样的：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 页面渲染以后 addUser：</span></span><br><span class="line"><span class="attr">addUser</span>: <span class="keyword">function</span> <span class="title function_">_</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> args = <span class="variable language_">arguments</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(timer) &#123;</span><br><span class="line">        <span class="built_in">clearTimeout</span>(timer)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">        callback.<span class="title function_">apply</span>(<span class="variable language_">this</span>, args)</span><br><span class="line">    &#125;, delay)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们会发现，debounce 会生成一个没有形参的函数，然后里面会调用我们传入的 callback。但是有个问题，就是我们调用 addUser 的时候肯定会传入 name 和 age，但是 addUser 又是一个无参方法，咋办，怎么正确的传参？</p>
+<p>这个时候就会说道 arguments 对象。</p>
+<h2 id="3-3-arguments"><a href="#3-3-arguments" class="headerlink" title="3.3 arguments"></a>3.3 arguments</h2><p>JS 的 function 内部会自动有一个对象：arguments，内部就存储了所有传入的参数，哪怕这个 function 没有形参：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`args len: <span class="subst">$&#123;<span class="variable language_">arguments</span>.length&#125;</span>`</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
+
+<p>除此之外，我们可以通过 arguments 对象来修改实参：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 使用严格模式，修改不会生效，不加这行的话修改才能生效。</span></span><br><span class="line">    <span class="string">&#x27;use strict&#x27;</span>;</span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">0</span>] = <span class="number">100</span></span><br><span class="line">    <span class="variable language_">arguments</span>[<span class="number">1</span>] = <span class="number">200</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">arguments</span>[<span class="number">0</span>] + <span class="variable language_">arguments</span>[<span class="number">1</span>]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">test</span>(<span class="number">10</span>, <span class="number">20</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这里返回的不是 30，而是 300，即便我们传入的是 10 20，但是函数内通过 arguments 对象修改了实参为 100 200。当然这是在费严格模式下，如果在严格模式下，是不能修改实参的。（费严格模式把那行 use strict 注释掉）。</p>
+<p>所以在这个防抖函数里面，即时返回的防抖函数没有形参，我们也依旧可以通过 arguments 得到我们调用时传入的实参，然后传给 callback。</p>
+<h2 id="3-4-apply-方法"><a href="#3-4-apply-方法" class="headerlink" title="3.4 apply 方法"></a>3.4 apply 方法</h2><p>我们还会发现，调用 callback 的时候并没有直接 <code>callback(arguments)</code>，而是 <code>callback.apply(this, arguments)</code>，这是为啥？这里就需要说说 apply 方法。</p>
+<p>apply 方法用于重新指定 function 的 this 指向，当然这是我自己的理解，官方说的是让 function 在别的对象上执行：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;jack&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">20</span>,</span><br><span class="line"></span><br><span class="line">    <span class="title function_">hello</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`hello, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>, i&#x27;m <span class="subst">$&#123;<span class="variable language_">this</span>.age&#125;</span> years old`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">    <span class="attr">name</span>: <span class="string">&#x27;Lucy&#x27;</span>,</span><br><span class="line">    <span class="attr">age</span>: <span class="number">10</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">user.<span class="property">hello</span>.<span class="title function_">apply</span>(person)</span><br></pre></td></tr></table></figure>
+
+<p>最后执行的结果是 hello, i’m Lucy, i’m 10 years old，我们就会发现，hello 方法里面的 this 居然指向了 person，也就相当于 hello 跑到了 person 对象内被执行了，是不是很神奇。</p>
+<p>所以防抖函数里面为啥要用 apply？因为我们传入的 callback 的 this 不是 VueComponent，所以我们需要调用 apply 方法，将 this 修改为 VueComponent，同时还需要用 apply 方法将 arguments 传入。</p>
+<h1 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h1><p>可以看到，一个小小的防抖就涉及到这么多知识点，就是因为当时看不懂这个防抖，才去补课 this 指向问题的。</p>
+]]></content>
+      <categories>
+        <category>JS</category>
+      </categories>
+      <tags>
+        <tag>js</tag>
+        <tag>前端</tag>
       </tags>
   </entry>
 </search>
