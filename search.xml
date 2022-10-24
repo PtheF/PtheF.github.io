@@ -2196,71 +2196,6 @@
       </tags>
   </entry>
   <entry>
-    <title>hexo部署</title>
-    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
-    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
-<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
-<span id="more"></span>
-
-<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
-<p><strong><font color='red'>步骤如下：</font></strong></p>
-<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
-<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
-<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
-<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
-<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
-<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
-<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
-<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
-<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
-</blockquote>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
-
-<p>然后，正常情况下，会提示这么一句：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
-
-<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
-<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
-<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
-<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
-<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
-<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
-<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
-
-<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
-
-<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
-<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
-<p>在博客根目录下执行如下命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
-
-<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
-<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
-
-<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
-<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
-<p>然后，这三个页面以后都不要管了。</p>
-<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
-<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
-<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
-<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
-]]></content>
-      <categories>
-        <category>部署</category>
-      </categories>
-      <tags>
-        <tag>部署</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Java期末考试</title>
     <url>/2022/06/07/java-exam/</url>
     <content><![CDATA[<p>Java期末考试瞎指导。</p>
@@ -2381,381 +2316,69 @@
 ]]></content>
   </entry>
   <entry>
-    <title>JVM-堆</title>
-    <url>/2022/05/28/jvm-heap/</url>
-    <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
-<blockquote>
-<p>首先要说的一点是，整个这一章，都是关于堆的，在网课里面堆讲了30集，着实离谱，而且东西奇多，所以笔记也会多到离谱</p>
-</blockquote>
+    <title>hexo部署</title>
+    <url>/2022/05/22/hexo%E9%83%A8%E7%BD%B2/</url>
+    <content><![CDATA[<p>整个博客使用Hexo搭建，需要电脑上有 node + git 环境，如果没有，请移步下面的教程：</p>
+<p><a href="https://www.bilibili.com/video/BV1q4411i7gL">hugo博客搭建</a></p>
 <span id="more"></span>
 
-<h1 id="1-堆的概述"><a href="#1-堆的概述" class="headerlink" title="1. 堆的概述"></a>1. 堆的概述</h1><ul>
-<li><p>一个JVM实例只存在一个堆内存，堆也是 Java内存管理的核心区域</p>
-<blockquote>
-<p>一个进程对应一个JVM实例，JVM实例只有一个Runtime，Runtime里面只有堆和方法区是线程公用，所以说的直白了，一个进程只有一个堆</p>
+<h1 id="1-Github-Page"><a href="#1-Github-Page" class="headerlink" title="1. Github Page"></a>1. Github Page</h1><p>干嘛的？就是github会给你一个域名，比如 xxx.github.io，这个域名你可以用来部署一些静态页面，步骤也很简单，只要仓库里面是静态页面的文件就可以了。有了这个我们就可以搭建个人博客。</p>
+<p><strong><font color='red'>步骤如下：</font></strong></p>
+<p>在github创建仓库，仓库名必须是 xxxx.github.io，而且这个xxx，最好是你的用户名，必须遵从这个规范。创建完以后，只要你这个仓库里面有静态页面的东西，那 page 就会生效。可以选择用READMD初始化一下仓库，然后在仓库的 settings 里面，找到 Pages，会发现里面给你提供了一个可访问的网址，说明page已经生效。</p>
+<p>如果settings-page里面没有那个网址，说明空仓库，没关系，待会就有了。</p>
+<h1 id="2-Hexo"><a href="#2-Hexo" class="headerlink" title="2. Hexo"></a>2. Hexo</h1><p>我们这里选择Hexo来搭建仓库，这里提供一个视频，可以跟着视频搭：</p>
+<p><a href="https://www.bilibili.com/video/BV1Yb411a7ty">Hexo搭建教程</a></p>
+<h2 id="2-1-原理"><a href="#2-1-原理" class="headerlink" title="2.1 原理"></a>2.1 原理</h2><p>所以这个hexo是个什么原理？其实很简单。我们在博客项目下编写md文档，然后hexo会帮我们自动把md文档转化为html，然后连同hexo这个网站一起，打包，发到你配置的git仓库实现自动部署。</p>
+<p>所以这也是我之前的一个错误理解，我以为hexo是一个后端服务，需要把他部署在服务器上，github page 帮我们跑这个服务器。其实不该是这么用的，而是hexo安装在我们本地，我们在博客里面写好文章，然后通过命令让hexo帮我们打包发送到git，然后git帮我们部署打包好的静态页面。</p>
+<p>当然啦，如果你和我一样弱智的话，也可以把hexo当后端服务跑，hexo提供了一个本机预览的功能，有点类似Vue 的 npm run serve，你大可以找个服务器然后 <code>nohup hexo s &amp;</code>。</p>
+<h2 id="2-2-安装流程"><a href="#2-2-安装流程" class="headerlink" title="2.2 安装流程"></a>2.2 安装流程</h2><blockquote>
+<p>这里必须要有 node.js 环境，没有的话去装 hugo，同时必须要有git</p>
 </blockquote>
-</li>
-<li><p>JVM启动时堆的大小已经确定</p>
-</li>
-<li><p>堆的大小可以调节</p>
-</li>
-<li><p>Java虚拟机规范中规定，堆可以处于物理不连续的内存上，但是逻辑上应视为连续。</p>
-<blockquote>
-<p>如何证明堆是进程唯一的？需要用到一个工具，在 java.bin 目录下，jvisualvm，这个东西可以看到目前的java进程信息，(需要安装一个插件，VisualGC，工具里面就能安装).然后进入 visualGC</p>
-</blockquote>
-</li>
-<li><p>即使整个线程共用一个堆，对内部还是有线程私有的缓冲区，最典型的就是 ThreadLocal，Buffer，TLAB Allocation，很好，目前我都不知道啥意思。</p>
-</li>
-<li><p>几乎所有的对象实例都分配在堆上，注意是几乎，不是所有，随着 JVM 的更新，JVM会进行逃逸检测，栈上也可以村对象了。</p>
-</li>
-<li><p>数组和对象可能永远不会存在栈上，栈帧中保存引用，这个引用指向对象或者数组在堆中的位置。</p>
-<blockquote>
-<p>官网中JVM规范说的是所有，所以引出了下一条</p>
-</blockquote>
-</li>
-<li><p>方法结束后，堆中的对象不会马上被删除，仅仅在垃圾收集的时候才会被删除。</p>
-<blockquote>
-<p>这里解释一下什么意思，一个方法，方法里面有引用，指向堆中的实例，当方法执行完成后，栈帧出栈，这时候引用就没了，就不在指向堆了，这个时候听不会马上GC，因为影响效率，他会在堆满了的时候去进行垃圾收集。</p>
-</blockquote>
-<blockquote>
-<p>这里老师的原话是：出栈后引用为空，很好现在回来看，显然是栈帧出栈，局部变量表停止指向</p>
-</blockquote>
-</li>
-<li><p>堆是GC作用的重点区域。</p>
-</li>
-</ul>
-<h1 id="2-堆空间内存细分"><a href="#2-堆空间内存细分" class="headerlink" title="2. 堆空间内存细分"></a>2. 堆空间内存细分</h1><p>现代垃圾收集器大部分都是基于分带收集论涉及，对空间细分为：</p>
-<ul>
-<li><p>java7 包括之前的JVM 堆内存逻辑上分为 3部分：新生区 + 养老区 + 永久区</p>
-<ul>
-<li><p>Young Generation Space -&gt; 新生区 Young&#x2F;New</p>
-<blockquote>
-<p>又被划分为 Eden 区 和 Survivor 区</p>
-</blockquote>
-</li>
-<li><p>Tenure Generation space -&gt; 养老区 Old&#x2F;Tenure</p>
-</li>
-<li><p>Permanent Space -&gt; 永久区 Perm</p>
-</li>
-</ul>
-</li>
-<li><p>java8 以后堆内存逻辑上分为3部分：新生区 + 养老区 + 元空间</p>
-<ul>
-<li><p>Young Generation Space 新生区 Young&#x2F;New</p>
-<blockquote>
-<p>同理分为 Eden Survivor</p>
-</blockquote>
-</li>
-<li><p>Tenure Generation Space 养老区 Old&#x2F;Tenure</p>
-</li>
-<li><p>Meta Space 元空间 Meta</p>
-</li>
-</ul>
-</li>
-</ul>
-<p>需要注意的是，永久代和元空间其实并不属于 堆，而是属于方法区，所以在这里不细说永久代。 如何证明堆包括元空间和养老代？还是昨天那个工具：Jvisualvm，里面的 visualGC， 里面 三块，enden survivor tenure 加起来 就是你设置的 堆的大小。</p>
-<p>在Java 中分别叫 PSYoungGen&#x3D;新生区 ParOldGen&#x3D;养老区 MetaGen&#x2F;PSPermGen&#x3D;元空间&#x2F;永久区</p>
-<h1 id="3-设置堆空间大小"><a href="#3-设置堆空间大小" class="headerlink" title="3. 设置堆空间大小"></a>3. 设置堆空间大小</h1><ul>
-<li><p>堆的大小在JVM启动的时候就已经设定好了，可以通过 -Xmx 和 -Xms 来设置</p>
-<ul>
-<li><p>-Xms 用来表示堆区的初始内存，等价于： -XX:InitialHeapSize</p>
-</li>
-<li><p>-Xmx 用来表示堆区的最大内存，等价于：-XX:MaxHeapSize</p>
-<blockquote>
-<p>-X 是 JVM 参数，ms &#x3D; memory start</p>
-</blockquote>
-</li>
-</ul>
-</li>
-<li><p>一旦堆区的内存大小超过 -Xmx，就会跑出 OutOfMemoryError异常。</p>
-</li>
-<li><p>通常会将-Xms 和 -Xmx配置相同的值，目的就是为了能够在Java垃圾回收机制清理完堆区后 不需要重新分割计算堆区的大小，从而提供性能。</p>
-</li>
-<li><p>默认情况下，初始内存大小：物理电脑内存大小 &#x2F; 64,最大内存：物理电脑内存大小 &#x2F; 4</p>
-</li>
-</ul>
-<h1 id="4-堆的年轻代和老年代"><a href="#4-堆的年轻代和老年代" class="headerlink" title="4. 堆的年轻代和老年代"></a>4. 堆的年轻代和老年代</h1><p>别说话，看图： </p>
-<p><img src="/../images/runtime/HeapOldGenAndYoungGen.png" alt="heap"></p>
-<p>存储在JVM中的Java对象可以分为两类：</p>
-<ul>
-<li><p>生命周期比较短的瞬时对象，创建消亡都非常迅速</p>
-</li>
-<li><p>生命周期比较长，极端情况下和JVM的声明周期一样长</p>
-</li>
-</ul>
-<p>创建出来的对象先放在 年轻代的Eden 区，进行一轮垃圾回收之后，如果是垃圾了，就直接回收了， 如果不是垃圾，说明对象幸存，则放到 survivor0 或者 survivor1 中。</p>
-<blockquote>
-<p>survivor 也叫 from &#x2F; to 区</p>
-</blockquote>
-<h2 id="内存占比"><a href="#内存占比" class="headerlink" title="内存占比"></a>内存占比</h2><p>默认情况下，年轻代和老年代占比 1:2，也就是年轻代占堆的1&#x2F;3，老年代占堆的 2&#x2F;3.能不能手动调整？可以，启动时添加JVM参数：<code>-XX:NewRatio=n</code> 设置年轻代和老年代占比 1:n。当然默认情况下是 <code>-XX:NewRatio=2</code>。但是这个数一般不建议改，除非你确定项目中有很多老对象。</p>
-<p>HotSpot虚拟机中，伊甸园区和幸存者区占比为 8:1:1。同理可以通过启动参数 <code>-XX:survivorRatio=n</code> 来调整。但是需要说一下，其实启动后占比是6:1:1，而不是8:1:1，你要是真想让他8:1:1符合规范，那你设置一下好了。</p>
-<p>几乎所有对象首先都是在Eden区创建，除非这个对象太大了直接放到OldGen，而且大部分对象的销毁都是放在Eden中，有研究表明 80%的对象都是朝生暮死，生命周期很短。如果我们嫌不够的话，可以使用参数 <code>-Xmn</code> 来调整新生代大小.</p>
-<h1 id="5-创建对象的大体流程"><a href="#5-创建对象的大体流程" class="headerlink" title="5. 创建对象的大体流程"></a>5. 创建对象的大体流程</h1><p>前文说道，创建对象一般发生在新生代，那么新生代具体发生了什么，让我们来详细说一说，注意，这里并没有提到类加载器，仅仅是在对重给对象分配内存流程。后面还会详细说一个对象创建具体的流程。</p>
-<h2 id="5-1-流程"><a href="#5-1-流程" class="headerlink" title="5.1 流程"></a>5.1 流程</h2><ol>
-<li><p>在Eden区分配空间，大部分情况都是吧对象分配在eden区，上文也说过，除非这个对象特别大</p>
-</li>
-<li><p>当Eden区满了的时候，出发年轻代的垃圾回收机制，叫 YGC(YoungGC) 或者叫 MinorGC，Eden中已经没有了引用的对象将会被回收，剩下的对象，将会进入 survivor0 或者 survivor1，这里我们先假设 survivor0 和 survivor1 都是空的，再假设 Eden中没有被回收的对象进入了 survivor0.这个时候 survivor0 就叫to区，同时进入 survivor0 的对象有一个年龄计数器，用来记录幸存次数，从 0 变成 1。</p>
-</li>
-<li><p>继续创建对象，放在 Eden中，当Eden再一次满了，再次触发 YGC，这回Eden中的幸存对象将会进入空的那个 survivor，这里空的是 survivor1，年龄计数器变为1，同时 survivor0 中的对象也进行YGC，s0中的幸存者也会进入s1，那么这个时候，s1就叫to区，s0就叫from 区，s区的垃圾回收是 Eden 回收，他也顺带回收一下，如果 s区满了，再说。</p>
-</li>
-<li><p>一直进行这个 Eden + from &#x3D;&gt; to 的过程，同时对象的年龄计数器累加。</p>
-</li>
-<li><p>当一个对象的年龄计数器值达到临界的时候，默认是15，那么就会认为这个对象的生命周期很长，就会把它放入 老年代。这个过程叫提升 ：Promotion</p>
-</li>
-</ol>
-<h2 id="5-2-总结"><a href="#5-2-总结" class="headerlink" title="5.2 总结"></a>5.2 总结</h2><ul>
-<li><p>针对 s区，复制之后有交换，谁空谁是to</p>
-</li>
-<li><p>关于垃圾回收，频繁在 新生代回收，很少在老年代回收，几乎不再永生代(Meta) 回收。</p>
-</li>
-<li><p>再出发 YGC 的时候，Eden区肯定是被清空了</p>
-</li>
-</ul>
-<h2 id="5-3-特殊情况"><a href="#5-3-特殊情况" class="headerlink" title="5.3 特殊情况"></a>5.3 特殊情况</h2><p>看图：</p>
-<p><img src="/../images/runtime/MemoryHandleSpecialCase.png" alt="heap_memory"></p>
-<p>解释一下： 正常流程肯定能看懂，说一点特殊情况：</p>
-<ul>
-<li><p>Eden 放不下了，可能是 Eden 满了，触发 YGC，然后Eden 还是放不下，这个时候Eden肯定是 空了，说明 对象大小超过了 Eden大小，则直接放入 老年代。</p>
-</li>
-<li><p>上面这种情况，如果 老年代也放不下，触发 FGC，还放不下，那完了，抛出 OOM错误。</p>
-</li>
-<li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
-</li>
-</ul>
-<h1 id="6-堆垃圾回收"><a href="#6-堆垃圾回收" class="headerlink" title="6. 堆垃圾回收"></a>6. 堆垃圾回收</h1><p>大体来看，Heap 中的 GC 分为 3种：</p>
-<ul>
-<li><p>Young GC &#x2F; MinorGC</p>
-</li>
-<li><p>Full GC</p>
-</li>
-<li><p>Old GC &#x2F; Major GC</p>
-</li>
-</ul>
-<p>根据 HotSpot 虚拟机，按照收集区域又分为两种：部分收集和整堆收集</p>
-<ul>
-<li><p>部分收集：不是完整收集整个Java 堆的收集，其中又分为：</p>
-<ul>
-<li><p>新生代收集 MinorGC&#x2F;YoungGC: 只收集年轻代的垃圾收集</p>
-</li>
-<li><p>老年代收集 MajorGC&#x2F;OldGC： 只收集老年代</p>
-<ul>
-<li><p>目前只有CMS GC会有单独收集老年代的行为</p>
-</li>
-<li><p>很多时候 MajorGC 会和 FullGC 混合使用，需要具体分辨是老年代回收还是整堆回收</p>
-</li>
-</ul>
-</li>
-<li><p>混合回收器 Mixed GC：收集整个新生代和部分老年代的垃圾</p>
-<ul>
-<li>只有G1 GC 有这种行为</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><p>整堆收集：收集整个 Java 堆 和 方法区 的垃圾，注意，还包括方法区。</p>
-</li>
-</ul>
-<p>下面说一下各个内存部分的垃圾回收触发机制：</p>
-<h2 id="6-1-年轻代触发机制"><a href="#6-1-年轻代触发机制" class="headerlink" title="6.1 年轻代触发机制"></a>6.1 年轻代触发机制</h2><ul>
-<li><p>年轻代空间不足，就会触发minor gc,这里说的空间不足指的是eden空间不足，survivor 满了不会触发 minor gc，只会发生提升。每次回收都会清空年轻代内存。</p>
-</li>
-<li><p>Java 对象大多数申明周期很短，所以minor gc 发生的特别频繁。</p>
-</li>
-<li><p>minor gc 会触发STW，也就是暂停用户线程，等垃圾回收结束，才会恢复用户线程</p>
-</li>
-</ul>
-<h2 id="6-2-老年代回收："><a href="#6-2-老年代回收：" class="headerlink" title="6.2 老年代回收："></a>6.2 老年代回收：</h2><ul>
-<li><p>发生在老年代的垃圾回收，当对象从老年代消失了，我们就认为 major gc 或者 full gc 发生了，</p>
-</li>
-<li><p>发生一次 major gc，一般来说，伴随着至少一次的minor gc，不是绝对的，以后再说。</p>
-<ul>
-<li>也就是当老年代空间不足时，西安出发一次 minor gc，如果空间还不足，触发 major gc</li>
-</ul>
-</li>
-<li><p>major gc 一般比 minor gc 慢10倍以上，stw 时间更长。</p>
-</li>
-<li><p>如果major gc后空间还是不够，抛出 OOM 异常。</p>
-</li>
-</ul>
-<h2 id="6-3-FullGC-触发机制："><a href="#6-3-FullGC-触发机制：" class="headerlink" title="6.3 FullGC 触发机制："></a>6.3 FullGC 触发机制：</h2><ul>
-<li><p>调用 System.gc() 时</p>
-</li>
-<li><p>老年代空间不足</p>
-</li>
-<li><p>方法区空间不足</p>
-</li>
-<li><p>通过 minor gc 后进入老年代的平均大小大于老年代的可用内存</p>
-</li>
-<li><p>eden from 的对象往 to 区复制，to区空间不够，提升到老年代，老年代空间也不够，触发 full gc</p>
-</li>
-<li><p>开发中尽量避免 full gc</p>
-</li>
-</ul>
-<h1 id="7-TLAB"><a href="#7-TLAB" class="headerlink" title="7. TLAB"></a>7. TLAB</h1><p>前文说过TLAB，说是 堆里面有每个线程的私有缓冲区，有 TLAB，ThreadLocal，Buffer，Allocation，其实后面的三个词全都在说 TLAB。</p>
-<h2 id="7-1-TLAB是啥"><a href="#7-1-TLAB是啥" class="headerlink" title="7.1 TLAB是啥"></a>7.1 TLAB是啥</h2><p>ThreadLocal Buffer Allocation： 线程私有缓冲区，用于结局线程安全问题。</p>
-<h2 id="7-2-为什么要设置TLAB"><a href="#7-2-为什么要设置TLAB" class="headerlink" title="7.2 为什么要设置TLAB"></a>7.2 为什么要设置TLAB</h2><p>堆是整个进程共享的一块区域，如果一大堆线程同事访问堆，会造成县城不安全，如果给数据加锁，那效率就太慢了，所以为了提高效率，加入了线程缓冲区。</p>
-<p>JVM给每个线程在 Eden 划分出来一块 TLAB，这种方式解决了线程安全问题，提高了内存分配吞吐量，我们就管这种方式叫“快速分配策略”.</p>
-<p>虽然说不是所有对象都可以分配在 TLAB上，但是TLAB确实是JVM分配对象的首选。TLAB非常小，仅仅占到了 Eden的 1%。</p>
-<p>如果对象在TLAB分配失败，JVM就会考虑给对象加锁，直接把对象放在Eden中。</p>
-<h2 id="7-3-一些参数"><a href="#7-3-一些参数" class="headerlink" title="7.3 一些参数"></a>7.3 一些参数</h2><ul>
-<li><p>-XX:useTLAB 是否开启TLAB，默认开启</p>
-</li>
-<li><p>-XX:TLABWasteTargetPercent 设置TLAB占Eden的百分比。</p>
-</li>
-</ul>
-<h2 id="7-4-对象创建过程"><a href="#7-4-对象创建过程" class="headerlink" title="7.4 对象创建过程"></a>7.4 对象创建过程</h2><p>有了TLAB以后，对象创建流程如下：</p>
-<p><img src="/../images/runtime/TLAB.png" alt="tlab"></p>
-<h2 id="7-5-剩下的"><a href="#7-5-剩下的" class="headerlink" title="7.5 剩下的"></a>7.5 剩下的</h2><p>p81 没好好看，以后可以补一补。</p>
-<h1 id="8-逃逸分析"><a href="#8-逃逸分析" class="headerlink" title="8. 逃逸分析"></a>8. 逃逸分析</h1><p>随着 JIT(编译器) 的发展，逃逸分析技术逐渐成熟，栈上分配，标量替换优化技术 导致技术上有了一点区别，那就是 堆上分配对象不再那么绝对了。</p>
-<p>大部分情况下，一个对象在堆上分配空间，但是在某些特殊情况下，这个对象经过了逃逸分析，发现这个方法并没有逃离方法，那么这个对象就有可能在栈上分配空间。</p>
-<p>但是提一句，HotSpot虚拟机可是没有逃逸分析里面的部分功能的，比如栈上分配这个，HotSpot就没有。</p>
-<h2 id="8-1-逃逸分析概述"><a href="#8-1-逃逸分析概述" class="headerlink" title="8.1 逃逸分析概述"></a>8.1 逃逸分析概述</h2><p>逃逸分析干嘛的？就是用来优化内存分配的，我们前面说对象都要分配到堆上，但是堆上涉及到GC，而栈却不涉及GC，所以可不可以把对象存到栈上，然后方法执行完成直接弹栈，省的GC了。所以这个就是逃逸分析要干的事，分配一个对象，就要看这个对象有没有发生逃逸，如果发生逃逸，也就是这个对象跑出了当前方法作用域，那么发生逃逸，该咋办咋办，如果没有，则可以进行优化。就可以把这个对象放到栈上。</p>
-<ul>
-<li><p>通过逃逸分析，Java Hotspot 编译器能够分析一个对象的引用从而决定这个对象是否分配到栈上。</p>
-</li>
-<li><p>逃逸分析的基本行为就是分析对象的作用域：</p>
-<ul>
-<li><p>一个对象被定义后，如果只在方法中调用，那么没有发生逃逸。</p>
-</li>
-<li><p>对象被定义后，方法外也引用了它，则发生了逃逸。比如方法中创建的对象最后被return了。</p>
-</li>
-</ul>
-</li>
-<li><p>没有发生逃逸，则对象可以分配到栈上，毕竟别的地方不用，方法执行完，栈帧出栈，对象也跟着出栈。</p>
-</li>
-<li><p>发生逃逸，那就老老实实往堆上分配。</p>
-</li>
-</ul>
-<p>举个例子：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这种情况下，user 对象仅仅在方法内部被调用，则没有逃逸，往栈上分配就行了  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    user = <span class="literal">null</span>;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 这种情况，StringBuffer 最终被return，发生了逃逸。  </span></span><br><span class="line"><span class="keyword">public</span> StringBuffer <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">buffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    buffer.append(a);  </span><br><span class="line">    buffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> buffer;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面的 StringBuffer 改成这种，就不会发生逃逸  </span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">stringBuffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    stringBuffer.append(a);  </span><br><span class="line">    stringBuffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> stringBuffer.toString();  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 hexo</span></span><br><span class="line">npm install hexo-cli -g</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">初始化 hexo 项目，你自己找一个目录，然后在里面执行这条命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注：这里强烈建议配置一下 github 加速，因为这一步要从github拉东西，太慢的话可能会报错</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">等待初始化结束，本地启动hexo</span></span><br><span class="line">hexo g &amp;&amp; hexo s</span><br></pre></td></tr></table></figure>
 
-<p><strong>参数如下：</strong></p>
-<ul>
-<li><p>-XX:-DoEscapeAnalysis 关闭逃逸分析</p>
-</li>
-<li><p>-XX:+DoEscapeAnalysis 开启逃逸分析</p>
-</li>
-</ul>
-<h2 id="8-2-逃逸分析：代码优化"><a href="#8-2-逃逸分析：代码优化" class="headerlink" title="8.2 逃逸分析：代码优化"></a>8.2 逃逸分析：代码优化</h2><p>总的来说，可以通过逃逸分析干好多事，上面那个，仅仅是一个 栈上分配。</p>
-<p>逃逸检测的优化：</p>
-<ul>
-<li><p>栈上分配</p>
-</li>
-<li><p>同步省略</p>
-</li>
-<li><p>分离对象&#x2F;标量替换</p>
-</li>
-</ul>
-<h3 id="8-2-1-栈上分配"><a href="#8-2-1-栈上分配" class="headerlink" title="8.2.1 栈上分配"></a>8.2.1 栈上分配</h3><p>就是前面说的，站上分配对象，如果实体仅仅在方法内部使用没有进入外部，则对象会被分配到栈上。</p>
-<h3 id="8-2-2-同步省略"><a href="#8-2-2-同步省略" class="headerlink" title="8.2.2 同步省略"></a>8.2.2 同步省略</h3><p>如果一个对象仅在一个线程中使用，或者说，一个对象只能从一个线程中被访问，那么对于这个对象的操作就不考虑同步。</p>
-<ul>
-<li><p>线程同步的代价是很高的。</p>
-</li>
-<li><p>在动态编译同步代码块的时候，如果JIT 检测到一个对象仅仅在一个线程中被访问，而没有发布到其他线程，则运行时 JVM 就会取消对这个对象进行上锁，大大的提高效率，这就叫 锁消除。</p>
-</li>
-</ul>
-<p>举个例子：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    <span class="keyword">synchronized</span>(user)&#123;  </span><br><span class="line">        System.out.println(user);  </span><br><span class="line">   &#125;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面这种情况，user 对象仅仅在一个线程中被访问，并没有多个线程共享，所以几遍你给他加了锁，  </span></span><br><span class="line"><span class="comment">// JVM也不会执行，但是废话，这种情况，本来我们就不应该加锁。</span></span><br></pre></td></tr></table></figure>
+<p>然后，正常情况下，会提示这么一句：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">INFO  Start processing</span><br><span class="line">INFO  Hexo is running at http://localhost:4000/ . Press Ctrl+C to stop.</span><br></pre></td></tr></table></figure>
 
-<h3 id="8-2-3分离对象或标量替换"><a href="#8-2-3分离对象或标量替换" class="headerlink" title="8.2.3分离对象或标量替换"></a>8.2.3分离对象或标量替换</h3><p>有的对象可能不需要作为一个连续的内存结构存入到内存中，而且也可以被访问到。那么这部分对象的部分(甚至全部) 就可以存到 CPU的寄存器中。</p>
-<p>用Java 说，就是这个对象不用存在 堆中，那就可以放到 栈 中。这里还需要解释几个概念：</p>
-<p><strong>标量</strong></p>
-<p>无法被分解成更小的数据，比如基本数据类型。</p>
-<p><strong>对应聚合量</strong></p>
-<p>还可以被分解的对象就是聚合量，比如我们自己写的类的实例。</p>
-<p><strong>标量替换</strong></p>
-<p>如果经过逃逸分析，发现你目前的对象没有在方法外面使用，他就会把你的聚合量，分解为几个标量，这个过程就叫标量替换。</p>
-<p>说白了，就是吧对象打散了，分配到栈上。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">Point</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>();  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + p.x + <span class="string">&quot; Point.y=&quot;</span> + p.y);  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 最终这个东西会被优化成  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">1</span>;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">y</span> <span class="operator">=</span> <span class="number">2</span>;  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + x + <span class="string">&quot; Point.y=&quot;</span> + y);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果没有这句，那么不出意外地话应该是出意外了，把错误信息百度一下看看 :)</p>
+<p>OK，到这里算是安装完了，但是我们还需要配置一下这个玩意。</p>
+<h2 id="2-3-配置基本信息"><a href="#2-3-配置基本信息" class="headerlink" title="2.3 配置基本信息"></a>2.3 配置基本信息</h2><p>博客根目录下有个 _config.yml 文件，打开他，改几个地方：</p>
+<h3 id="2-3-1-配置博客基本信息"><a href="#2-3-1-配置博客基本信息" class="headerlink" title="2.3.1 配置博客基本信息"></a>2.3.1 配置博客基本信息</h3><p>配置文件中会找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">title:</span> <span class="string">博客网站的题目</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;博客小标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;描述信息&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">用户名</span></span><br><span class="line"><span class="comment"># 配置语言-简中</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-Hans</span></span><br><span class="line"><span class="comment"># 时区</span></span><br><span class="line"><span class="attr">timezone:</span> <span class="string">&#x27;&#x27;</span></span><br></pre></td></tr></table></figure>
 
-<p>-XX:+EliminateAllocation 开启标量替换，默认就是开启的。</p>
-<h2 id="8-3-总结"><a href="#8-3-总结" class="headerlink" title="8.3 总结"></a>8.3 总结</h2><p>大体说几点：</p>
-<ul>
-<li><p>逃逸分析并不成熟</p>
-</li>
-<li><p>逃逸分析本身也消耗性能，如果分析了半天，结果发现都逃逸了，那完犊子了</p>
-</li>
-<li><p>Oracle HotSpot 并没有栈上分配，所以肯定对象都在堆上</p>
-</li>
-</ul>
+<h3 id="2-3-2-配置仓库"><a href="#2-3-2-配置仓库" class="headerlink" title="2.3.2 配置仓库"></a>2.3.2 配置仓库</h3><p>往后找，找到这么几行：</p>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="comment"># 这里写你的git仓库地址</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">http://xxxxx@github.com/user_name/user_name.github.io.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">master</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-3-小坑"><a href="#2-3-3-小坑" class="headerlink" title="2.3.3 小坑"></a>2.3.3 小坑</h3><p>如果这里你配置的是github的仓库地址，那可能需要麻烦点，这里直接写 <a href="https://github.com/xxx/xxx.github.io.git">https://github.com/xxx/xxx.github.io.git</a> 的话，push 的时候会让你输入用户名密码，然后，很可能告诉你现在已经不支持密码验证了，要你配置token。</p>
+<p>我这里就不展开说了，百度一下如何获取github的token，然后把这个地址写成 <code>https://your_token@github.com//xxx/xxx.github.io.git</code> 即可。</p>
+<h2 id="2-4-安装主题"><a href="#2-4-安装主题" class="headerlink" title="2.4 安装主题"></a>2.4 安装主题</h2><p>我这里选择使用 NexT主题，同样的，在博客项目中执行如下命令，切记必须是博客根目录，就是有 node_modules 那个目录下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">克隆主题源码到 博客的themes 目录下</span></span><br><span class="line">git clone https://github.com/theme-next/hexo-theme-next.git themes/next</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一个包，不安装的话可能会乱码</span></span><br><span class="line">npm install hexo-renderer-swig</span><br></pre></td></tr></table></figure>
+
+<p>然后配置根目录下的 _config.yml 文件，找到 theme，修改为: <code>theme: next</code> 即可，然后执行命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo g &amp;&amp; hexo g</span><br></pre></td></tr></table></figure>
+
+<p>访问 localhost:4000 看看效果。希望没有乱码。</p>
+<h2 id="2-5-Tags-amp-Categories-amp-About"><a href="#2-5-Tags-amp-Categories-amp-About" class="headerlink" title="2.5 Tags &amp; Categories &amp; About"></a>2.5 Tags &amp; Categories &amp; About</h2><p>我们的博客里面的文章得有分类和标签吧？还得有个关于页面吧？怎么配置呢？</p>
+<p>在博客根目录下执行如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hexo new page categories</span><br><span class="line">hexo new page about</span><br><span class="line">hexo new page tags</span><br></pre></td></tr></table></figure>
+
+<p>然后，进入source目录，会发现里面有了三个目录，分别是 categories  tags  about。我们挨个改：</p>
+<p>首先是进入 categories 目录，编辑 index.md，固定写法，其实就是在date下面，线上面，加一个 <code>type: &quot;categories&quot;</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">title: Categories</span><br><span class="line">date: 2022-05-21 11:43:02</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">-----------------------</span><br></pre></td></tr></table></figure>
+
+<p>同理Tags，编辑里面的 index.md ，在date 下面，线上面，加一个 <code>type: &quot;tags&quot;</code> 即可。</p>
+<p>同理about，编辑index.md，里面写上你想写的东西就行了。</p>
+<p>然后，这三个页面以后都不要管了。</p>
+<h2 id="2-6-主题配置"><a href="#2-6-主题配置" class="headerlink" title="2.6 主题配置"></a>2.6 主题配置</h2><p>这可就麻烦了，比如 配置头像，配置github，配置主题的主题，配置搜索功能 等等。这里给个博客自己看吧：</p>
+<p><a href="https://blog.csdn.net/weixin_42665200/article/details/104633560">NexT配置</a></p>
+<h1 id="3-部署"><a href="#3-部署" class="headerlink" title="3. 部署"></a>3. 部署</h1><p>这个倒是出奇的简单，直接 hexo d 即可。这一步他就会把项目打包，然后传给github，然后github就会给你部署你的静态页面。</p>
+<p>当然啦，只要是支持git page 的git网站应该都行，比如gitee，但是gitee申请page挺麻烦的，还得实名认证，不想琢磨。</p>
 ]]></content>
       <categories>
-        <category>JVM</category>
+        <category>部署</category>
       </categories>
       <tags>
-        <tag>java</tag>
-        <tag>底层</tag>
+        <tag>部署</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>微信小程序-页面跳转</title>
-    <url>/2022/05/22/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F-%E9%A1%B5%E9%9D%A2%E8%B7%B3%E8%BD%AC/</url>
-    <content><![CDATA[<blockquote>
-<p>create by 陈HL_pthef on 2022&#x2F;05&#x2F;22</p>
-</blockquote>
-<p>自从宣布开始做课设到现在，各种问题层出不穷，尤其页面跳转这个问题仍旧困扰着很多人。那在这里就详细说说 这个微信小程序到底如何实现页面跳转。</p>
-<p><strong><font color="red">注意：</font></strong></p>
-<p><strong>下面的内容不要深究原因，不要深究原因，不要深究原因</strong>，跟着做就可以了。</p>
-<span id="more"></span>
-
-<h2 id="1-页面"><a href="#1-页面" class="headerlink" title="1. 页面"></a>1. 页面</h2><p>想要页面跳转肯定先得有页面，所以如何创建页面呢？我这里用一个新的微信小程序模板：<br><img src="http://49.232.218.190/p1.png" alt="weixin_app"></p>
-<p>首先，我们右键pages，那个红色的图标，右键他，然后选择新建文件夹，起一个合适的名字，我这里就叫 tempPage 。创建完以后如下所示：</p>
-<p><img src="http://49.232.218.190/p2.png" alt="new_dir"></p>
-<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color='red'>Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
-<p><img src="http://49.232.218.190/p3.png" alt="new_page"></p>
-<p>呐，看好了，Page名和文件夹名一致。</p>
-<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color='red'>全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
-<p>然后我们在这个新页面上写点东西，打开 xxx.wxml 这个文件（xxx就是你Page的名），随你写点啥，我这里就写：</p>
-<p><img src="http://49.232.218.190/p4.png" alt="temp_page_content"></p>
-<p>很好，到这里，新页面准备完成，下一步我们需要实现从index.wxml 页面跳转到你的这个新页面。</p>
-<h2 id="2-跳转"><a href="#2-跳转" class="headerlink" title="2. 跳转"></a>2. 跳转</h2><p>首先要想跳转，你得有个触发跳转的东西对吧，这里统一使用按钮也就是button，当然可以是别的，比如图片，view，啥的，都可以，但这里我就用button举例子了。所以我们的目标就是，在页面上放一个按钮，我们一点他，页面就会跳转到新页面。</p>
-<p>第一步就是创建按钮，在 index.wxml 文件里面写一个button。</p>
-<p><img src="http://49.232.218.190/p5.png" alt="button"></p>
-<p>我这里的 index.wxml 啥也没有，你们的肯定有东西，根据你们的情况，把这个button放到合适的地方。同时可以看到左边 button 也显示出来了。</p>
-<p>然后我们给这个button 绑定一个事件，在button标签里面写如下内容：</p>
-<p><img src="http://49.232.218.190/p6.png" alt="button_bind"></p>
-<p>其实就里面加了一个bindtap，bindtap后面跟着的那个东西，名字还真不能随便起，有如下规则：</p>
-<ul>
-<li>只能出现英文字母，数字和下划线（减号下面那个符号，我劝你别用）</li>
-<li>数字不能开头</li>
-</ul>
-<p>我这里就叫jump了，你那叫啥都行，比如 toPage，toMyPage，甚至abc，都可以，但是决不能是 123, 1bc 甚至各种emoji，肯定报错。</p>
-<p>然后，我们去这个页面对应的js文件下，因为我这个button是在index页面下写的，所以当前页面的js文件也就是index.js，在这个文件里加这么一段：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 我这里叫jump，你那还真不一定叫jump</span></span><br><span class="line"><span class="comment">// 你上面bindtap后面起的啥名，这里就写啥</span></span><br><span class="line"><span class="title function_">jump</span>(<span class="params"></span>)&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 同理，我这里的url 写的是 ../tempPage/tempPage</span></span><br><span class="line">    <span class="comment">// 你那里不一定，这里应该写 ../你新页面的文件夹名/Page名</span></span><br><span class="line">    <span class="comment">// 而且特别注意，这里前里两个点一定不能丢。</span></span><br><span class="line">    <span class="comment">// 而且最后面的Page，没有后缀，不是 tempPage.js </span></span><br><span class="line">    <span class="comment">// 也不是 tempPage.wxml，就是tempPage</span></span><br><span class="line">    wx.<span class="title function_">navigateTo</span>(&#123;</span><br><span class="line">        <span class="attr">url</span>: <span class="string">&quot;../tempPage/tempPage&quot;</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
-
-<p>现在js文件的整体效果如下：</p>
-<p><img src="http://49.232.218.190/p7.png" alt="js"></p>
-<p>也就是这段代码，至少写在Page里面，你别写到Page外面了。</p>
-<p>写完以后，保存，然后点击那个按钮，如果不出意外的话应该是可以跳转了。</p>
-<h2 id="3-意外"><a href="#3-意外" class="headerlink" title="3. 意外"></a>3. 意外</h2><p>如果没跳转，看看是不是如下原因：</p>
-<ul>
-<li>跳转后页面一片大白：卡了，重启一下程序，或者看看你的新页面是不是就没写东西，那肯定白</li>
-<li>页面白还有一种情况，那就是你把跳转页面的js文件里的东西都删了，切记切记：<strong><font color="red">新Page的js文件里的东西已经是最简形式，千万不要删任何东西</font></strong>。否则恭喜你喜提大白屏.</li>
-<li>点击按钮没有反应：<ul>
-<li>查看 bindtap 后面那个名字和代码里面那个名字是否一致，我的都叫jump</li>
-<li>卡了，重启</li>
-</ul>
-</li>
-<li>跳转后告诉你 not found：这个原因就多了，归根到底就是微信没找到页面<ul>
-<li>检查跳转路径：必须是 <code>../跳转页面所在文件夹名/跳转页面名</code>，且页面名没有任何后缀</li>
-<li>检查页面路径，两个页面是否都在文件夹里面包着，然后这个文件夹都在红色的pages下。只有满足这个要求，上面的跳转路径才能生效。</li>
-<li>别是用了中文吧？？！！</li>
-</ul>
-</li>
-</ul>
-<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><p>我这里是用了 index页面往别的页面跳转做示范，但是实际做课设的时候真不一定就是从index页面跳，可能是你自己的A页面往你自己的B页面跳，咋办？？照猫画虎呗。</p>
-<p>现在你要从A页面跳到B页面：</p>
-<ul>
-<li>首先确认两件事：<ul>
-<li>AB两页面是否都在文件夹里面，文件夹是否都在 pages 下，也就是说两文件夹同层</li>
-<li>Ab两页面的文件夹和页面名是否有中文，确认没有</li>
-</ul>
-</li>
-<li>在A页面中写一个button，并照猫画虎写个bindtap，后面的名字按规范起</li>
-<li>在A页面的js文件中，插入上述那段代码，名字必须和你的bindtap一致，url改成<code>../B页面的所在文件夹名称/B页面名称(切记没有后缀)</code></li>
-<li>完成</li>
-</ul>
-]]></content>
   </entry>
   <entry>
     <title>JVM-方法区</title>
@@ -3530,6 +3153,76 @@
       </tags>
   </entry>
   <entry>
+    <title>微信小程序-页面跳转</title>
+    <url>/2022/05/22/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F-%E9%A1%B5%E9%9D%A2%E8%B7%B3%E8%BD%AC/</url>
+    <content><![CDATA[<blockquote>
+<p>create by 陈HL_pthef on 2022&#x2F;05&#x2F;22</p>
+</blockquote>
+<p>自从宣布开始做课设到现在，各种问题层出不穷，尤其页面跳转这个问题仍旧困扰着很多人。那在这里就详细说说 这个微信小程序到底如何实现页面跳转。</p>
+<p><strong><font color="red">注意：</font></strong></p>
+<p><strong>下面的内容不要深究原因，不要深究原因，不要深究原因</strong>，跟着做就可以了。</p>
+<span id="more"></span>
+
+<h2 id="1-页面"><a href="#1-页面" class="headerlink" title="1. 页面"></a>1. 页面</h2><p>想要页面跳转肯定先得有页面，所以如何创建页面呢？我这里用一个新的微信小程序模板：<br><img src="http://49.232.218.190/p1.png" alt="weixin_app"></p>
+<p>首先，我们右键pages，那个红色的图标，右键他，然后选择新建文件夹，起一个合适的名字，我这里就叫 tempPage 。创建完以后如下所示：</p>
+<p><img src="http://49.232.218.190/p2.png" alt="new_dir"></p>
+<p>然后，我们右键你新建的这个文件夹，选择新建Page，要求你起个Page名称，我这里强烈建议：<strong><font color='red'>Page名称和文件夹名称保持一致</font></strong>。新建以后，就会出现4个文件，如下图：</p>
+<p><img src="http://49.232.218.190/p3.png" alt="new_page"></p>
+<p>呐，看好了，Page名和文件夹名一致。</p>
+<p>而且，新建的这个文件夹，和文件夹里面这个和文件夹同名的Page，他们的名称必须<br><strong><font color='red'>全是英文！！！</font></strong>，这一点特别重要，否则待会跳转直接喜提 not found 异常。</p>
+<p>然后我们在这个新页面上写点东西，打开 xxx.wxml 这个文件（xxx就是你Page的名），随你写点啥，我这里就写：</p>
+<p><img src="http://49.232.218.190/p4.png" alt="temp_page_content"></p>
+<p>很好，到这里，新页面准备完成，下一步我们需要实现从index.wxml 页面跳转到你的这个新页面。</p>
+<h2 id="2-跳转"><a href="#2-跳转" class="headerlink" title="2. 跳转"></a>2. 跳转</h2><p>首先要想跳转，你得有个触发跳转的东西对吧，这里统一使用按钮也就是button，当然可以是别的，比如图片，view，啥的，都可以，但这里我就用button举例子了。所以我们的目标就是，在页面上放一个按钮，我们一点他，页面就会跳转到新页面。</p>
+<p>第一步就是创建按钮，在 index.wxml 文件里面写一个button。</p>
+<p><img src="http://49.232.218.190/p5.png" alt="button"></p>
+<p>我这里的 index.wxml 啥也没有，你们的肯定有东西，根据你们的情况，把这个button放到合适的地方。同时可以看到左边 button 也显示出来了。</p>
+<p>然后我们给这个button 绑定一个事件，在button标签里面写如下内容：</p>
+<p><img src="http://49.232.218.190/p6.png" alt="button_bind"></p>
+<p>其实就里面加了一个bindtap，bindtap后面跟着的那个东西，名字还真不能随便起，有如下规则：</p>
+<ul>
+<li>只能出现英文字母，数字和下划线（减号下面那个符号，我劝你别用）</li>
+<li>数字不能开头</li>
+</ul>
+<p>我这里就叫jump了，你那叫啥都行，比如 toPage，toMyPage，甚至abc，都可以，但是决不能是 123, 1bc 甚至各种emoji，肯定报错。</p>
+<p>然后，我们去这个页面对应的js文件下，因为我这个button是在index页面下写的，所以当前页面的js文件也就是index.js，在这个文件里加这么一段：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 我这里叫jump，你那还真不一定叫jump</span></span><br><span class="line"><span class="comment">// 你上面bindtap后面起的啥名，这里就写啥</span></span><br><span class="line"><span class="title function_">jump</span>(<span class="params"></span>)&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 同理，我这里的url 写的是 ../tempPage/tempPage</span></span><br><span class="line">    <span class="comment">// 你那里不一定，这里应该写 ../你新页面的文件夹名/Page名</span></span><br><span class="line">    <span class="comment">// 而且特别注意，这里前里两个点一定不能丢。</span></span><br><span class="line">    <span class="comment">// 而且最后面的Page，没有后缀，不是 tempPage.js </span></span><br><span class="line">    <span class="comment">// 也不是 tempPage.wxml，就是tempPage</span></span><br><span class="line">    wx.<span class="title function_">navigateTo</span>(&#123;</span><br><span class="line">        <span class="attr">url</span>: <span class="string">&quot;../tempPage/tempPage&quot;</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>现在js文件的整体效果如下：</p>
+<p><img src="http://49.232.218.190/p7.png" alt="js"></p>
+<p>也就是这段代码，至少写在Page里面，你别写到Page外面了。</p>
+<p>写完以后，保存，然后点击那个按钮，如果不出意外的话应该是可以跳转了。</p>
+<h2 id="3-意外"><a href="#3-意外" class="headerlink" title="3. 意外"></a>3. 意外</h2><p>如果没跳转，看看是不是如下原因：</p>
+<ul>
+<li>跳转后页面一片大白：卡了，重启一下程序，或者看看你的新页面是不是就没写东西，那肯定白</li>
+<li>页面白还有一种情况，那就是你把跳转页面的js文件里的东西都删了，切记切记：<strong><font color="red">新Page的js文件里的东西已经是最简形式，千万不要删任何东西</font></strong>。否则恭喜你喜提大白屏.</li>
+<li>点击按钮没有反应：<ul>
+<li>查看 bindtap 后面那个名字和代码里面那个名字是否一致，我的都叫jump</li>
+<li>卡了，重启</li>
+</ul>
+</li>
+<li>跳转后告诉你 not found：这个原因就多了，归根到底就是微信没找到页面<ul>
+<li>检查跳转路径：必须是 <code>../跳转页面所在文件夹名/跳转页面名</code>，且页面名没有任何后缀</li>
+<li>检查页面路径，两个页面是否都在文件夹里面包着，然后这个文件夹都在红色的pages下。只有满足这个要求，上面的跳转路径才能生效。</li>
+<li>别是用了中文吧？？！！</li>
+</ul>
+</li>
+</ul>
+<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a>4. 总结</h2><p>我这里是用了 index页面往别的页面跳转做示范，但是实际做课设的时候真不一定就是从index页面跳，可能是你自己的A页面往你自己的B页面跳，咋办？？照猫画虎呗。</p>
+<p>现在你要从A页面跳到B页面：</p>
+<ul>
+<li>首先确认两件事：<ul>
+<li>AB两页面是否都在文件夹里面，文件夹是否都在 pages 下，也就是说两文件夹同层</li>
+<li>Ab两页面的文件夹和页面名是否有中文，确认没有</li>
+</ul>
+</li>
+<li>在A页面中写一个button，并照猫画虎写个bindtap，后面的名字按规范起</li>
+<li>在A页面的js文件中，插入上述那段代码，名字必须和你的bindtap一致，url改成<code>../B页面的所在文件夹名称/B页面名称(切记没有后缀)</code></li>
+<li>完成</li>
+</ul>
+]]></content>
+  </entry>
+  <entry>
     <title>运行时数据区概述</title>
     <url>/2022/05/27/%E8%BF%90%E8%A1%8C%E6%97%B6%E6%95%B0%E6%8D%AE%E5%8C%BA%E6%A6%82%E8%BF%B0/</url>
     <content><![CDATA[<p>从这里开始正式进入运行时数据区，运行时数据区是JVM非常核心的一部分，各种内存模型各种垃圾回收都将从这里展开。</p>
@@ -3608,6 +3301,313 @@
 <li><p>并不是所有的 JVM 都支持本地方法，因为虚拟机规范并没有规定本地方法的实现语言等， 所以如果虚拟机不打算使用本地方法，也就无需本地方法栈</p>
 </li>
 <li><p>Hotspot JVM中，直接把本地方法栈和虚拟机栈合二为一。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+        <tag>底层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JVM-堆</title>
+    <url>/2022/05/28/jvm-heap/</url>
+    <content><![CDATA[<p>很好，上一章讲了栈，这里开始看看堆是怎么一个情况。</p>
+<blockquote>
+<p>首先要说的一点是，整个这一章，都是关于堆的，在网课里面堆讲了30集，着实离谱，而且东西奇多，所以笔记也会多到离谱</p>
+</blockquote>
+<span id="more"></span>
+
+<h1 id="1-堆的概述"><a href="#1-堆的概述" class="headerlink" title="1. 堆的概述"></a>1. 堆的概述</h1><ul>
+<li><p>一个JVM实例只存在一个堆内存，堆也是 Java内存管理的核心区域</p>
+<blockquote>
+<p>一个进程对应一个JVM实例，JVM实例只有一个Runtime，Runtime里面只有堆和方法区是线程公用，所以说的直白了，一个进程只有一个堆</p>
+</blockquote>
+</li>
+<li><p>JVM启动时堆的大小已经确定</p>
+</li>
+<li><p>堆的大小可以调节</p>
+</li>
+<li><p>Java虚拟机规范中规定，堆可以处于物理不连续的内存上，但是逻辑上应视为连续。</p>
+<blockquote>
+<p>如何证明堆是进程唯一的？需要用到一个工具，在 java.bin 目录下，jvisualvm，这个东西可以看到目前的java进程信息，(需要安装一个插件，VisualGC，工具里面就能安装).然后进入 visualGC</p>
+</blockquote>
+</li>
+<li><p>即使整个线程共用一个堆，对内部还是有线程私有的缓冲区，最典型的就是 ThreadLocal，Buffer，TLAB Allocation，很好，目前我都不知道啥意思。</p>
+</li>
+<li><p>几乎所有的对象实例都分配在堆上，注意是几乎，不是所有，随着 JVM 的更新，JVM会进行逃逸检测，栈上也可以村对象了。</p>
+</li>
+<li><p>数组和对象可能永远不会存在栈上，栈帧中保存引用，这个引用指向对象或者数组在堆中的位置。</p>
+<blockquote>
+<p>官网中JVM规范说的是所有，所以引出了下一条</p>
+</blockquote>
+</li>
+<li><p>方法结束后，堆中的对象不会马上被删除，仅仅在垃圾收集的时候才会被删除。</p>
+<blockquote>
+<p>这里解释一下什么意思，一个方法，方法里面有引用，指向堆中的实例，当方法执行完成后，栈帧出栈，这时候引用就没了，就不在指向堆了，这个时候听不会马上GC，因为影响效率，他会在堆满了的时候去进行垃圾收集。</p>
+</blockquote>
+<blockquote>
+<p>这里老师的原话是：出栈后引用为空，很好现在回来看，显然是栈帧出栈，局部变量表停止指向</p>
+</blockquote>
+</li>
+<li><p>堆是GC作用的重点区域。</p>
+</li>
+</ul>
+<h1 id="2-堆空间内存细分"><a href="#2-堆空间内存细分" class="headerlink" title="2. 堆空间内存细分"></a>2. 堆空间内存细分</h1><p>现代垃圾收集器大部分都是基于分带收集论涉及，对空间细分为：</p>
+<ul>
+<li><p>java7 包括之前的JVM 堆内存逻辑上分为 3部分：新生区 + 养老区 + 永久区</p>
+<ul>
+<li><p>Young Generation Space -&gt; 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>又被划分为 Eden 区 和 Survivor 区</p>
+</blockquote>
+</li>
+<li><p>Tenure Generation space -&gt; 养老区 Old&#x2F;Tenure</p>
+</li>
+<li><p>Permanent Space -&gt; 永久区 Perm</p>
+</li>
+</ul>
+</li>
+<li><p>java8 以后堆内存逻辑上分为3部分：新生区 + 养老区 + 元空间</p>
+<ul>
+<li><p>Young Generation Space 新生区 Young&#x2F;New</p>
+<blockquote>
+<p>同理分为 Eden Survivor</p>
+</blockquote>
+</li>
+<li><p>Tenure Generation Space 养老区 Old&#x2F;Tenure</p>
+</li>
+<li><p>Meta Space 元空间 Meta</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>需要注意的是，永久代和元空间其实并不属于 堆，而是属于方法区，所以在这里不细说永久代。 如何证明堆包括元空间和养老代？还是昨天那个工具：Jvisualvm，里面的 visualGC， 里面 三块，enden survivor tenure 加起来 就是你设置的 堆的大小。</p>
+<p>在Java 中分别叫 PSYoungGen&#x3D;新生区 ParOldGen&#x3D;养老区 MetaGen&#x2F;PSPermGen&#x3D;元空间&#x2F;永久区</p>
+<h1 id="3-设置堆空间大小"><a href="#3-设置堆空间大小" class="headerlink" title="3. 设置堆空间大小"></a>3. 设置堆空间大小</h1><ul>
+<li><p>堆的大小在JVM启动的时候就已经设定好了，可以通过 -Xmx 和 -Xms 来设置</p>
+<ul>
+<li><p>-Xms 用来表示堆区的初始内存，等价于： -XX:InitialHeapSize</p>
+</li>
+<li><p>-Xmx 用来表示堆区的最大内存，等价于：-XX:MaxHeapSize</p>
+<blockquote>
+<p>-X 是 JVM 参数，ms &#x3D; memory start</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li><p>一旦堆区的内存大小超过 -Xmx，就会跑出 OutOfMemoryError异常。</p>
+</li>
+<li><p>通常会将-Xms 和 -Xmx配置相同的值，目的就是为了能够在Java垃圾回收机制清理完堆区后 不需要重新分割计算堆区的大小，从而提供性能。</p>
+</li>
+<li><p>默认情况下，初始内存大小：物理电脑内存大小 &#x2F; 64,最大内存：物理电脑内存大小 &#x2F; 4</p>
+</li>
+</ul>
+<h1 id="4-堆的年轻代和老年代"><a href="#4-堆的年轻代和老年代" class="headerlink" title="4. 堆的年轻代和老年代"></a>4. 堆的年轻代和老年代</h1><p>别说话，看图： </p>
+<p><img src="/../images/runtime/HeapOldGenAndYoungGen.png" alt="heap"></p>
+<p>存储在JVM中的Java对象可以分为两类：</p>
+<ul>
+<li><p>生命周期比较短的瞬时对象，创建消亡都非常迅速</p>
+</li>
+<li><p>生命周期比较长，极端情况下和JVM的声明周期一样长</p>
+</li>
+</ul>
+<p>创建出来的对象先放在 年轻代的Eden 区，进行一轮垃圾回收之后，如果是垃圾了，就直接回收了， 如果不是垃圾，说明对象幸存，则放到 survivor0 或者 survivor1 中。</p>
+<blockquote>
+<p>survivor 也叫 from &#x2F; to 区</p>
+</blockquote>
+<h2 id="内存占比"><a href="#内存占比" class="headerlink" title="内存占比"></a>内存占比</h2><p>默认情况下，年轻代和老年代占比 1:2，也就是年轻代占堆的1&#x2F;3，老年代占堆的 2&#x2F;3.能不能手动调整？可以，启动时添加JVM参数：<code>-XX:NewRatio=n</code> 设置年轻代和老年代占比 1:n。当然默认情况下是 <code>-XX:NewRatio=2</code>。但是这个数一般不建议改，除非你确定项目中有很多老对象。</p>
+<p>HotSpot虚拟机中，伊甸园区和幸存者区占比为 8:1:1。同理可以通过启动参数 <code>-XX:survivorRatio=n</code> 来调整。但是需要说一下，其实启动后占比是6:1:1，而不是8:1:1，你要是真想让他8:1:1符合规范，那你设置一下好了。</p>
+<p>几乎所有对象首先都是在Eden区创建，除非这个对象太大了直接放到OldGen，而且大部分对象的销毁都是放在Eden中，有研究表明 80%的对象都是朝生暮死，生命周期很短。如果我们嫌不够的话，可以使用参数 <code>-Xmn</code> 来调整新生代大小.</p>
+<h1 id="5-创建对象的大体流程"><a href="#5-创建对象的大体流程" class="headerlink" title="5. 创建对象的大体流程"></a>5. 创建对象的大体流程</h1><p>前文说道，创建对象一般发生在新生代，那么新生代具体发生了什么，让我们来详细说一说，注意，这里并没有提到类加载器，仅仅是在对重给对象分配内存流程。后面还会详细说一个对象创建具体的流程。</p>
+<h2 id="5-1-流程"><a href="#5-1-流程" class="headerlink" title="5.1 流程"></a>5.1 流程</h2><ol>
+<li><p>在Eden区分配空间，大部分情况都是吧对象分配在eden区，上文也说过，除非这个对象特别大</p>
+</li>
+<li><p>当Eden区满了的时候，出发年轻代的垃圾回收机制，叫 YGC(YoungGC) 或者叫 MinorGC，Eden中已经没有了引用的对象将会被回收，剩下的对象，将会进入 survivor0 或者 survivor1，这里我们先假设 survivor0 和 survivor1 都是空的，再假设 Eden中没有被回收的对象进入了 survivor0.这个时候 survivor0 就叫to区，同时进入 survivor0 的对象有一个年龄计数器，用来记录幸存次数，从 0 变成 1。</p>
+</li>
+<li><p>继续创建对象，放在 Eden中，当Eden再一次满了，再次触发 YGC，这回Eden中的幸存对象将会进入空的那个 survivor，这里空的是 survivor1，年龄计数器变为1，同时 survivor0 中的对象也进行YGC，s0中的幸存者也会进入s1，那么这个时候，s1就叫to区，s0就叫from 区，s区的垃圾回收是 Eden 回收，他也顺带回收一下，如果 s区满了，再说。</p>
+</li>
+<li><p>一直进行这个 Eden + from &#x3D;&gt; to 的过程，同时对象的年龄计数器累加。</p>
+</li>
+<li><p>当一个对象的年龄计数器值达到临界的时候，默认是15，那么就会认为这个对象的生命周期很长，就会把它放入 老年代。这个过程叫提升 ：Promotion</p>
+</li>
+</ol>
+<h2 id="5-2-总结"><a href="#5-2-总结" class="headerlink" title="5.2 总结"></a>5.2 总结</h2><ul>
+<li><p>针对 s区，复制之后有交换，谁空谁是to</p>
+</li>
+<li><p>关于垃圾回收，频繁在 新生代回收，很少在老年代回收，几乎不再永生代(Meta) 回收。</p>
+</li>
+<li><p>再出发 YGC 的时候，Eden区肯定是被清空了</p>
+</li>
+</ul>
+<h2 id="5-3-特殊情况"><a href="#5-3-特殊情况" class="headerlink" title="5.3 特殊情况"></a>5.3 特殊情况</h2><p>看图：</p>
+<p><img src="/../images/runtime/MemoryHandleSpecialCase.png" alt="heap_memory"></p>
+<p>解释一下： 正常流程肯定能看懂，说一点特殊情况：</p>
+<ul>
+<li><p>Eden 放不下了，可能是 Eden 满了，触发 YGC，然后Eden 还是放不下，这个时候Eden肯定是 空了，说明 对象大小超过了 Eden大小，则直接放入 老年代。</p>
+</li>
+<li><p>上面这种情况，如果 老年代也放不下，触发 FGC，还放不下，那完了，抛出 OOM错误。</p>
+</li>
+<li><p>触发YGC的时候，如果 s区放不下，就直接进入老年代。</p>
+</li>
+</ul>
+<h1 id="6-堆垃圾回收"><a href="#6-堆垃圾回收" class="headerlink" title="6. 堆垃圾回收"></a>6. 堆垃圾回收</h1><p>大体来看，Heap 中的 GC 分为 3种：</p>
+<ul>
+<li><p>Young GC &#x2F; MinorGC</p>
+</li>
+<li><p>Full GC</p>
+</li>
+<li><p>Old GC &#x2F; Major GC</p>
+</li>
+</ul>
+<p>根据 HotSpot 虚拟机，按照收集区域又分为两种：部分收集和整堆收集</p>
+<ul>
+<li><p>部分收集：不是完整收集整个Java 堆的收集，其中又分为：</p>
+<ul>
+<li><p>新生代收集 MinorGC&#x2F;YoungGC: 只收集年轻代的垃圾收集</p>
+</li>
+<li><p>老年代收集 MajorGC&#x2F;OldGC： 只收集老年代</p>
+<ul>
+<li><p>目前只有CMS GC会有单独收集老年代的行为</p>
+</li>
+<li><p>很多时候 MajorGC 会和 FullGC 混合使用，需要具体分辨是老年代回收还是整堆回收</p>
+</li>
+</ul>
+</li>
+<li><p>混合回收器 Mixed GC：收集整个新生代和部分老年代的垃圾</p>
+<ul>
+<li>只有G1 GC 有这种行为</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>整堆收集：收集整个 Java 堆 和 方法区 的垃圾，注意，还包括方法区。</p>
+</li>
+</ul>
+<p>下面说一下各个内存部分的垃圾回收触发机制：</p>
+<h2 id="6-1-年轻代触发机制"><a href="#6-1-年轻代触发机制" class="headerlink" title="6.1 年轻代触发机制"></a>6.1 年轻代触发机制</h2><ul>
+<li><p>年轻代空间不足，就会触发minor gc,这里说的空间不足指的是eden空间不足，survivor 满了不会触发 minor gc，只会发生提升。每次回收都会清空年轻代内存。</p>
+</li>
+<li><p>Java 对象大多数申明周期很短，所以minor gc 发生的特别频繁。</p>
+</li>
+<li><p>minor gc 会触发STW，也就是暂停用户线程，等垃圾回收结束，才会恢复用户线程</p>
+</li>
+</ul>
+<h2 id="6-2-老年代回收："><a href="#6-2-老年代回收：" class="headerlink" title="6.2 老年代回收："></a>6.2 老年代回收：</h2><ul>
+<li><p>发生在老年代的垃圾回收，当对象从老年代消失了，我们就认为 major gc 或者 full gc 发生了，</p>
+</li>
+<li><p>发生一次 major gc，一般来说，伴随着至少一次的minor gc，不是绝对的，以后再说。</p>
+<ul>
+<li>也就是当老年代空间不足时，西安出发一次 minor gc，如果空间还不足，触发 major gc</li>
+</ul>
+</li>
+<li><p>major gc 一般比 minor gc 慢10倍以上，stw 时间更长。</p>
+</li>
+<li><p>如果major gc后空间还是不够，抛出 OOM 异常。</p>
+</li>
+</ul>
+<h2 id="6-3-FullGC-触发机制："><a href="#6-3-FullGC-触发机制：" class="headerlink" title="6.3 FullGC 触发机制："></a>6.3 FullGC 触发机制：</h2><ul>
+<li><p>调用 System.gc() 时</p>
+</li>
+<li><p>老年代空间不足</p>
+</li>
+<li><p>方法区空间不足</p>
+</li>
+<li><p>通过 minor gc 后进入老年代的平均大小大于老年代的可用内存</p>
+</li>
+<li><p>eden from 的对象往 to 区复制，to区空间不够，提升到老年代，老年代空间也不够，触发 full gc</p>
+</li>
+<li><p>开发中尽量避免 full gc</p>
+</li>
+</ul>
+<h1 id="7-TLAB"><a href="#7-TLAB" class="headerlink" title="7. TLAB"></a>7. TLAB</h1><p>前文说过TLAB，说是 堆里面有每个线程的私有缓冲区，有 TLAB，ThreadLocal，Buffer，Allocation，其实后面的三个词全都在说 TLAB。</p>
+<h2 id="7-1-TLAB是啥"><a href="#7-1-TLAB是啥" class="headerlink" title="7.1 TLAB是啥"></a>7.1 TLAB是啥</h2><p>ThreadLocal Buffer Allocation： 线程私有缓冲区，用于结局线程安全问题。</p>
+<h2 id="7-2-为什么要设置TLAB"><a href="#7-2-为什么要设置TLAB" class="headerlink" title="7.2 为什么要设置TLAB"></a>7.2 为什么要设置TLAB</h2><p>堆是整个进程共享的一块区域，如果一大堆线程同事访问堆，会造成县城不安全，如果给数据加锁，那效率就太慢了，所以为了提高效率，加入了线程缓冲区。</p>
+<p>JVM给每个线程在 Eden 划分出来一块 TLAB，这种方式解决了线程安全问题，提高了内存分配吞吐量，我们就管这种方式叫“快速分配策略”.</p>
+<p>虽然说不是所有对象都可以分配在 TLAB上，但是TLAB确实是JVM分配对象的首选。TLAB非常小，仅仅占到了 Eden的 1%。</p>
+<p>如果对象在TLAB分配失败，JVM就会考虑给对象加锁，直接把对象放在Eden中。</p>
+<h2 id="7-3-一些参数"><a href="#7-3-一些参数" class="headerlink" title="7.3 一些参数"></a>7.3 一些参数</h2><ul>
+<li><p>-XX:useTLAB 是否开启TLAB，默认开启</p>
+</li>
+<li><p>-XX:TLABWasteTargetPercent 设置TLAB占Eden的百分比。</p>
+</li>
+</ul>
+<h2 id="7-4-对象创建过程"><a href="#7-4-对象创建过程" class="headerlink" title="7.4 对象创建过程"></a>7.4 对象创建过程</h2><p>有了TLAB以后，对象创建流程如下：</p>
+<p><img src="/../images/runtime/TLAB.png" alt="tlab"></p>
+<h2 id="7-5-剩下的"><a href="#7-5-剩下的" class="headerlink" title="7.5 剩下的"></a>7.5 剩下的</h2><p>p81 没好好看，以后可以补一补。</p>
+<h1 id="8-逃逸分析"><a href="#8-逃逸分析" class="headerlink" title="8. 逃逸分析"></a>8. 逃逸分析</h1><p>随着 JIT(编译器) 的发展，逃逸分析技术逐渐成熟，栈上分配，标量替换优化技术 导致技术上有了一点区别，那就是 堆上分配对象不再那么绝对了。</p>
+<p>大部分情况下，一个对象在堆上分配空间，但是在某些特殊情况下，这个对象经过了逃逸分析，发现这个方法并没有逃离方法，那么这个对象就有可能在栈上分配空间。</p>
+<p>但是提一句，HotSpot虚拟机可是没有逃逸分析里面的部分功能的，比如栈上分配这个，HotSpot就没有。</p>
+<h2 id="8-1-逃逸分析概述"><a href="#8-1-逃逸分析概述" class="headerlink" title="8.1 逃逸分析概述"></a>8.1 逃逸分析概述</h2><p>逃逸分析干嘛的？就是用来优化内存分配的，我们前面说对象都要分配到堆上，但是堆上涉及到GC，而栈却不涉及GC，所以可不可以把对象存到栈上，然后方法执行完成直接弹栈，省的GC了。所以这个就是逃逸分析要干的事，分配一个对象，就要看这个对象有没有发生逃逸，如果发生逃逸，也就是这个对象跑出了当前方法作用域，那么发生逃逸，该咋办咋办，如果没有，则可以进行优化。就可以把这个对象放到栈上。</p>
+<ul>
+<li><p>通过逃逸分析，Java Hotspot 编译器能够分析一个对象的引用从而决定这个对象是否分配到栈上。</p>
+</li>
+<li><p>逃逸分析的基本行为就是分析对象的作用域：</p>
+<ul>
+<li><p>一个对象被定义后，如果只在方法中调用，那么没有发生逃逸。</p>
+</li>
+<li><p>对象被定义后，方法外也引用了它，则发生了逃逸。比如方法中创建的对象最后被return了。</p>
+</li>
+</ul>
+</li>
+<li><p>没有发生逃逸，则对象可以分配到栈上，毕竟别的地方不用，方法执行完，栈帧出栈，对象也跟着出栈。</p>
+</li>
+<li><p>发生逃逸，那就老老实实往堆上分配。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 这种情况下，user 对象仅仅在方法内部被调用，则没有逃逸，往栈上分配就行了  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    user = <span class="literal">null</span>;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 这种情况，StringBuffer 最终被return，发生了逃逸。  </span></span><br><span class="line"><span class="keyword">public</span> StringBuffer <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">buffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    buffer.append(a);  </span><br><span class="line">    buffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> buffer;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面的 StringBuffer 改成这种，就不会发生逃逸  </span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">getString</span><span class="params">(String a, String b)</span>&#123;  </span><br><span class="line">    <span class="type">StringBuffer</span> <span class="variable">stringBuffer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuffer</span>();  </span><br><span class="line">    stringBuffer.append(a);  </span><br><span class="line">    stringBuffer.append(b);  </span><br><span class="line">    <span class="keyword">return</span> stringBuffer.toString();  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数如下：</strong></p>
+<ul>
+<li><p>-XX:-DoEscapeAnalysis 关闭逃逸分析</p>
+</li>
+<li><p>-XX:+DoEscapeAnalysis 开启逃逸分析</p>
+</li>
+</ul>
+<h2 id="8-2-逃逸分析：代码优化"><a href="#8-2-逃逸分析：代码优化" class="headerlink" title="8.2 逃逸分析：代码优化"></a>8.2 逃逸分析：代码优化</h2><p>总的来说，可以通过逃逸分析干好多事，上面那个，仅仅是一个 栈上分配。</p>
+<p>逃逸检测的优化：</p>
+<ul>
+<li><p>栈上分配</p>
+</li>
+<li><p>同步省略</p>
+</li>
+<li><p>分离对象&#x2F;标量替换</p>
+</li>
+</ul>
+<h3 id="8-2-1-栈上分配"><a href="#8-2-1-栈上分配" class="headerlink" title="8.2.1 栈上分配"></a>8.2.1 栈上分配</h3><p>就是前面说的，站上分配对象，如果实体仅仅在方法内部使用没有进入外部，则对象会被分配到栈上。</p>
+<h3 id="8-2-2-同步省略"><a href="#8-2-2-同步省略" class="headerlink" title="8.2.2 同步省略"></a>8.2.2 同步省略</h3><p>如果一个对象仅在一个线程中使用，或者说，一个对象只能从一个线程中被访问，那么对于这个对象的操作就不考虑同步。</p>
+<ul>
+<li><p>线程同步的代价是很高的。</p>
+</li>
+<li><p>在动态编译同步代码块的时候，如果JIT 检测到一个对象仅仅在一个线程中被访问，而没有发布到其他线程，则运行时 JVM 就会取消对这个对象进行上锁，大大的提高效率，这就叫 锁消除。</p>
+</li>
+</ul>
+<p>举个例子：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">User</span> <span class="variable">user</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>();  </span><br><span class="line">    <span class="keyword">synchronized</span>(user)&#123;  </span><br><span class="line">        System.out.println(user);  </span><br><span class="line">   &#125;  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 上面这种情况，user 对象仅仅在一个线程中被访问，并没有多个线程共享，所以几遍你给他加了锁，  </span></span><br><span class="line"><span class="comment">// JVM也不会执行，但是废话，这种情况，本来我们就不应该加锁。</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-2-3分离对象或标量替换"><a href="#8-2-3分离对象或标量替换" class="headerlink" title="8.2.3分离对象或标量替换"></a>8.2.3分离对象或标量替换</h3><p>有的对象可能不需要作为一个连续的内存结构存入到内存中，而且也可以被访问到。那么这部分对象的部分(甚至全部) 就可以存到 CPU的寄存器中。</p>
+<p>用Java 说，就是这个对象不用存在 堆中，那就可以放到 栈 中。这里还需要解释几个概念：</p>
+<p><strong>标量</strong></p>
+<p>无法被分解成更小的数据，比如基本数据类型。</p>
+<p><strong>对应聚合量</strong></p>
+<p>还可以被分解的对象就是聚合量，比如我们自己写的类的实例。</p>
+<p><strong>标量替换</strong></p>
+<p>如果经过逃逸分析，发现你目前的对象没有在方法外面使用，他就会把你的聚合量，分解为几个标量，这个过程就叫标量替换。</p>
+<p>说白了，就是吧对象打散了，分配到栈上。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">Point</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Point</span>();  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + p.x + <span class="string">&quot; Point.y=&quot;</span> + p.y);  </span><br><span class="line">&#125;  </span><br><span class="line">​  </span><br><span class="line"><span class="comment">// 最终这个东西会被优化成  </span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">()</span>&#123;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">x</span> <span class="operator">=</span> <span class="number">1</span>;  </span><br><span class="line">    <span class="type">int</span> <span class="variable">y</span> <span class="operator">=</span> <span class="number">2</span>;  </span><br><span class="line">    System.out.println(<span class="string">&quot;Point.x=&quot;</span> + x + <span class="string">&quot; Point.y=&quot;</span> + y);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>-XX:+EliminateAllocation 开启标量替换，默认就是开启的。</p>
+<h2 id="8-3-总结"><a href="#8-3-总结" class="headerlink" title="8.3 总结"></a>8.3 总结</h2><p>大体说几点：</p>
+<ul>
+<li><p>逃逸分析并不成熟</p>
+</li>
+<li><p>逃逸分析本身也消耗性能，如果分析了半天，结果发现都逃逸了，那完犊子了</p>
+</li>
+<li><p>Oracle HotSpot 并没有栈上分配，所以肯定对象都在堆上</p>
 </li>
 </ul>
 ]]></content>
