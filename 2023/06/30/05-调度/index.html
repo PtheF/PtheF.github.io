@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false,"b2t":true,"scrollpercent":20},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="1. 调度概念有一堆任务要处理，但是由于资源有限，这些事情没法同时处理。这就需要确定某种规则来决定处理这些任务的顺序，这就是”调度“研究的问题。 2. 调度三层次2.1 高级调度也叫作业调度，作业就是一个具体的任务，用户向系统提交一个作业 约等于 用户让操作系统启动一个程序（来处理一个具体的任务），这个时候这个程序还在磁盘里面呢。所以高级调度是从磁盘到内存的调度。 我们要启动好几个程序，就需要">
+  <meta name="description" content="调度">
 <meta property="og:type" content="article">
 <meta property="og:title" content="05.调度">
 <meta property="og:url" content="http://example.com/2023/06/30/05-%E8%B0%83%E5%BA%A6/index.html">
 <meta property="og:site_name" content="PtheF-Hexo-Blog">
-<meta property="og:description" content="1. 调度概念有一堆任务要处理，但是由于资源有限，这些事情没法同时处理。这就需要确定某种规则来决定处理这些任务的顺序，这就是”调度“研究的问题。 2. 调度三层次2.1 高级调度也叫作业调度，作业就是一个具体的任务，用户向系统提交一个作业 约等于 用户让操作系统启动一个程序（来处理一个具体的任务），这个时候这个程序还在磁盘里面呢。所以高级调度是从磁盘到内存的调度。 我们要启动好几个程序，就需要">
+<meta property="og:description" content="调度">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://gitee.com/pthef/imgrepo/raw/master/20230618103739.png">
 <meta property="og:image" content="https://gitee.com/pthef/imgrepo/raw/master/20230618103931.png">
@@ -49,7 +49,7 @@
 <meta property="og:image" content="https://gitee.com/pthef/imgrepo/raw/master/20230618155620.png">
 <meta property="og:image" content="https://gitee.com/pthef/imgrepo/raw/master/20230618163040.png">
 <meta property="article:published_time" content="2023-06-30T03:06:18.000Z">
-<meta property="article:modified_time" content="2023-06-30T03:13:39.278Z">
+<meta property="article:modified_time" content="2023-06-30T03:18:47.669Z">
 <meta property="article:author" content="PtheF">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://gitee.com/pthef/imgrepo/raw/master/20230618103739.png">
@@ -240,7 +240,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2023-06-30 11:06:18 / 修改时间：11:13:39" itemprop="dateCreated datePublished" datetime="2023-06-30T11:06:18+08:00">2023-06-30</time>
+              <time title="创建时间：2023-06-30 11:06:18 / 修改时间：11:18:47" itemprop="dateCreated datePublished" datetime="2023-06-30T11:06:18+08:00">2023-06-30</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -263,7 +263,8 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <span id="more"></span>
+        <p>调度</p>
+<span id="more"></span>
 
 <h1 id="1-调度概念"><a href="#1-调度概念" class="headerlink" title="1. 调度概念"></a>1. 调度概念</h1><p>有一堆任务要处理，但是由于资源有限，这些事情没法同时处理。这就需要确定<strong>某种规则</strong>来决定处理这些任务的顺序，这就是”调度“研究的问题。</p>
 <h1 id="2-调度三层次"><a href="#2-调度三层次" class="headerlink" title="2. 调度三层次"></a>2. 调度三层次</h1><h2 id="2-1-高级调度"><a href="#2-1-高级调度" class="headerlink" title="2.1 高级调度"></a>2.1 高级调度</h2><p>也叫作业调度，作业就是一个具体的任务，用户向系统提交一个作业 约等于 用户让操作系统启动一个程序（来处理一个具体的任务），这个时候这个程序还在磁盘里面呢。所以高级调度是从磁盘到内存的调度。</p>
